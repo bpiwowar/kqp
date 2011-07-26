@@ -3,8 +3,7 @@ THANKS
 
 * Eigen - http://eigen.tuxfamily.org
 
-
 COMPILING
 =========
 
-Remember to enable OpenMP (-fopenmp in most compilers) in order to benefit from multithreading
+Remember to enable OpenMP (-fopenmp in most compilers) in order to benefit from multithreading...

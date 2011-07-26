@@ -92,6 +92,13 @@ namespace kqp {
          * EVD decomposed form
          */
         Eigen::DiagonalMatrix<double, Eigen::Dynamic> mS;
+        
+        //! Is the decomposition othonormal, i.e. is Y^T X^T X Y the identity?
+        bool orthonormal;
+        
+        //! Is the decomposition an observable, i.e. all the non null eigenvalues equal 1?
+        bool observable;
+         
     };
     
     template <typename scalar, class F> class Density;

@@ -160,10 +160,12 @@ namespace kqp {
     };
     
     /**
-     * Abstract definition of a density computation
+     * Abstract definition of a thin decomposition of a hermitian operator
      * 
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      *
+     * @param <scalar>
+     *            The scalar type
      * @param <F>
      *            The type of the base vectors in the original space
      */

@@ -7,7 +7,9 @@ OPTION(JAVA_KQP "Build kqp JNI library" ON)
 FIND_PACKAGE(Boost)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
+set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
 add_library (kqp src/fastRankOneUpdate.cpp src/kernel_evd.cpp src/kqp.cpp src/probabilities.cpp) 
+
 
 # --- Galahad
 
@@ -20,7 +22,8 @@ if (JAVA_KQP)
   FIND_PACKAGE(SWIG REQUIRED)
   INCLUDE(${SWIG_USE_FILE})
 
-  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory src sf/net/kqp)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory src)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory sf/net/kqp)
   
   include_directories(${JNI_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
