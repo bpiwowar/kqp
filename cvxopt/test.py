@@ -4,23 +4,27 @@
 #
 # Preliminar to implementation in C++
 #
-from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div
+from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc
 
 
 printing.options['dformat'] = '%.1f'
 printing.options['width'] = 15
 
 
+# n is the number of vectors used to build the basis
+# r is the rank (number of basis vectors)
+# [Note that n >= r]
+
 choice = "random"
 
 if choice == "random":
     # Builds up a random example
-    n = 100
-    r = 50
+    n = 3
+    r = 2
     k = 1000
     Lambda = 0.1
 
-    vectors = uniform(r, n)
+    vectors = uniform(k, n)
     g = vectors.T * vectors
 
     a = uniform(n * r)
@@ -76,7 +80,30 @@ G = sparse([ [ -id_nr, id_nr ], [id_col, id_col ] ])
 h = matrix(0., (2*n*r,1))
 
 
+dims = {"l": h.size[0], "q": 0, "s": 0}
+
 # --- Custom
+
+chol2 = misc.kkt_chol2(G, dims, spmatrix([], [], [], (0, q.size[0])))
+
+def Fchol2(W):
+
+    """
+    Uses the Cholesky factorisation, in order to see how the 
+    optimisation works
+    """
+    
+    solve = chol2(W,P)
+	
+#    di = W['di']
+    print W['di']
+    
+    def f(x, y, z):
+        print "** SOLVING KKT **"
+        return solve(x,y,z)
+
+    return f
+
 
 def F(W):
 
@@ -115,11 +142,19 @@ def F(W):
 
     return f
 
+# --- Init values (x, s and y, z)
+
+initvals = 
 
 # --- Solving 
 
-print "Solving system..."
-x = solvers.coneqp(P, q, G, h, kktsolver=F)['x']
-if (n * r < 10): print x
+print "   [[[Solving system...]]]"
+sol=solvers.coneqp(P, q, G, h, kktsolver=Fchol2)
+print sol['status']
+if (n * r < 10): print sol['x']
+
+print "\n\n   [[[Solving with default]]]"
+sol = solvers.coneqp(P, q, G, h)
+print sol['status']
 
 print "Done"
