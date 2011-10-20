@@ -160,7 +160,9 @@ namespace kqp {
     };
     
     /**
-     * Abstract definition of a thin decomposition of a hermitian operator
+     * Builds a compact representation of an hermitian operator. 
+     *
+     * Computes \f$ \mathfrak{U} = \sum_{i} \alpha_i \mathcal U A A^\top \mathcal U ^ \top   \f$
      * 
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      *

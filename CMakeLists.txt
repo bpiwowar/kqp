@@ -8,7 +8,7 @@ FIND_PACKAGE(Boost)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
 set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
-add_library (kqp src/fastRankOneUpdate.cpp src/kernel_evd.cpp src/kqp.cpp src/probabilities.cpp) 
+add_library (kqp src/coneprog.cpp src/fastRankOneUpdate.cpp src/fastRankOneUpdate.h src/kernel_evd.cpp src/kernel_evd.h src/kqp.cpp src/kqp.h src/probabilities.cpp src/probabilities.h)
 
 
 # --- Galahad

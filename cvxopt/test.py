@@ -4,7 +4,7 @@
 #
 # Preliminar to implementation in C++
 #
-from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc
+from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc, lapack, blas
 
 
 printing.options['dformat'] = '%.1f'
@@ -19,14 +19,21 @@ choice = "random"
 
 if choice == "random":
     # Builds up a random example
-    n = 3
-    r = 2
-    k = 1000
+    n = 50
+    r = 4
     Lambda = 0.1
 
-    vectors = uniform(k, n)
-    g = vectors.T * vectors
+    # Construct an n * n positive definite matrix by computing a lower
+    # triangular matrix with positive diagonal entries
+    
+    A = uniform(n, n)
+    for i in range(n):
+        A[i,i] = abs(A[i,i])+0.3
+        for j in range(i+1,n): A[i,j] = 0
 
+    g = A * A.T
+    mA = +g
+    
     a = uniform(n * r)
     
 elif choice == "simple-1":
@@ -43,6 +50,8 @@ else:
 
 
 # n is the number of feature vectors
+# r is the number of basis vectors
+# a is the list of 
 # Lambda is the regularisation coefficient
 # Gram matrix g (size n x n)
 # the coefficients a (size nr x 1)
@@ -87,7 +96,6 @@ dims = {"l": h.size[0], "q": 0, "s": 0}
 chol2 = misc.kkt_chol2(G, dims, spmatrix([], [], [], (0, q.size[0])))
 
 def Fchol2(W):
-
     """
     Uses the Cholesky factorisation, in order to see how the 
     optimisation works
@@ -96,7 +104,7 @@ def Fchol2(W):
     solve = chol2(W,P)
 	
 #    di = W['di']
-    print W['di']
+#    print W['di']
     
     def f(x, y, z):
         print "** SOLVING KKT **"
@@ -105,16 +113,69 @@ def Fchol2(W):
     return f
 
 
+mA = None
+
 def F(W):
 
     """
     Returns a function f(x, y, z) that solves the KKT conditions
 
     """
+    global mA
+    
+    if mA is None:
+        # Copy A and compute the Cholesky decomposition
+        print "# Computing the cholesky decomposition of P"
+        mA = +g
+        lapack.potrf(mA)
+        A = mA
+        
+        print "# Computing the B in B A.T = Id"
+        B = matrix(id_n, (n,n))
+        lapack.potrs(A, B)
 
+
+    U = W['di'][0:n*r] ** 2
+    V = W['di'][n*2+1:2*n*r]  ** 2
+  
+    print "# Computing L22"
+    BBT = B * B.T
+    L22 = []
+    for i in range(r):
+        print "i = %d" % i
+        BBTi = BBT + spmatrix(U[i*n:(i+1)*n] ,range(n),range(n))
+        lapack.potrf(BBTi)
+        L22.append(BBTi)
+
+    print "# Computing L32"
+    L32 = []
+    for i in range(r):
+        pass
+    
+    print "# Computing L33"
+    L33 = []
+    for i in range(r):
+        pass
+
+    print "# Computing L42"
+    L42 = []
+    for i in range(r):
+        pass
+    
+    print "# Computing L43"
+    L43 = []
+    for i in range(r):
+        pass
+
+    print "# Computing L44"
+    L33 = []
+    for i in range(r):
+        pass
+  
+    print "## PRE-COMPUTATION DONE ##"
+    
     # Factor A = 4*P'*D*P where D = d1.*d2 ./(d1+d2) and
     # d1 = di[:m].^2, d2 = di[m:].^2.
-    di = W['di']
     
     mC, mD = di[0:n*r]**2, di[n*r:2*n*r]**2
 
@@ -130,31 +191,22 @@ def F(W):
         c = z[0:n*r]
         d = z[n*r: 2*n*r]
 
-        # Computes f = a + C c  - D d
-        f = a + mul(mC, c) - mul(mD, d)
-
-        # Maps back and 
-        # x = bx by
-        # z = W (bz bt)
-
-        # x = [bx by]
-        # z[m:] = mul(di[m:], bz bt)
-
+        # Computes the Cholesky decomposition of K
     return f
 
 # --- Init values (x, s and y, z)
 
-initvals = 
+# initvals = 
 
 # --- Solving 
 
-print "   [[[Solving system...]]]"
+print "   [[[Solving system with default...]]]"
 sol=solvers.coneqp(P, q, G, h, kktsolver=Fchol2)
 print sol['status']
 if (n * r < 10): print sol['x']
 
-print "\n\n   [[[Solving with default]]]"
-sol = solvers.coneqp(P, q, G, h)
+print "\n\n   [[[Solving with optimised]]]"
+sol = solvers.coneqp(P, q, G, h, kktsolver=F)
 print sol['status']
 
 print "Done"

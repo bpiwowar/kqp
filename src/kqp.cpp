@@ -19,7 +19,9 @@ double kqp::EPSILON = 1e-15;
  @author B. Piwowarski
  @date May 2011
  
- This project aims at providing an API that allows to compute quantum densities or subspaces, 
- quantum probabilities and conditionalisation.
-  
- */
+ This project aims at providing an API that allows to compute quantum densities (semi-definite positive hermitian operators) 
+ or events (subspaces). It provides tools to compute quantum probabilities and update densities (conditionalisation), and 
+ supports the use of kernels to implicitely define the space, thus allowing working in very high dimensional spaces. 
+
+ This project is <a href="http://sourceforge.net/projects/kqp/">hosted on SourceForge</a>.
+*/
