@@ -18,9 +18,9 @@ printing.options['width'] = 15
 choice = "random"
 
 if choice == "random":
-    # Builds up a random example
-    n = 50
-    r = 4
+    # Bulds up a random example
+    n = 30
+    r = 10
     Lambda = 0.1
 
     # Construct an n * n positive definite matrix by computing a lower
@@ -113,71 +113,95 @@ def Fchol2(W):
     return f
 
 
-mA = None
+cholK = None
 
+# Clean-up the upper triangular
+def makeLT(M):
+    N = M.size
+    for i in range(N[0]):
+        for j in range(i+1, N[1]):
+            M[i,j] = 0
+
+def cholesky(A):
+    """ Cholesky with clean-up """
+    lapack.potrf(A)
+    makeLT(A)
+                             
 def F(W):
 
     """
     Returns a function f(x, y, z) that solves the KKT conditions
 
     """
-    global mA
-    
-    if mA is None:
+    global cholK
+
+    if cholK is None:
         # Copy A and compute the Cholesky decomposition
         print "# Computing the cholesky decomposition of P"
-        mA = +g
-        lapack.potrf(mA)
-        A = mA
+        cholK = +g
+        cholesky(cholK)
         
-        print "# Computing the B in B A.T = Id"
+        print "# Computing the B in B A.T = Id (L21 and L31)"
         B = matrix(id_n, (n,n))
-        lapack.potrs(A, B)
+        lapack.potrs(cholK, B)
+
+        print "# Computing B B^T"
+        BBT = B * B.T
 
 
     U = W['di'][0:n*r] ** 2
     V = W['di'][n*2+1:2*n*r]  ** 2
   
     print "# Computing L22"
-    BBT = B * B.T
     L22 = []
     for i in range(r):
-        print "i = %d" % i
         BBTi = BBT + spmatrix(U[i*n:(i+1)*n] ,range(n),range(n))
-        lapack.potrf(BBTi)
+        cholesky(BBTi)
         L22.append(BBTi)
 
     print "# Computing L32"
     L32 = []
     for i in range(r):
-        pass
+        # Solves L32 . L22 = - B . B^\top
+        B = -BBT
+        blas.trsm(L22[i], B, side='R', transA='T')
+        L32.append(B)
     
     print "# Computing L33"
     L33 = []
     for i in range(r):
-        pass
-
+        A = V[i]  + BBT - L32[i] * L32[i].T 
+        cholesky(A)
+        L33.append(A)
+        
     print "# Computing L42"
     L42 = []
     for i in range(r):
-        pass
+        A = +L22[i].T
+        lapack.trtri(A)
+        L42.append(A)
     
     print "# Computing L43"
     L43 = []
     for i in range(r):
-        pass
+        A =  L42[i] * L32[i].T + id_n
+        blas.trsm(L33[i], A, side='R', transA='T')
+        L43.append(A)
 
-    print "# Computing L44"
-    L33 = []
+    print "# Computing L44 and D4"
+
+    
+    # The indices for the diagonal of a dense matrix
+    L44 = matrix(0, (n,n))
     for i in range(r):
-        pass
-  
+        L44 = L44 + L43[i] * L43[i].T + L42[i] * L42[i].T
+   
+    cholesky(L44)
+
+    # WARNING: y and t have been permuted (LD33 and LD44piv)
     print "## PRE-COMPUTATION DONE ##"
     
-    # Factor A = 4*P'*D*P where D = d1.*d2 ./(d1+d2) and
-    # d1 = di[:m].^2, d2 = di[m:].^2.
     
-    mC, mD = di[0:n*r]**2, di[n*r:2*n*r]**2
 
     def f(x, y, z):
         """
@@ -186,12 +210,58 @@ def F(W):
         """
 
         # Maps to our variables x,y,z and t
-        a = x[0:n*r]
-        b = x[n*r:n*r + n]
-        c = z[0:n*r]
-        d = z[n*r: 2*n*r]
+        a = []
+        b = -x[n*r:n*r + n]
+        c = []
+        d = []
+        for i in range(r):
+            a.append(x[i*n:(i+1)*n])
+            c.append(z[i*n:(i+1)*n])
+            d.append(z[(i+r)*n:(i+r+1)*n])
+        
+        # First phase
+        for i in range(r):
+            blas.trsm(cholK, a[i])
 
-        # Computes the Cholesky decomposition of K
+            Bai = B * a[i]
+            
+            c[i] = Bai - c[i]
+            blas.trsm(L22[i], c[i])
+
+            d[i] = Bai - d[i] - L32[i] * c[i]
+            blas.trsm(L33[i], d[i])
+
+            b = b + L42[i] * c[i] + L43[i] * d[i]
+            
+        blas.trsm(L44, b)
+
+        # Second phase
+        blas.trsm(L44, b, transA='T')
+        
+        for i in range(r):
+            d[i] = d[i] - L43[i].T * b
+            blas.trsm(L33[i], d[i], transA='T')
+
+            c[i] = c[i] - L32[i].T * d[i] - L42[i].T * b
+            blas.trsm(L22[i], c[i], transA='T')
+
+            a[i] = a[i] + B.T * (c[i] - d[i])
+
+        # Store in vectors and scale
+        x[n*r:n*r + n] = b
+        for i in range(r):
+            x[i*n:(i+1)*n] = a[i]
+
+            # Normalise
+            for j in range(n):
+                c[i][j] = c[i][j] / U[i*n+j]
+                d[i][j] = d[i][j] / V[i*n+j]
+                
+            z[i*n:(i+1)*n] = c[i]
+            z[(i+r)*n:(i+r+1)*n] = d[i]
+
+        print "Done"
+        
     return f
 
 # --- Init values (x, s and y, z)
