@@ -1,11 +1,3 @@
-//
-//  kernel_evd.cpp
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 23/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
-
 #include "kernel_evd.h"
 
 using namespace kqp;

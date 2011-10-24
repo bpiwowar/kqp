@@ -1,10 +1,3 @@
-//
-//  kqp.h
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 26/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
 
 #ifndef __KQP_H__
 #define __KQP_H__
@@ -41,6 +34,9 @@ namespace kqp {
     
     /** Illegal operation */
     class illegal_operation_exception : public virtual exception {};
+
+    /** Not implemented */
+    class not_implemented_exception : public virtual exception {};
 
 }
 

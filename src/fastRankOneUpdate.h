@@ -1,11 +1,3 @@
-//
-//  fastRankOneUpdate.h
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 10/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
-
 #ifndef __KQP_FASTRANKONEUPDATE_H__
 #define __KQP_FASTRANKONEUPDATE_H__
 
@@ -32,6 +24,9 @@ namespace kqp {
         Eigen::MatrixXd mQ;
 	};
     
+    /**
+     * A list of eigenvalues that can be edited
+     */
     class EigenList {
     public:
         virtual ~EigenList();
@@ -62,6 +57,9 @@ namespace kqp {
 		virtual bool isSelected(size_t i) const = 0;
 	};
     
+    /**
+     * Gets an eigenlist and removes whatever eigenvalues it does not like
+     */
     class Selector {
     public:
         /**
@@ -72,6 +70,9 @@ namespace kqp {
 
     };
     
+    /**
+     * Fast rank one update of an EVD
+     */
     class FastRankOneUpdate {
         /**
          * Used for deflation

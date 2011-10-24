@@ -1,11 +1,3 @@
-//
-//  kqp.cpp
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 26/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
-
 #include "kqp.h"
 
 using namespace kqp;
@@ -24,4 +16,38 @@ double kqp::EPSILON = 1e-15;
  supports the use of kernels to implicitely define the space, thus allowing working in very high dimensional spaces. 
 
  This project is <a href="http://sourceforge.net/projects/kqp/">hosted on SourceForge</a>.
+*/
+
+
+
+/**
+ @page Main classes
+ @author B. Piwowarski
+ @date October 2011
+ 
+ There are three main modules:
+ - \ref FeatureMatrix "Feature matrices" are used to represent a set of feature vector. In a finite vectorial space, this is typically a matrix. 
+ - \ref OperatorBuilder "Operator builders" are the classes that compute a thin representations of (kernel) linear operators, based on a single type of feature matrix;
+ - \ref Probabilities "Probabilities" can then be computed from built operators (they both define events and quantum probability densities).
+ 
+*/
+
+
+
+/**
+ @defgroup FeatureMatrix Feature matrices
+ 
+ Feature matrices are used to represent a set of feature vector. In a finite vectorial space, this is typically a matrix.
+ 
+*/
+
+/**
+ @defgroup OperatorBuilder Building kernel linear operators
+
+*/
+
+/**
+ @defgroup Probabilities Computing quantum probabilities
+ 
+ 
 */

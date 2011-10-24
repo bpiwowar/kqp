@@ -1,11 +1,3 @@
-//
-//  fastRankOneUpdate.cpp
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 10/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
-
 #include <algorithm>
 #include <bitset>
 #include <vector>

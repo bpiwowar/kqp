@@ -1,12 +1,6 @@
 /**
  * This module defines kernel quantum probabilities classes
  */
-//
-//  probabilities.h
-//  kqp
-//
-//  (c) Benjamin Piwowarski on 26/05/2011.
-//
 
 
 
@@ -18,7 +12,7 @@
 
 namespace kqp {
     /**
-     * Common class shared by fuzzy subspaces and densities
+     * Common class shared by (fuzzy) subspaces and densities
      * 
      * <p>
      * The underlying density/subspace is represented by
@@ -48,7 +42,7 @@ namespace kqp {
          * @param evd
          * @param copy If the object should be copied (safer, but slower)
          */
-         KernelOperator(const DensityBuilder<scalar, F>& evd, bool copy);
+         KernelOperator(const OperatorBuilder<scalar, F>& evd, bool copy);
         
         /**
          * Creates a one dimensional eigen-decomposition representation
@@ -111,13 +105,13 @@ namespace kqp {
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      * 
      */
-    template <typename scalar, class F> class Subspace : public KernelOperator<scalar, F>  {
+    template <typename scalar, class F> class Event : public KernelOperator<scalar, F>  {
     public:        
         /**
-         * Construct a Subspace from a kernel EVD. See
-         * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(DensityBuilder, bool)}
+         * Construct a Event from a kernel EVD. See
+         * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(OperatorBuilder, bool)}
          */
-        Subspace(const DensityBuilder<scalar, F> &evd, bool deepCopy);  
+        Event(const OperatorBuilder<scalar, F> &evd, bool deepCopy);  
         
         friend class Density<scalar, F>;
     };
@@ -138,7 +132,7 @@ namespace kqp {
          * @param evd
          * @param deepCopy
          */
-        Density(const DensityBuilder<scalar, F>& evd, bool deepCopy);
+        Density(const OperatorBuilder<scalar, F>& evd, bool deepCopy);
         
         /**
          * Compute the probability of an event
@@ -150,7 +144,7 @@ namespace kqp {
          *            dimension is weighted by the corresponding sigma
          * @return The probability
          */
-        double computeProbability(const Subspace<scalar, F>& subspace,
+        double computeProbability(const Event<scalar, F>& subspace,
                                   bool fuzzyEvent) const;
         
         /**
@@ -175,7 +169,7 @@ namespace kqp {
          * @return A matrix where each row correspond to one dimension of the density, 
          *         and each column to one dimension of the subspace
          */
-        Matrix getProbabilityMatrix(const Subspace<scalar, F>& subspace,
+        Matrix getProbabilityMatrix(const Event<scalar, F>& subspace,
                                                    bool fuzzyEvent) const;        
         /**
          * Get the matrix v^T * (U x S) where U is the basis and S is the square

@@ -33,9 +33,12 @@ namespace kqp {
     };
         
     /**
+     * @brief Base for all feature matrix classes
+     * 
      * This class holds a list of vectors whose exact representation might not be
      * known. All sub-classes must implement basic list operations (add, remove).
      * 
+     * @ingroup FeatureMatrix
      * @param scalar A valid scalar (float, double, std::complex)
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
@@ -127,7 +130,8 @@ namespace kqp {
 };
     
     /**
-     * A class where vectors know how to multiply themselves, i.e. the function kqp::k(a,b) returns a scalar
+     * @brief A class where vectors know how to multiply themselves, i.e. the function kqp::k(a,b) returns a scalar
+     * @ingroup FeatureMatrix
      * @param If there exists a combiner
      */
     template <typename scalar, class F> class FeatureList : public FeatureMatrix<scalar, F> {
@@ -140,7 +144,8 @@ namespace kqp {
     
     
     /**
-     * Case where the feature vectors are dense vectors
+     * @brief Case where the feature vectors are dense vectors
+     * @ingroup FeatureMatrix
      */
     template <typename scalar> class ScalarMatrix : public FeatureMatrix<scalar, Eigen::Matrix<scalar, Dynamic, 1> > {
         typedef Eigen::Matrix<scalar, Dynamic, Dynamic> Matrix;
@@ -171,7 +176,7 @@ namespace kqp {
      * @param <F>
      *            The type of the base vectors in the original space
      */
-    template <typename scalar, class F> class DensityBuilder {
+    template <typename scalar, class F> class OperatorBuilder {
         
     public:
         typedef FeatureMatrix<scalar, F> List;
@@ -209,7 +214,7 @@ namespace kqp {
     /**
      * Direct computation of the density
      */
-    template <typename scalar, class F> class DirectBuilder : public DensityBuilder<scalar, F> {
+    template <typename scalar, class F> class DirectBuilder : public OperatorBuilder<scalar, F> {
     public:
         virtual void add(double alpha, const F &v);
     };

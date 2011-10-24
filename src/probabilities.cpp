@@ -1,16 +1,8 @@
-//
-//  probabilities.cpp
-//  kqp
-//
-//  Created by Benjamin Piwowarski on 26/05/2011.
-//  Copyright 2011 University of Glasgow. All rights reserved.
-//
-
 #include "probabilities.h"
 
 using namespace kqp;
 
-template <typename scalar, class F> KernelOperator<scalar,F>::KernelOperator(const DensityBuilder<scalar,F>& evd, bool copy)
+template <typename scalar, class F> KernelOperator<scalar,F>::KernelOperator(const OperatorBuilder<scalar,F>& evd, bool copy)
 {
     mX = copy ? evd.getX() : evd.getX().copy();
     mY.noalias() = (evd.getY() * evd.getZ()).eval();
@@ -27,12 +19,12 @@ template<typename scalar, class F> size_t KernelOperator<scalar, F>::getRank() c
 
 
 
-template<typename scalar, class F> Density<scalar,F>::Density(const DensityBuilder<scalar, F>& evd, bool copy) {
+template<typename scalar, class F> Density<scalar,F>::Density(const OperatorBuilder<scalar, F>& evd, bool copy) {
     super(evd, copy);
 }
 
 
-template<typename scalar, class F> double Density<scalar,F>::computeProbability(const Subspace<scalar, F> &subspace,
+template<typename scalar, class F> double Density<scalar,F>::computeProbability(const Event<scalar, F> &subspace,
                                        bool fuzzyEvent) const {
     Matrix result = getProbabilityMatrix(subspace, fuzzyEvent);
 
@@ -43,7 +35,7 @@ template<typename scalar, class F> double Density<scalar,F>::computeProbability(
 
 
 template<typename scalar, class F> typename Density<scalar,F>::Matrix 
-Density<scalar,F>::getProbabilityMatrix(const Subspace<scalar, F> &subspace,
+Density<scalar,F>::getProbabilityMatrix(const Event<scalar, F> &subspace,
                                            bool fuzzyEvent) const {
     // Compute Y_s^T (P) Y_d S_d
     Matrix mP = subspace.mY.transpose() * subspace.mX.computeInnerProducts(this->mX) * this->mY * this->mS;
