@@ -4,8 +4,8 @@
 #
 # Preliminar to implementation in C++
 #
-from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc, lapack, blas
-
+from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc, lapack, blas, spdiag
+from time import  time
 
 printing.options['dformat'] = '%.1f'
 printing.options['width'] = 15
@@ -15,12 +15,13 @@ printing.options['width'] = 15
 # r is the rank (number of basis vectors)
 # [Note that n >= r]
 
+DEBUG = False
 choice = "random"
 
 if choice == "random":
     # Bulds up a random example
-    n = 30
-    r = 10
+    n = 200
+    r = 100
     Lambda = 0.1
 
     # Construct an n * n positive definite matrix by computing a lower
@@ -28,7 +29,7 @@ if choice == "random":
     
     A = uniform(n, n)
     for i in range(n):
-        A[i,i] = abs(A[i,i])+0.3
+        A[i,i] = abs(A[i,i])+1
         for j in range(i+1,n): A[i,j] = 0
 
     g = A * A.T
@@ -108,7 +109,7 @@ def Fchol2(W):
     
     def f(x, y, z):
         print "** SOLVING KKT **"
-        return solve(x,y,z)
+        solve(x,y,z)
 
     return f
 
@@ -143,15 +144,15 @@ def F(W):
         
         print "# Computing the B in B A.T = Id (L21 and L31)"
         B = matrix(id_n, (n,n))
-        lapack.potrs(cholK, B)
-
+        blas.trsm(cholK, B, side='R', transA='T')
+        
         print "# Computing B B^T"
         BBT = B * B.T
 
 
     U = W['di'][0:n*r] ** 2
-    V = W['di'][n*2+1:2*n*r]  ** 2
-  
+    V = W['di'][n*r:2*n*r]  ** 2
+    
     print "# Computing L22"
     L22 = []
     for i in range(r):
@@ -163,14 +164,14 @@ def F(W):
     L32 = []
     for i in range(r):
         # Solves L32 . L22 = - B . B^\top
-        B = -BBT
-        blas.trsm(L22[i], B, side='R', transA='T')
-        L32.append(B)
+        C = -BBT
+        blas.trsm(L22[i], C, side='R', transA='T')
+        L32.append(C)
     
     print "# Computing L33"
     L33 = []
     for i in range(r):
-        A = V[i]  + BBT - L32[i] * L32[i].T 
+        A = spmatrix(U[i*n:(i+1)*n] ,range(n),range(n))  + BBT - L32[i] * L32[i].T
         cholesky(A)
         L33.append(A)
         
@@ -178,13 +179,13 @@ def F(W):
     L42 = []
     for i in range(r):
         A = +L22[i].T
-        lapack.trtri(A)
+        lapack.trtri(A, uplo='U')
         L42.append(A)
     
     print "# Computing L43"
     L43 = []
     for i in range(r):
-        A =  L42[i] * L32[i].T + id_n
+        A =  id_n - L42[i] * L32[i].T
         blas.trsm(L33[i], A, side='R', transA='T')
         L43.append(A)
 
@@ -200,8 +201,52 @@ def F(W):
 
     # WARNING: y and t have been permuted (LD33 and LD44piv)
     print "## PRE-COMPUTATION DONE ##"
+
+
+    # Checking the decomposition
+    if DEBUG:
+        if False:
+            mA = []
+            mB = []
+            mD = []
+            for i in range(3*r+1):
+                m = []
+                for j in range(3*r+1): m.append(zero_n)
+                mA.append(m)
+
+
+            for i in range(r):
+                mA[i][i] = cholK
+                mA[i+r][i+r] = L22[i]
+                mA[i][i+r] = -B
+                mA[i][i+2*r] = B
+
+                mA[i+r][i+2*r] = L32[i]
+                mA[i+2*r][i+2*r] = L33[i]
+
+                mA[i+r][3*r] = L42[i]
+                mA[i+2*r][3*r] = L43[i]
+
+                mD.append(id_n)
+
+            mA[3*r][3*r] = L44
+            for i in range(2*r): mD.append(-id_n)
+            mD.append(id_n)
+
+            printing.options['width'] = 30
+            mA = sparse(mA)
+            mD = spdiag(mD)
+
+            print mA * mD * mA.T
+            print P
+
+            print g
+            print "U = %s" % U.T
+            print "V = %s" % V.T
     
-    
+        print "### Pre-compute for check"
+        solve = chol2(W,P)
+
 
     def f(x, y, z):
         """
@@ -211,24 +256,30 @@ def F(W):
 
         # Maps to our variables x,y,z and t
         a = []
-        b = -x[n*r:n*r + n]
+        b = x[n*r:n*r + n]
         c = []
         d = []
         for i in range(r):
             a.append(x[i*n:(i+1)*n])
             c.append(z[i*n:(i+1)*n])
             d.append(z[(i+r)*n:(i+r+1)*n])
-        
+
+        if DEBUG:
+            # Now solves using cvxopt
+            xp = +x
+            zp = +z
+            solve(xp,y,zp)
+
         # First phase
         for i in range(r):
             blas.trsm(cholK, a[i])
 
             Bai = B * a[i]
             
-            c[i] = Bai - c[i]
+            c[i] = - Bai - c[i]
             blas.trsm(L22[i], c[i])
 
-            d[i] = Bai - d[i] - L32[i] * c[i]
+            d[i] =  Bai - L32[i] * c[i] - d[i]
             blas.trsm(L33[i], d[i])
 
             b = b + L42[i] * c[i] + L43[i] * d[i]
@@ -246,8 +297,10 @@ def F(W):
             blas.trsm(L22[i], c[i], transA='T')
 
             a[i] = a[i] + B.T * (c[i] - d[i])
+            blas.trsm(cholK, a[i], transA='T')
 
         # Store in vectors and scale
+
         x[n*r:n*r + n] = b
         for i in range(r):
             x[i*n:(i+1)*n] = a[i]
@@ -260,7 +313,10 @@ def F(W):
             z[i*n:(i+1)*n] = c[i]
             z[(i+r)*n:(i+r+1)*n] = d[i]
 
-        print "Done"
+        if DEBUG:
+               print (x - xp).T
+               print (z - zp).T
+
         
     return f
 
@@ -271,12 +327,17 @@ def F(W):
 # --- Solving 
 
 print "   [[[Solving system with default...]]]"
+T1 = time()
 sol=solvers.coneqp(P, q, G, h, kktsolver=Fchol2)
+print "Time taken = %s" % (time() - T1)
 print sol['status']
-if (n * r < 10): print sol['x']
+if (n * r < 10): print "Solution = %s" % sol['x'].T
 
 print "\n\n   [[[Solving with optimised]]]"
+T1 = time()
 sol = solvers.coneqp(P, q, G, h, kktsolver=F)
+print "Time taken = %s" % (time() - T1)
 print sol['status']
+if (n * r < 10): print "Solution = %s" % sol['x'].T
 
 print "Done"
