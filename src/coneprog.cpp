@@ -7,7 +7,10 @@
 #include <vector>
 #include <cmath>
 #include <boost/scoped_ptr.hpp>
+#include <boost/format.hpp>
 #include <algorithm>
+#include <numeric>
+
 
 #include "Eigen/Core"
 #include "kqp.h"
@@ -18,11 +21,12 @@ using namespace kqp;
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagonalMatrix;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+typedef Eigen::Matrix<int, Eigen::Dynamic, 1> IntVector;
 
 
 
-
-struct ConeqpOptions {
+/// Options to be used for the coneq 
+struct ConeQPOptions {
     /** Use corrections or not */
     bool useCorrection;
     
@@ -44,7 +48,7 @@ struct ConeqpOptions {
     
     int refinement;
     
-    ConeqpOptions() :
+    ConeQPOptions() :
     useCorrection(true),
     DEBUG(false),
     correction(true),
@@ -57,13 +61,44 @@ struct ConeqpOptions {
     {}
 };
 
-typedef Eigen::Matrix<int, Eigen::Dynamic, 1> IntVector;
+
+struct ConeQPInitVals {
+    Vector x;
+    Vector y;
+    Vector s;
+    Vector z;
+};
+
+struct ConeQPReturn : public ConeQPInitVals {
+    
+    std::string status;
+    
+    double gap;
+    double relative_gap;
+    double primal_objective;
+    double dual_objective;
+    
+    double primal_infeasibility;
+    double dual_infeasibility;
+    
+    double primal_slack;
+    double dual_slack;
+    
+    int iterations;
+    
+    ConeQPReturn() :
+    gap(0), relative_gap(0), primal_objective(0), dual_objective(0), primal_infeasibility(0), dual_infeasibility(0), primal_slack(0), dual_slack(0), iterations(0) {}
+    
+};
 
 
 /** Problem dimensions */
 struct Dimensions {
+    /// Quadrant \f$\mathbb{R}^{+l}\f$
     int l;
+    /// A list with the dimensions of the second-order cones (positive integers)
     std::vector<int> q;
+    /// a list with the dimensions of the positive semidefinite cones (nonnegative integers)
     std::vector<int> s;
     
 };
@@ -85,7 +120,8 @@ struct ScalingMatrix {
     Vector dnl, dnli;
     
     std::vector<double> beta;
-    std::vector<Matrix> r;
+    std::vector<Matrix> r, rti;
+    std::vector<Matrix> v;
 };
 
 
@@ -118,6 +154,58 @@ double snrm2(const Vector &x, const Dimensions &dims, size_t mnl = 0) {
     return std::sqrt(sdot(x, x, dims, mnl));
 }
 
+/**
+ Returns min {t | x + t*e >= 0}, where e is defined as follows
+ 
+ - For the nonlinear and 'l' blocks: e is the vector of ones.
+ - For the 'q' blocks: e is the first unit vector.
+ - For the 's' blocks: e is the identity matrix.
+ 
+ When called with the argument sigma, also returns the eigenvalues 
+ (in sigma) and the eigenvectors (in x) of the 's' components of x.
+*/
+double max_step(Vector &x, const Dimensions &dims, int mnl = 0, void * sigma = NULL) {
+    std::vector<double> t;
+    int ind = mnl + dims.l;
+    if (ind > 0)
+        t.push_back(- x.topRows(ind).minCoeff() );
+    
+    if (!dims.q.empty()) {
+        BOOST_THROW_EXCEPTION(not_implemented_exception());
+//    for(int m: dims.q) {
+//        if (m > 0) 
+//            t += [ blas.nrm2(x, offset = ind + 1, n = m-1) - x[ind] ];
+//        ind += m;
+//    }
+//    
+    }
+    
+    if (!dims.s.empty()) {
+        BOOST_THROW_EXCEPTION(not_implemented_exception());
+//    if (sigma == NULL) {
+//        Q = matrix(0.0, (max(dims['s']), max(dims['s'])));
+//        w = matrix(0.0, (max(dims['s']),1));
+//    }
+
+//    int ind2 = 0;
+//    for(int m : dims.s) {
+//        if sigma is None:
+//            blas.copy(x, Q, offsetx = ind, n = m**2)
+//            lapack.syevr(Q, w, range = 'I', il = 1, iu = 1, n = m, ldA = m)
+//            if m:  t += [ -w[0] ]
+//        else:            
+//            lapack.syevd(x, sigma, jobz = 'V', n = m, ldA = m, offsetA = 
+//                ind, offsetW = ind2)
+//            if m:  t += [ -sigma[ind2] ] 
+//        ind += m*m
+//        ind2 += m
+//    }
+        
+    }
+                
+    if (!t.empty()) return *std::max_element(t.begin(), t.end());
+    return 0.0;
+}
 
 /*
 Applies Nesterov-Todd scaling or its inverse.
@@ -257,14 +345,16 @@ void scale(Matrix &x, const ScalingMatrix &W, bool trans = false, bool inverse =
 
 }
 
-
+// The KKTSolver
 class KKTSolver {
-    class F {
-    public:
-        virtual void compute(Vector &x, Vector &y, Vector & z) = 0;  
-    };
-    
-    F *getSolver(const Vector &w) {
+public:
+    virtual void solve(Vector &x, Vector &y, Vector & z) const = 0;  
+};
+
+/// The KKT solver
+class KKTPreSolver {
+public:
+    KKTSolver *get(const ScalingMatrix &w) {
         return 0;
     };
 };
@@ -300,10 +390,118 @@ void coneqp_res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector 
     vs -= lmbda * (uz + us);
 }
 
+/**
+ Converts lower triangular matrix to symmetric.  
+ Fills in the upper triangular part of the symmetric matrix stored in 
+ x[offset : offset+n*n] using 'L' storage.
+ */
+//Matrix symm(const Matrix &x) {
+//    if (n <= 1) return x;
+//    return x.selfadjointView<Eigen::Lower>();
+//    for i in xrange(n-1):
+//        blas.copy(x, x, offsetx = offset + i*(n+1) + 1, offsety = 
+//            offset + (i+1)*(n+1) - 1, incy = n, n = n-i-1)
+//}
+
+/**
+ The inverse product x := (y o\ x), when the 's' components of y are 
+ diagonal.
+*/
+void sinv(Vector &x, Vector &y, const Dimensions &dims, int mnl = 0) {
+    
+    // For the nonlinear and 'l' blocks:  
+    // 
+    //     yk o\ xk = yk .\ xk.
+
+    y.topRows(mnl + dims.l).diagonal().triangularView<Eigen::Lower>().solveInPlace(x);
+    // blas.tbsv(y, x, n = mnl + dims.l, k = 0, ldA = 1)
+
+    // For the 'q' blocks: 
+    //
+    //                        [ l0   -l1'              ]  
+    //     yk o\ xk = 1/a^2 * [                        ] * xk
+    //                        [ -l1  (a*I + l1*l1')/l0 ]
+    //
+    // where yk = (l0, l1) and a = l0^2 - l1'*l1.
+
+    int ind = mnl + dims.l;
+    for(int m: dims.q) {
+        BOOST_THROW_EXCEPTION(not_implemented_exception());
+//        aa = jnrm2(y, n = m, offset = ind)**2
+//        cc = x[ind]
+//        dd = blas.dot(y, x, offsetx = ind+1, offsety = ind+1, n = m-1)
+//        x[ind] = cc * y[ind] - dd
+//        blas.scal(aa / y[ind], x, n = m-1, offset = ind+1)
+//        blas.axpy(y, x, alpha = dd/y[ind] - cc, n = m-1, offsetx = ind+1, 
+//            offsety = ind+1)
+//        blas.scal(1.0/aa, x, n = m, offset = ind)
+//        ind += m
+    }
+
+    // For the 's' blocks:
+    //
+    //     yk o\ xk =  xk ./ gamma
+    //
+    // where gammaij = .5 * (yk_i + yk_j).
+
+    int ind2 = ind;
+    for(int m: dims.s) {
+        BOOST_THROW_EXCEPTION(not_implemented_exception());
+//        for j in xrange(m):
+//            u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
+//            blas.tbsv(u, x, n = m-j, k = 0, ldA = 1, offsetx = ind + 
+//                j*(m+1))  
+//        ind += m*m
+//        ind2 += m
+    }
+}
+
+// f4_no_ir(x, y, z, s) solves
+// 
+//     [ 0     ]   [ P  A'  G' ]   [ ux        ]   [ bx ]
+//     [ 0     ] + [ A  0   0  ] * [ uy        ] = [ by ]
+//     [ W'*us ]   [ G  0   0  ]   [ W^{-1}*uz ]   [ bz ]
+//
+//     lmbda o (uz + us) = bs.
+//
+// On entry, x, y, z, s contain bx, by, bz, bs.
+// On exit, they contain ux, uy, uz, us.
+
+void f4_no_ir(const ScalingMatrix &W, const KKTSolver &solver, const Matrix &lmbda, Vector &x, Vector &y, Vector &z, Vector &s) {
+    
+    // Solve 
+    //
+    //     [ P A' G'   ] [ ux        ]    [ bx                    ]
+    //     [ A 0  0    ] [ uy        ] =  [ by                    ]
+    //     [ G 0 -W'*W ] [ W^{-1}*uz ]    [ bz - W'*(lmbda o\ bs) ]
+    //
+    //     us = lmbda o\ bs - uz.
+    //
+    // On entry, x, y, z, s  contains bx, by, bz, bs. 
+    // On exit they contain x, y, z, s.
+    
+    // s := lmbda o\ s 
+    //    = lmbda o\ bs
+    misc.sinv(s, lmbda, dims);
+    
+    // z := z - W'*s 
+    //    = bz - W'*(lambda o\ bs)
+    Matrix ws3 = s;
+    scale(ws3, W, true, false);
+    z = z - ws3;
+    
+    // Solve for ux, uy, uz
+    solver.solve(x, y, z);
+    
+    // s := s - z 
+    //    = lambda o\ bs - uz.
+    s = s - z;
+}
+
 
 /**  Solves a pair of primal and dual convex quadratic cone programs
  
- Adapted from cvxopt - restriction to the first order cones
+ Adapted from cvxopt - restriction to the first order cones (commented the non first order parters for latter inclusion)
  
  minimize    \f$ \frac{1}{2} x^\top P x + q^\top*x \f$
  subject to  \f$ Gx + s = h\f$
@@ -603,23 +801,11 @@ void coneqp_res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector 
  as y, the argument A must be a Python function or NULL, and the 
  argument kktsolver is required.
  
- 
- Control parameters.
- 
- The following control parameters can be modified by adding an
- entry to the dictionary options.
- 
- options['show_progress'] True/False (default: True)
- options['maxiters'] positive integer (default: 100)
- options['refinement'] nonnegative integer (default: 0 for problems
- with no second-order cone and matrix inequality constraints;
- 1 otherwise)
- options['abstol'] scalar (default: 1e-7)
- options['reltol'] scalar (default: 1e-6)
- options['feastol'] scalar (default: 1e-7).
  */
-void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, Dimensions dims = Dimensions(), Vector*A = NULL, Vector*b = NULL,
-    Vector* initvals = NULL, Vector* kktsolver = NULL, ConeqpOptions options = ConeqpOptions()){
+ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h = NULL, Dimensions dims = Dimensions(), 
+            Matrix *_A = NULL, Vector *_b = NULL,
+            const ConeQPInitVals *initvals = NULL,
+            KKTPreSolver* kktpresolver = NULL, ConeQPOptions options = ConeQPOptions()){
      
      const double STEP = 0.99;
      const double EXPON = 3;
@@ -636,7 +822,7 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
 
 
      // -- Choose the KKT Solver if not set
-    if (kktsolver == NULL) 
+    if (kktpresolver == NULL) 
         if (dims.q.size() > 0 || dims.s.size() > 0 )
             //kktsolver = 'chol';
             BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("chol solver not avaible"));
@@ -658,11 +844,11 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
 
 */
         
-    if (h->cols() != 1)
+    if (_h && _h->cols() != 1)
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'h' must be a 'd' matrix with one column"));
 
     if (dims.l == -1) {
-        dims.l = h->rows();
+        dims.l = _h ? _h->rows() : 0;
     }
 
     /*
@@ -681,11 +867,15 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
 
 
     int cdim = dims.l;
-    for(int &i: dims.q) cdim += i;
-    for(int &i: dims.s) cdim += i * i;
+    int dimsq = 0, dimss = 0;
+    for(int &i: dims.q) { cdim += i; dimsq += i; }
+    for(int &i: dims.s) { cdim += i * i; dimss += i; }
     
-    if (h->rows() != cdim)
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'h' must be a 'd' matrix of size (%d,1)" /*%cdim*/));
+    boost::shared_ptr<Vector> __h;
+    Vector &h = _h ? *_h : *(__h = boost::shared_ptr<Matrix>(new Vector(cdim)));
+
+    if (h.rows() != cdim)
+        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'h' must be a 'd' matrix of size (%d,1)") %cdim).str()));
 
     // Data for kth 'q' constraint are found in rows indq[k]:indq[k+1] of G.
     std::vector<int> indq(dims.l);
@@ -700,17 +890,22 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
     
     for(int &k: dims.s) inds.push_back(inds.back() + k * k);
     
-    if (G && (G->rows() != cdim || G->cols() != q.rows()))
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'G' must be a 'd' matrix of size (%d, %d)"
-                                                                              /*%(cdim, q.size[0] */));
+    boost::shared_ptr<Matrix> __G;
+    Matrix &G = _G ? *_G : *(__G = boost::shared_ptr<Matrix>(new Matrix(cdim, q.rows())));
+    if (G.rows() != cdim || G.cols() != q.rows())
+        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'G' must be a 'd' matrix of size (%d, %d)") % cdim % q.rows()).str()));
     
     
-    if (A && ( A->cols() != q.rows()))
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'A' must be a 'd' matrix with %d columns" 
-                                                                              /* %q.size[0]*/));
-                              
-    if (A && b && b->rows() != A->rows())
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'b' must have length %d" /*%A.size[0])*/));
+    boost::shared_ptr<Matrix> __A;
+    Matrix &A = _A ? *_A : *(__A = boost::shared_ptr<Matrix>(new Matrix(1, 0)));
+    
+    if (A.cols() != q.rows())
+        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'A' must be a 'd' matrix with %d columns") % q.rows()).str()));
+          
+    boost::shared_ptr<Vector> __b;
+    Vector &b = _b ? *_b : *(__b = boost::shared_ptr<Vector>(new Vector(A.rows())));
+    if (b.rows() != A.rows())
+        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'b' must have length %d") % A.rows()).str()));
 
     Vector ws3(cdim);
     Vector wz3(cdim);
@@ -719,10 +914,13 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         
 
     double resx0 = std::max(1.0, q.norm());
-    double resy0 = b ? std::max(1.0, b->norm()) : 1.0;
+    double resy0 = std::max(1.0, b.norm());
    
-    double resz0 = h ? std::max(1.0, snrm2(*h, dims)) : 1.0;
+    double resz0 = std::max(1.0, snrm2(h, dims));
 
+    ConeQPReturn r;
+    Vector &x = r.x, &y = r.y, &z = r.z, &s = r.s;
+    
     if (cdim == 0) {
 
         // Solve
@@ -731,46 +929,49 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         //     [       ] [   ] = [    ].
         //     [ A  0  ] [ y ]   [  b ]
 
+        boost::shared_ptr<KKTSolver> f3;
         try {
-            
-            f3 = kktsolver({'d': matrix(0.0, (0,1)), 'di': matrix(0.0, (0,1)), 'beta': [], 'v': [], 'r': [], 'rti': []})
+            ScalingMatrix w;
+            f3 = boost::shared_ptr<KKTSolver>(kktpresolver->get(w));
+            // {'d': matrix(0.0, (0,1)), 'di': matrix(0.0, (0,1)), 'beta': [], 'v': [], 'r': [], 'rti': []})
         } catch(...) {
-            raise ValueError("Rank(A) < p or Rank([P; A; G]) < n");
+             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
-        x = xnewcopy(q)  
-        xscal(-1.0, x)
-        y = ynewcopy(b)
-        f3(x, y, matrix(0.0, (0,1)))
+        
+        x = -q;
+        y = b;
+
+        f3->solve(x, y, z);
+
 
         // dres = || P*x + q + A'*y || / resx0 
-        rx = xnewcopy(q)
-        fP(x, rx, beta = 1.0)
-        pcost = 0.5 * (xdot(x, rx) + xdot(x, q))
-        fA(y, rx, beta = 1.0, trans = 'T')
-        dres = math.sqrt(xdot(rx, rx)) / resx0
+        Vector rx = P * x;
+        double pcost = 0.5 * (x.dot(rx) + x.dot(q));
+        
+        rx += A.transpose() * y;
+        
+        //double dres = rx.norm() / resx0;
 
         // pres = || A*x - b || / resy0
-        ry = ynewcopy(b)
-        fA(x, ry, alpha = 1.0, beta = -1.0)
-        pres = math.sqrt(ydot(ry, ry)) / resy0 
+        
+        // Vector ry = A * x - b;
+        //double pres = ry.norm() / resy0;
 
-        if pcost == 0.0: relgap = NULL
-        else: relgap = 0.0
+        double relgap;
+        if (pcost == 0.0) relgap = NAN;
+        else  relgap = 0.0;
 
-        return { 'status': 'optimal', 'x': x,  'y': y, 'z': 
-            matrix(0.0, (0,1)), 's': matrix(0.0, (0,1)), 
-            'gap': 0.0, 'relgap': 0.0, 
-            'primal objective': pcost,
-            'dual objective': pcost,
-            'primal slack': 0.0, 'dual slack': 0.0,
-            'primal infeasibility': pres, 'dual infeasibility': dres,
-            'iterations': 0 } 
+        r.status = "optimal";      
+        r.primal_objective = r.dual_objective = pcost;
+        return r;
     }
 
-    x, y = xnewcopy(q), ynewcopy(b)  
-    s, z = matrix(0.0, (cdim, 1)), matrix(0.0, (cdim, 1))
+    x = q;
+    y = b;
+    s = Vector(cdim);
+    z = Vector(cdim);
 
-    if initvals is NULL {
+    if (initvals == NULL) {
 
         // Factor
         //
@@ -778,19 +979,30 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         //     [ A   0   0  ].
         //     [ G   0  -I  ]
         
-        W = {}
-        W['d'] = matrix(1.0, (dims['l'], 1)) 
-        W['di'] = matrix(1.0, (dims['l'], 1)) 
-        W['v'] = [ matrix(0.0, (m,1)) for m in dims['q'] ]
-        W['beta'] = len(dims['q']) * [ 1.0 ] 
-        for v in W['v']: v[0] = 1.0
-        W['r'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-        W['rti'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-        for r in W['r']: r[::r.size[0]+1 ] = 1.0
-        for rti in W['rti']: rti[::rti.size[0]+1 ] = 1.0
-        try: f = kktsolver(W)
-        except ArithmeticError:  
-            raise ValueError("Rank(A) < p or Rank([P; A; G]) < n")
+        ScalingMatrix W; 
+        W.d = DiagonalMatrix(dims.l, dims.l); W.d.setIdentity();
+        W.di = W.d;
+        
+        for(int m: dims.q) 
+            W.v.push_back(Matrix(m,1));
+        
+        W.beta.push_back(dims.q.size());
+        for(Matrix &v: W.v) v(0,0) = 1.0;
+        
+        for(int m: dims.s) {
+            W.r.push_back(Matrix(m,m));
+            W.r.back().setIdentity();
+            W.rti.push_back(Matrix(m,m));
+            W.rti.back().setIdentity();
+        }
+
+        boost::shared_ptr<KKTSolver> f;
+
+        try {
+            f = boost::shared_ptr<KKTSolver>(kktpresolver->get(W));   
+        } catch(arithmetic_exception &e) {
+            BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+        }
 
              
         // Solve
@@ -799,118 +1011,128 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         //     [ A   0   0  ] * [ y ] = [  b ].
         //     [ G   0  -I  ]   [ z ]   [  h ]
 
-        xcopy(q, x)
-        xscal(-1.0, x)
-        ycopy(b, y)  
-        blas.copy(h, z)
-        try: f(x, y, z) 
-        except ArithmeticError:  
-            raise ValueError("Rank(A) < p or Rank([P; G; A]) < n")
-        blas.copy(z, s)  
-        blas.scal(-1.0, s)  
+        Vector x = - q, y = b, z = h;
 
-        nrms = misc.snrm2(s, dims)
-        ts = misc.max_step(s, dims)
-        if ts >= -1e-8 * max(nrms, 1.0):  
-            a = 1.0 + ts  
-            s[:dims['l']] += a
-            s[indq[:-1]] += a
-            ind = dims['l'] + sum(dims['q'])
-            for m in dims['s']:
-                s[ind : ind+m*m : m+1] += a
-                ind += m**2
+        try {
+            f->solve(x, y, z);
+        } catch(arithmetic_exception &e) {
+            BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+        }
+        
+        Vector s = -z;
 
-        nrmz = misc.snrm2(z, dims)
-        tz = misc.max_step(z, dims)
-        if tz >= -1e-8 * max(nrmz, 1.0):
-            a = 1.0 + tz  
-            z[:dims['l']] += a
-            z[indq[:-1]] += a
-            ind = dims['l'] + sum(dims['q'])
-            for m in dims['s']:
-                z[ind : ind+m*m : m+1] += a
-                ind += m**2
+        double nrms = snrm2(s, dims);
+        double ts = max_step(s, dims);
+        if (ts >= -1e-8 * std::max(nrms, 1.0)) {  
+            double a = 1.0 + ts;
+            for(int i = 0; i < dims.l; i++) s[i] += a;
+            for(int i = 0; i < indq.size() - 1; i++)
+                s[indq[i]] += a;
+            int ind = dims.l + dimsq;
+            for(int m: dims.s) {
+                for(int i = ind; i < ind + m * m; i += m+1) s[i] += a;
+                ind += m * m;
+            }
+        }
+        
+        double nrmz = snrm2(z, dims);
+        double tz = max_step(z, dims);
+        if (tz >= -1e-8 * std::max(nrmz, 1.0)) {
+            double a = 1.0 + tz;
+            for(int i = 0; i < dims.l; i++) z[i] += a;
+            for(int i = 0; i < indq.size() - 1; i++) z[indq[i]] += a;
+            int ind = dims.l + dimsq;
+            for(int m: dims.s) {
+                 for(int i = ind; i < ind + m * m; i += m+1) 
+                     z[i] += a;
+                ind += m * m;
+            }
+                
+        }
+        
+    } else {
+        Vector x;
+        
+        if (initvals->x.rows()) x = initvals->x; else x.setZero();
 
-                }
-    else {
-
-        if 'x' in initvals: 
-            xcopy(initvals['x'], x)
-        else: 
-            xscal(0.0, x)
-
-        if 's' in initvals:
-            blas.copy(initvals['s'], s)
+        if (initvals->s.rows()) {
+            s = initvals->s;
             // ts = min{ t | s + t*e >= 0 }
-            if misc.max_step(s, dims) >= 0:
-                raise ValueError("initial s is not positive")
-        else: 
-            s[: dims['l']] = 1.0 
-            ind = dims['l']
-            for m in dims['q']:
-                s[ind] = 1.0
-                ind += m
-            for m in dims['s']:
-                s[ind : ind + m*m : m+1] = 1.0
-                ind += m**2
+            if (max_step(s, dims) >= 0.)
+                BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("initial s is not positive"));
+        
+        } else { 
+            for(int i = 0; i < dims.l; i++) s[i] = 1.;
+            
+            int ind = dims.l;
+            for(int m: dims.q) {
+                s[ind] = 1.0;
+                ind += m;
+            }
+            
+            for(int m: dims.s) {
+                for(int i = ind; i < ind+m*m; i += m+1) 
+                    s[i] = 1.;
+                ind += m * m;
+            }
+        }
+        
+        if (initvals->y.rows()) y = initvals->y; else y.setZero();
 
-        if 'y' in initvals:
-            ycopy(initvals['y'], y)
-        else:
-            yscal(0.0, y)
-
-        if 'z' in initvals:
-            blas.copy(initvals['z'], z)
+        if (initvals->z.rows()) {
+            z = initvals->z;
             // tz = min{ t | z + t*e >= 0 }
-            if misc.max_step(z, dims) >= 0:
-                raise ValueError("initial z is not positive")
-        else:
-            z[: dims['l']] = 1.0 
-            ind = dims['l']
-            for m in dims['q']:
-                z[ind] = 1.0
-                ind += m
-            for m in dims['s']:
-                z[ind : ind + m*m : m+1] = 1.0
-                ind += m**2
+            if (max_step(z, dims) >= 0.)
+                BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("initial z is not positive"));
+        } else {
+            for(int i = 0; i < dims.l; i++) z[i] = 1.;
+            int ind = dims.l;
+            for(int m: dims.q) {
+                z[ind] = 1.0;
+                ind += m;
+            }
+            
+            for(int m: dims.s) {
+                for(int i = ind; i < ind+m*m; i += m+1) 
+                    z[i] = 1.;
+                ind += m * m;
+            }
+        }
     }
 
-    rx, ry, rz = xnewcopy(q), ynewcopy(b), matrix(0.0, (cdim, 1)) 
-    dx, dy = xnewcopy(x), ynewcopy(y)   
-    dz, ds = matrix(0.0, (cdim, 1)), matrix(0.0, (cdim, 1))
-    lmbda = matrix(0.0, (dims['l'] + sum(dims['q']) + sum(dims['s']), 1))
-    lmbdasq = matrix(0.0, (dims['l'] + sum(dims['q']) + sum(dims['s']), 1))
-    sigs = matrix(0.0, (sum(dims['s']), 1))
-    sigz = matrix(0.0, (sum(dims['s']), 1))
-
-  /* TODO
-    if (show_progress)
-        print("% 10s% 12s% 10s% 8s% 7s" %("pcost", "dcost", "gap", "pres",
-                                          "dres"));
-  */
+    Vector rx = q, ry = b, rz = Vector(cdim);
+    Vector dx = x, dy = y;
+    Vector dz = Vector(cdim), ds = Vector(cdim);
+    
+    Matrix lmbda = Matrix(dims.l + dimsq + dimss, 1);
+    Matrix lmbdasq = lmbda;
+    Matrix sigs(dimss, 1);
+    Matrix sigz(dimss, 1);
+    
+    std::string &status = r.status;
+    double &pcost = r.primal_objective, &dcost = r.dual_objective, &dres = r.dual_infeasibility, &pres = r.primal_infeasibility;
+    double &gap = r.gap, &relgap = r.relative_gap;
+    
+    if (options.show_progress)
+        std::cerr << boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres;
                        
-    gap = misc.sdot(s, z, dims);
+    gap = sdot(s, z, dims);
 
-    for iters in xrange(options.maxiters + 1) {
+    int &iters = r.iterations;
+    for(iters = 0; iters <= options.maxiters; iters++) {
 
         // f0 = (1/2)*x'*P*x + q'*x + r and  rx = P*x + q + A'*y + G'*z.
-        xcopy(q, rx)
-        fP(x, rx, beta = 1.0)
-        f0 = 0.5 * (xdot(x, rx) + xdot(x, q))
-        fA(y, rx, beta = 1.0, trans = 'T')
-        fG(z, rx, beta = 1.0, trans = 'T')
-        resx = math.sqrt(xdot(rx, rx))
+        Vector rx = P * x + q + A.transpose() * y + G.transpose() * z;
+        double f0 = 0.5 * x.transpose() * P * x;
+        double resx = rx.norm();
            
         // ry = A*x - b
-        ycopy(b, ry)
-        fA(x, ry, alpha = 1.0, beta = -1.0)
-        resy = math.sqrt(ydot(ry, ry))
+        Vector ry = A * x - b;
+        double resy = ry.norm();
 
         // rz = s + G*x - h
-        blas.copy(s, rz)
-        blas.axpy(h, rz, alpha = -1.0)
-        fG(x, rz, beta = 1.0)
-        resz = misc.snrm2(rz, dims)
+        Vector rz = s + G * x - h;
+        double resz = snrm2(rz, dims);
 
 
         // Statistics for stopping criteria.
@@ -920,44 +1142,41 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         //       = (1/2)*x'*P*x + q'*x + y'*(A*x-b) + z'*(G*x-h+s) - z'*s
         //       = (1/2)*x'*P*x + q'*x + y'*ry + z'*rz - gap
         pcost = f0;
-        dcost = f0 + ydot(y, ry) + sdot(z, rz, dims) - gap;
+        dcost = f0 + y.dot(ry) + sdot(z, rz, dims) - gap;
         if (pcost < 0.0)
             relgap = gap / -pcost;
         else if (dcost > 0.0)
             relgap = gap / dcost;
         else
-            relgap = NULL;
-        pres = max(resy/resy0, resz/resz0)
-        dres = resx/resx0 
+            relgap = NAN;
+        pres = std::max(resy/resy0, resz/resz0);
+        dres = resx/resx0;
 
-        if (show_progress)
-            print("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e" 
-                  %(iters, pcost, dcost, gap, pres, dres));
+        if (options.show_progress)
+            std::cerr << boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres;
 
-        if ( pres <= options.feastol and dres <= options.feastol and ( gap <= options.abstol or 
-            (relgap is not NULL and relgap <= options.reltol) )) or iters == options.maxiters: {
-            ind = dims['l'] + sum(dims['q'])
-            for m in dims['s']:
-                misc.symm(s, m, ind)
-                misc.symm(z, m, ind)
-                ind += m**2
-            ts = misc.max_step(s, dims)
-            tz = misc.max_step(z, dims)
-            if iters == options.maxiters:
-                if show_progress:
-                    print("Terminated (maximum number of iterations "\
-                        "reached).")
-                status = 'unknown'
-            else:
-                if show_progress:
-                    print("Optimal solution found.")
+        if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
+            int ind = dims.l  + dimsq;
+            for(int m: dims.s) {
+                misc.symm(s, m, ind);
+                misc.symm(z, m, ind);
+                ind += m * m;
+            }
+            ts = misc.max_step(s, dims);
+            tz = misc.max_step(z, dims);
+            if (iters == options.maxiters) {
+                if (options.show_progress)
+                    std::cerr << "Terminated (maximum number of iterations reached)." << std::endl;
+                status = "unknown";
+            }
+            else {
+                if (options.show_progress)
+                    std::cerr << "Optimal solution found." << std::endl;
                 status = 'optimal'
-            return { 'x': x,  'y': y,  's': s,  'z': z,  'status': status,
-                    'gap': gap,  'relative gap': relgap, 
-                    'primal objective': pcost,  'dual objective': dcost,
-                    'primal infeasibility': pres,
-                    'dual infeasibility': dres, 'primal slack': -ts,
-                    'dual slack': -tz , 'iterations': iters }
+            }
+            r.dual_slack = -tz;
+            r.primal_slack = -ts;
+            return r;
         }
 
         // Compute initial scaling W and scaled iterates:  
@@ -966,8 +1185,10 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
         // 
         // lmbdasq = lambda o lambda.
         
-        if iters == 0:  W = misc.compute_scaling(s, z, lmbda, dims)
-        misc.ssqr(lmbdasq, lmbda, dims)
+        if (iters == 0) 
+            W = misc.compute_scaling(s, z, lmbda, dims);
+        
+        misc.ssqr(lmbdasq, lmbda, dims);
 
 
         // f3(x, y, z) solves
@@ -999,48 +1220,9 @@ void coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *G = NULL, Vector* h = NULL, D
                     'dual infeasibility': dres, 'primal slack': -ts,
                     'dual slack': -tz, 'iterations': iters }   
 
-        // f4_no_ir(x, y, z, s) solves
-        // 
-        //     [ 0     ]   [ P  A'  G' ]   [ ux        ]   [ bx ]
-        //     [ 0     ] + [ A  0   0  ] * [ uy        ] = [ by ]
-        //     [ W'*us ]   [ G  0   0  ]   [ W^{-1}*uz ]   [ bz ]
-        //
-        //     lmbda o (uz + us) = bs.
-        //
-        // On entry, x, y, z, s contain bx, by, bz, bs.
-        // On exit, they contain ux, uy, uz, us.
-
-        def f4_no_ir(x, y, z, s):
-
-            // Solve 
-            //
-            //     [ P A' G'   ] [ ux        ]    [ bx                    ]
-            //     [ A 0  0    ] [ uy        ] =  [ by                    ]
-            //     [ G 0 -W'*W ] [ W^{-1}*uz ]    [ bz - W'*(lmbda o\ bs) ]
-            //
-            //     us = lmbda o\ bs - uz.
-            //
-            // On entry, x, y, z, s  contains bx, by, bz, bs. 
-            // On exit they contain x, y, z, s.
-            
-            // s := lmbda o\ s 
-            //    = lmbda o\ bs
-            misc.sinv(s, lmbda, dims)
-
-            // z := z - W'*s 
-            //    = bz - W'*(lambda o\ bs)
-            blas.copy(s, ws3)
-            misc.scale(ws3, W, trans = 'T')
-            blas.axpy(ws3, z, alpha = -1.0)
-
-            // Solve for ux, uy, uz
-            f3(x, y, z)
-
-            // s := s - z 
-            //    = lambda o\ bs - uz.
-            blas.axpy(z, s, alpha = -1.0)
-
-
+      
+        // HERE WAS f4noir
+        
         // f4(x, y, z, s) solves the same system as f4_no_ir, but applies
         // iterative refinement.
 
@@ -1949,20 +2131,6 @@ def jnrm2(x, n = None, offset = 0):
     return math.sqrt(x[offset] - a) * math.sqrt(x[offset] + a)
 
 
-if use_C:
-  symm = misc_solvers.symm
-else:
-  def symm(x, n, offset = 0):
-    """
-    Converts lower triangular matrix to symmetric.  
-    Fills in the upper triangular part of the symmetric matrix stored in 
-    x[offset : offset+n*n] using 'L' storage.
-    """
-
-    if n <= 1:  return
-    for i in xrange(n-1):
-        blas.copy(x, x, offsetx = offset + i*(n+1) + 1, offsety = 
-            offset + (i+1)*(n+1) - 1, incy = n, n = n-i-1)
 
 
 if use_C:
@@ -2051,98 +2219,6 @@ def ssqr(x, y, dims, mnl = 0):
     blas.tbmv(y, x, n = sum(dims['s']), k = 0, ldA = 1, offsetA = ind, 
         offsetx = ind) 
 
-
-if use_C:
-  sinv = misc_solvers.sinv
-else:
-  def sinv(x, y, dims, mnl = 0):   
-    """
-    The inverse product x := (y o\ x), when the 's' components of y are 
-    diagonal.
-    """
-    
-    // For the nonlinear and 'l' blocks:  
-    // 
-    //     yk o\ xk = yk .\ xk.
-
-    blas.tbsv(y, x, n = mnl + dims['l'], k = 0, ldA = 1)
-
-
-    // For the 'q' blocks: 
-    //
-    //                        [ l0   -l1'              ]  
-    //     yk o\ xk = 1/a^2 * [                        ] * xk
-    //                        [ -l1  (a*I + l1*l1')/l0 ]
-    //
-    // where yk = (l0, l1) and a = l0^2 - l1'*l1.
-
-    ind = mnl + dims['l']
-    for m in dims['q']:
-        aa = jnrm2(y, n = m, offset = ind)**2
-        cc = x[ind]
-        dd = blas.dot(y, x, offsetx = ind+1, offsety = ind+1, n = m-1)
-        x[ind] = cc * y[ind] - dd
-        blas.scal(aa / y[ind], x, n = m-1, offset = ind+1)
-        blas.axpy(y, x, alpha = dd/y[ind] - cc, n = m-1, offsetx = ind+1, 
-            offsety = ind+1)
-        blas.scal(1.0/aa, x, n = m, offset = ind)
-        ind += m
-
-
-    // For the 's' blocks:
-    //
-    //     yk o\ xk =  xk ./ gamma
-    //
-    // where gammaij = .5 * (yk_i + yk_j).
-
-    ind2 = ind
-    for m in dims['s']:
-        for j in xrange(m):
-            u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
-            blas.tbsv(u, x, n = m-j, k = 0, ldA = 1, offsetx = ind + 
-                j*(m+1))  
-        ind += m*m
-        ind2 += m
-
-
-if use_C:
-  max_step = misc_solvers.max_step
-else:
-  def max_step(x, dims, mnl = 0, sigma = None):
-    """
-    Returns min {t | x + t*e >= 0}, where e is defined as follows
-    
-    - For the nonlinear and 'l' blocks: e is the vector of ones.
-    - For the 'q' blocks: e is the first unit vector.
-    - For the 's' blocks: e is the identity matrix.
-    
-    When called with the argument sigma, also returns the eigenvalues 
-    (in sigma) and the eigenvectors (in x) of the 's' components of x.
-    """
-
-    t = []
-    ind = mnl + dims['l']
-    if ind: t += [ -min(x[:ind]) ] 
-    for m in dims['q']:
-        if m: t += [ blas.nrm2(x, offset = ind + 1, n = m-1) - x[ind] ]
-        ind += m
-    if sigma is None and dims['s']:  
-        Q = matrix(0.0, (max(dims['s']), max(dims['s'])))
-        w = matrix(0.0, (max(dims['s']),1))
-    ind2 = 0
-    for m in dims['s']:
-        if sigma is None:
-            blas.copy(x, Q, offsetx = ind, n = m**2)
-            lapack.syevr(Q, w, range = 'I', il = 1, iu = 1, n = m, ldA = m)
-            if m:  t += [ -w[0] ]
-        else:            
-            lapack.syevd(x, sigma, jobz = 'V', n = m, ldA = m, offsetA = 
-                ind, offsetW = ind2)
-            if m:  t += [ -sigma[ind2] ] 
-        ind += m*m
-        ind2 += m
-    if t: return max(t)
-    else: return 0.0
 
 
 def kkt_ldl(G, dims, A, mnl = 0):
