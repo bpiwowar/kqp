@@ -15,6 +15,8 @@
 #include "Eigen/Core"
 #include "kqp.h"
 
+#define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(not_implemented_exception())
+
 using namespace kqp;
 
 
@@ -58,7 +60,9 @@ struct ConeQPOptions {
     reltol(1e-6),
     feastol(1e-7),
     refinement(-1)
-    {}
+    {
+
+    }
 };
 
 
@@ -117,7 +121,7 @@ of r[k].
 */
 struct ScalingMatrix {
     DiagonalMatrix d, di;
-    Vector dnl, dnli;
+    DiagonalMatrix dnl, dnli;
     
     std::vector<double> beta;
     std::vector<Matrix> r, rti;
@@ -133,7 +137,7 @@ double sdot(const Vector &x, const Vector &y, const Dimensions &dims, size_t mnl
     double a = x.head(ind).adjoint() * y.head(ind);
     
     for(int m: dims.s) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
          /*
         a +=
         blas.dot(x, y, offsetx = ind, offsety = ind, incx = m+1, 
@@ -164,14 +168,14 @@ double snrm2(const Vector &x, const Dimensions &dims, size_t mnl = 0) {
  When called with the argument sigma, also returns the eigenvalues 
  (in sigma) and the eigenvectors (in x) of the 's' components of x.
 */
-double max_step(Vector &x, const Dimensions &dims, int mnl = 0, void * sigma = NULL) {
+double max_step(Vector &x, const Dimensions &dims, int mnl = 0, const Vector * sigma = NULL) {
     std::vector<double> t;
     int ind = mnl + dims.l;
     if (ind > 0)
         t.push_back(- x.topRows(ind).minCoeff() );
     
     if (!dims.q.empty()) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
 //    for(int m: dims.q) {
 //        if (m > 0) 
 //            t += [ blas.nrm2(x, offset = ind + 1, n = m-1) - x[ind] ];
@@ -181,7 +185,7 @@ double max_step(Vector &x, const Dimensions &dims, int mnl = 0, void * sigma = N
     }
     
     if (!dims.s.empty()) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
 //    if (sigma == NULL) {
 //        Q = matrix(0.0, (max(dims['s']), max(dims['s'])));
 //        w = matrix(0.0, (max(dims['s']),1));
@@ -224,7 +228,8 @@ The 'dnl' and 'dnli' entries are optional, and only present when the
 function is called from the nonlinear solver.
 
 */
-void scale(Matrix &x, const ScalingMatrix &W, bool trans = false, bool inverse = false) {
+template <int ColsAtCompileTime>
+void scale(Eigen::Matrix<double, Eigen::Dynamic, ColsAtCompileTime> &x, const ScalingMatrix &W, bool trans = false, bool inverse = false) {
 
     size_t ind = 0;
     
@@ -259,7 +264,7 @@ void scale(Matrix &x, const ScalingMatrix &W, bool trans = false, bool inverse =
     //         = 1/beta * (-J) * (2*v*((-J*xk)'*v)' + xk). 
 
     if (!W.beta.empty()) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
 
     /*
 
@@ -302,7 +307,7 @@ void scale(Matrix &x, const ScalingMatrix &W, bool trans = false, bool inverse =
     // rti is kth element of W['rti'].
 
     if (!W.r.empty()) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
     /*
     maxn = max( [0] + [ r.size[0] for r in W['r'] ] )
     a = matrix(0.0, (maxn, maxn))
@@ -361,7 +366,7 @@ public:
 
 
 
-void coneqp_res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, const Vector &  uy, const Vector & uz,const Vector &  us,  Vector & vx,  Vector & vy,  Vector & vz, Vector &  vs, const ScalingMatrix &W, double lmbda) {
+void res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, const Vector &  uy, const Vector & uz,const Vector &  us,  Vector & vx,  Vector & vy,  Vector & vz, Vector &  vs, const ScalingMatrix &W, const Vector & lmbda) {
     
     // Evaluates residual in Newton equations:
     // 
@@ -387,7 +392,7 @@ void coneqp_res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector 
     vz -= G * ux - ws3;
     
     // vs := vs - lmbda o (uz + us)
-    vs -= lmbda * (uz + us);
+    vs.array() -= lmbda.array() * (uz + us).array();
 }
 
 /**
@@ -407,7 +412,7 @@ void coneqp_res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector 
  The inverse product x := (y o\ x), when the 's' components of y are 
  diagonal.
 */
-void sinv(Vector &x, Vector &y, const Dimensions &dims, int mnl = 0) {
+void sinv(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
     
     // For the nonlinear and 'l' blocks:  
     // 
@@ -426,7 +431,7 @@ void sinv(Vector &x, Vector &y, const Dimensions &dims, int mnl = 0) {
 
     int ind = mnl + dims.l;
     for(int m: dims.q) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
 //        aa = jnrm2(y, n = m, offset = ind)**2
 //        cc = x[ind]
 //        dd = blas.dot(y, x, offsetx = ind+1, offsety = ind+1, n = m-1)
@@ -446,7 +451,7 @@ void sinv(Vector &x, Vector &y, const Dimensions &dims, int mnl = 0) {
 
     int ind2 = ind;
     for(int m: dims.s) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
+        KQP_NOT_IMPLEMENTED;
 //        for j in xrange(m):
 //            u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
 //            blas.tbsv(u, x, n = m-j, k = 0, ldA = 1, offsetx = ind + 
@@ -456,48 +461,684 @@ void sinv(Vector &x, Vector &y, const Dimensions &dims, int mnl = 0) {
     }
 }
 
-// f4_no_ir(x, y, z, s) solves
-// 
-//     [ 0     ]   [ P  A'  G' ]   [ ux        ]   [ bx ]
-//     [ 0     ] + [ A  0   0  ] * [ uy        ] = [ by ]
-//     [ W'*us ]   [ G  0   0  ]   [ W^{-1}*uz ]   [ bz ]
-//
-//     lmbda o (uz + us) = bs.
-//
-// On entry, x, y, z, s contain bx, by, bz, bs.
-// On exit, they contain ux, uy, uz, us.
 
-void f4_no_ir(const ScalingMatrix &W, const KKTSolver &solver, const Matrix &lmbda, Vector &x, Vector &y, Vector &z, Vector &s) {
+class f4_no_ir_class {
+    const ScalingMatrix &W;
+    const KKTSolver &solver;
+    const Dimensions &dims; 
+    const Vector &lmbda;
+public:
+    f4_no_ir_class(const ScalingMatrix &W, const KKTSolver &solver, const Dimensions &dims, const Vector &lmbda):
+    W(W), solver(solver), dims(dims), lmbda(lmbda) {}
     
-    // Solve 
+    // f4_no_ir(x, y, z, s) solves
+    // 
+    //     [ 0     ]   [ P  A'  G' ]   [ ux        ]   [ bx ]
+    //     [ 0     ] + [ A  0   0  ] * [ uy        ] = [ by ]
+    //     [ W'*us ]   [ G  0   0  ]   [ W^{-1}*uz ]   [ bz ]
     //
-    //     [ P A' G'   ] [ ux        ]    [ bx                    ]
-    //     [ A 0  0    ] [ uy        ] =  [ by                    ]
-    //     [ G 0 -W'*W ] [ W^{-1}*uz ]    [ bz - W'*(lmbda o\ bs) ]
+    //     lmbda o (uz + us) = bs.
     //
-    //     us = lmbda o\ bs - uz.
+    // On entry, x, y, z, s contain bx, by, bz, bs.
+    // On exit, they contain ux, uy, uz, us.
+    void operator()(Vector &x, Vector &y, Vector &z, Vector &s) const {
+        // Solve 
+        //
+        //     [ P A' G'   ] [ ux        ]    [ bx                    ]
+        //     [ A 0  0    ] [ uy        ] =  [ by                    ]
+        //     [ G 0 -W'*W ] [ W^{-1}*uz ]    [ bz - W'*(lmbda o\ bs) ]
+        //
+        //     us = lmbda o\ bs - uz.
+        //
+        // On entry, x, y, z, s  contains bx, by, bz, bs. 
+        // On exit they contain x, y, z, s.
+        
+        // s := lmbda o\ s 
+        //    = lmbda o\ bs
+        sinv(s, lmbda, dims);
+        
+        // z := z - W'*s 
+        //    = bz - W'*(lambda o\ bs)
+        Matrix ws3 = s;
+        scale(ws3, W, true, false);
+        z = z - ws3;
+        
+        // Solve for ux, uy, uz
+        solver.solve(x, y, z);
+        
+        // s := s - z 
+        //    = lambda o\ bs - uz.
+        s = s - z;
+    }
+};
+
+class f4_class {
+    const int refinement;
+    const bool DEBUG;
+    const f4_no_ir_class &f4_no_ir;
+    const ScalingMatrix& W;
+    const Vector &lmbda;
+    const Dimensions &dims;
+    const Matrix &P, &A, &G;
+    
+public:
+    f4_class(int refinement, bool DEBUG, const f4_no_ir_class &f4_no_ir, const ScalingMatrix &W, const Vector &lmbda, const Dimensions &dims,
+             const Matrix &P, const Matrix &A, const Matrix &G) 
+    : refinement(refinement), DEBUG(DEBUG), f4_no_ir(f4_no_ir), W(W), lmbda(lmbda), dims(dims), P(P), A(A), G(G)
+    {
+        
+    }
+    
+    void operator()(Vector &x, Vector &y, Vector &z, Vector &s) {
+        
+        Vector wx, wy, wz, ws;
+        Vector wx2, wy2, wz2, ws2;
+        
+        if (refinement > 0|| DEBUG) {
+            wx = x;
+            wy = y;
+            wz = z;
+            ws = s;
+        }
+        
+        f4_no_ir(x, y, z, s);   
+        
+        for(int i = 0; i < refinement; i++) {
+            wx2 = wx;
+            wy2 = wy;
+            wz2 = wz;
+            ws2 = ws;
+            res(P, A, G, x, y, z, s, wx2, wy2, wz2, ws2, W, lmbda);
+            f4_no_ir(wx2, wy2, wz2, ws2);
+            x += wx2;
+            y += wy2;
+            z += wz2;
+            s += ws2;
+        }
+        
+        if (DEBUG) {
+            res(P, A, G, x, y, z, s, wx, wy, wz, ws, W, lmbda);
+            std::cerr << "KKT residuals:" << std::endl;
+            std::cerr << boost::format("    'x': %e") % wx.norm()  << std::endl;
+            std::cerr << boost::format("    'y': %e") % wy.norm() << std::endl;
+            std::cerr << boost::format("    'z': %e") % snrm2(wz, dims) << std::endl;
+            std::cerr << boost::format("    's': %e") % snrm2(ws, dims) << std::endl;
+        }
+    }
+};
+
+
+/**
+ Returns the Nesterov-Todd scaling W at points s and z, and stores the 
+ scaled variable in lmbda. 
+ 
+ W * z = W^{-T} * s = lmbda. 
+*/
+void compute_scaling(ScalingMatrix &W, const Vector &s, const Vector &z, Vector &lmbda, const Dimensions &dims, int mnl = -1) {
+
+
+    // For the nonlinear block:
     //
-    // On entry, x, y, z, s  contains bx, by, bz, bs. 
-    // On exit they contain x, y, z, s.
+    //     W['dnl'] = sqrt( s[:mnl] ./ z[:mnl] )
+    //     W['dnli'] = sqrt( z[:mnl] ./ s[:mnl] )
+    //     lambda[:mnl] = sqrt( s[:mnl] .* z[:mnl] )
+
+    if (mnl < 0) {
+        mnl = 0;
+    } else {
+        W.dnl.diagonal() = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
+        W.dnli = W.dnl.inverse();
+        lmbda.segment(0,mnl) = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
+    }
+
+    // For the 'l' block: 
+    //
+    //     W['d'] = sqrt( sk ./ zk )
+    //     W['di'] = sqrt( zk ./ sk )
+    //     lambdak = sqrt( sk .* zk )
+    //
+    // where sk and zk are the firstdims.l entries of s and z.
+    // lambda_k is stored in the firstdims.l positions of lmbda.
+             
+    long m = dims.l;
+    W.d.diagonal() = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
+    W.di = W.d.inverse();
     
-    // s := lmbda o\ s 
-    //    = lmbda o\ bs
-    misc.sinv(s, lmbda, dims);
-    
-    // z := z - W'*s 
-    //    = bz - W'*(lambda o\ bs)
-    Matrix ws3 = s;
-    scale(ws3, W, true, false);
-    z = z - ws3;
-    
-    // Solve for ux, uy, uz
-    solver.solve(x, y, z);
-    
-    // s := s - z 
-    //    = lambda o\ bs - uz.
-    s = s - z;
+    lmbda.segment(mnl, m) = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
+
+
+
+    if (!dims.q.empty() || !dims.s.empty())
+        // see below
+        KQP_NOT_IMPLEMENTED;
+/*
+    // For the 'q' blocks, compute lists 'v', 'beta'.
+    //
+    // The vector v[k] has unit hyperbolic norm: 
+    // 
+    //     (sqrt( v[k]' * J * v[k] ) = 1 with J = [1, 0; 0, -I]).
+    // 
+    // beta[k] is a positive scalar.
+    //
+    // The hyperbolic Householder matrix H = 2*v[k]*v[k]' - J
+    // defined by v[k] satisfies 
+    // 
+    //     (beta[k] * H) * zk  = (beta[k] * H) \ sk = lambda_k
+    //
+    // where sk = s[indq[k]:indq[k+1]], zk = z[indq[k]:indq[k+1]].
+    //
+    // lambda_k is stored in lmbda[indq[k]:indq[k+1]].
+           
+    ind = mnl +dims.l
+    W['v'] = [ matrix(0.0, (k,1)) for k in dims['q'] ]
+    W['beta'] = len(dims['q']) * [ 0.0 ] 
+
+    for k in xrange(len(dims['q'])):
+        m = dims['q'][k]
+        v = W['v'][k]
+
+        // a = sqrt( sk' * J * sk )  where J = [1, 0; 0, -I]
+        aa = jnrm2(s, offset = ind, n = m)
+
+        // b = sqrt( zk' * J * zk )
+        bb = jnrm2(z, offset = ind, n = m) 
+
+        // beta[k] = ( a / b )**1/2
+        W['beta'][k] = math.sqrt( aa / bb )
+
+        // c = sqrt( (sk/a)' * (zk/b) + 1 ) / sqrt(2)    
+        cc = math.sqrt( ( blas.dot(s, z, n = m, offsetx = ind, offsety = 
+            ind) / aa / bb + 1.0 ) / 2.0 )
+
+        // vk = 1/(2*c) * ( (sk/a) + J * (zk/b) )
+        blas.copy(z, v, offsetx = ind, n = m)
+        blas.scal(-1.0/bb, v)
+        v[0] *= -1.0 
+        blas.axpy(s, v, 1.0/aa, offsetx = ind, n = m)
+        blas.scal(1.0/2.0/cc, v)
+
+        // v[k] = 1/sqrt(2*(vk0 + 1)) * ( vk + e ),  e = [1; 0]
+        v[0] += 1.0
+        blas.scal(1.0/math.sqrt(2.0 * v[0]), v)
+            
+        // To get the scaled variable lambda_k
+        // 
+        //     d =  sk0/a + zk0/b + 2*c
+        //     lambda_k = [ c; 
+        //                  (c + zk0/b)/d * sk1/a + (c + sk0/a)/d * zk1/b ]
+        //     lambda_k *= sqrt(a * b)
+
+        lmbda[ind] = cc
+        dd = 2*cc + s[ind]/aa + z[ind]/bb
+        blas.copy(s, lmbda, offsetx = ind+1, offsety = ind+1, n = m-1) 
+        blas.scal((cc + z[ind]/bb)/dd/aa, lmbda, n = m-1, offset = ind+1)
+        blas.axpy(z, lmbda, (cc + s[ind]/aa)/dd/bb, n = m-1, offsetx = 
+            ind+1, offsety = ind+1)
+        blas.scal(math.sqrt(aa*bb), lmbda, offset = ind, n = m)
+
+        ind += m
+
+
+    // For the 's' blocks: compute two lists 'r' and 'rti'.
+    //
+    //     r[k]' * sk^{-1} * r[k] = diag(lambda_k)^{-1}
+    //     r[k]' * zk * r[k] = diag(lambda_k)
+    //
+    // where sk and zk are the entries inds[k] : inds[k+1] of
+    // s and z, reshaped into symmetric matrices.
+    //
+    // rti[k] is the inverse of r[k]', so 
+    //
+    //     rti[k]' * sk * rti[k] = diag(lambda_k)^{-1}
+    //     rti[k]' * zk^{-1} * rti[k] = diag(lambda_k).
+    //
+    // The vectors lambda_k are stored in 
+    // 
+    //     lmbda[dims.l + dimsq : -1 ]
+            
+    W['r'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
+    W['rti'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
+    work = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
+    Ls = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
+    Lz = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
+
+    ind2 = ind
+    for k in xrange(len(dims['s'])):
+        m = dims['s'][k]
+        r, rti = W['r'][k], W['rti'][k]
+
+        // Factor sk = Ls*Ls'; store Ls in ds[inds[k]:inds[k+1]].
+        blas.copy(s, Ls, offsetx = ind2, n = m**2) 
+        lapack.potrf(Ls, n = m, ldA = m)
+
+        // Factor zs[k] = Lz*Lz'; store Lz in dz[inds[k]:inds[k+1]].
+        blas.copy(z, Lz, offsetx = ind2, n = m**2) 
+        lapack.potrf(Lz, n = m, ldA = m)
+	 
+        // SVD Lz'*Ls = U*diag(lambda_k)*V'.  Keep U in work. 
+        for i in xrange(m): 
+            blas.scal(0.0, Ls, offset = i*m, n = i)
+        blas.copy(Ls, work, n = m**2)
+        blas.trmm(Lz, work, transA = 'T', ldA = m, ldB = m, n = m, m = m) 
+        lapack.gesvd(work, lmbda, jobu = 'O', ldA = m, m = m, n = m, 
+            offsetS = ind)
+	       
+        // r = Lz^{-T} * U 
+        blas.copy(work, r, n = m*m)
+        blas.trsm(Lz, r, transA = 'T', m = m, n = m, ldA = m)
+
+        // rti = Lz * U 
+        blas.copy(work, rti, n = m*m)
+        blas.trmm(Lz, rti, m = m, n = m, ldA = m)
+
+        // r := r * diag(sqrt(lambda_k))
+        // rti := rti * diag(1 ./ sqrt(lambda_k))
+        for i in xrange(m):
+            a = math.sqrt( lmbda[ind+i] )
+            blas.scal(a, r, offset = m*i, n = m)
+            blas.scal(1.0/a, rti, offset = m*i, n = m)
+
+        ind += m
+        ind2 += m*m
+    */
 }
 
+/**
+ Updates the Nesterov-Todd scaling matrix W and the scaled variable 
+ lmbda so that on exit
+ 
+ W * zt = W^{-T} * st = lmbda.
+ 
+ On entry, the nonlinear, 'l' and 'q' components of the arguments s 
+ and z contain W^{-T}*st and W*zt, i.e, the new iterates in the current 
+ scaling.
+ 
+ The 's' components contain the factors Ls, Lz in a factorization of 
+ the new iterates in the current scaling, W^{-T}*st = Ls*Ls',   
+ W*zt = Lz*Lz'.
+*/
+void update_scaling(const Dimensions &dims, ScalingMatrix &W, Vector &lmbda, Vector &s, Vector &z) {
+    // Nonlinear and 'l' blocks
+    //
+    //    d :=  d .* sqrt( s ./ z )
+    //    lmbda := lmbda .* sqrt(s) .* sqrt(z)
+
+    int mnl = W.dnl.rows();
+
+    int ml = W.d.rows();
+    int m = mnl + ml;
+    s.segment(0,m) = s.segment(0,m).cwiseSqrt();
+    z.segment(0,m) = z.segment(0,m).cwiseSqrt();
+ 
+    // d := d .* s .* z 
+    if (mnl > 0) {
+        W.dnl.diagonal() = W.dnl.diagonal().segment(0,mnl).array() * s.segment(0, mnl).array() / z.segment(0, mnl).array();
+        W.dnli = W.dnl.inverse();
+    }
+    
+    W.d.diagonal() = W.d.diagonal().array() * s.segment(mnl, ml).array() / z.segment(0, mnl).array();
+    W.di = W.d.inverse();
+         
+    // lmbda := s .* z
+
+    lmbda = s.topRows(m).array() * z.topRows(m).array();
+
+    if (!dims.q.empty() || !dims.s.empty())
+        // see below
+        KQP_NOT_IMPLEMENTED;
+
+    /*
+    // 'q' blocks.
+    // 
+    // Let st and zt be the new variables in the old scaling:
+    //
+    //     st = s_k,   zt = z_k
+    //
+    // and a = sqrt(st' * J * st),  b = sqrt(zt' * J * zt).
+    //
+    // 1. Compute the hyperbolic Householder transformation 2*q*q' - J 
+    //    that maps st/a to zt/b.
+    // 
+    //        c = sqrt( (1 + st'*zt/(a*b)) / 2 ) 
+    //        q = (st/a + J*zt/b) / (2*c). 
+    //
+    //    The new scaling point is 
+    //
+    //        wk := betak * sqrt(a/b) * (2*v[k]*v[k]' - J) * q 
+    //
+    //    with betak = W['beta'][k].
+    // 
+    // 3. The scaled variable:
+    //
+    //        lambda_k0 = sqrt(a*b) * c
+    //        lambda_k1 = sqrt(a*b) * ( (2vk*vk' - J) * (-d*q + u/2) )_1
+    //
+    //    where 
+    //
+    //        u = st/a - J*zt/b 
+    //        d = ( vk0 * (vk'*u) + u0/2 ) / (2*vk0 *(vk'*q) - q0 + 1).
+    //
+    // 4. Update scaling
+    //   
+    //        v[k] := wk^1/2 
+    //              = 1 / sqrt(2*(wk0 + 1)) * (wk + e).
+    //        beta[k] *=  sqrt(a/b)
+
+    ind = m
+    for k in xrange(len(W['v'])):
+
+        v = W['v'][k]
+        m = len(v)
+
+        // ln = sqrt( lambda_k' * J * lambda_k )
+        ln = jnrm2(lmbda, n = m, offset = ind) 
+
+        // a = sqrt( sk' * J * sk ) = sqrt( st' * J * st ) 
+        // s := s / a = st / a
+        aa = jnrm2(s, offset = ind, n = m)
+        blas.scal(1.0/aa, s, offset = ind, n = m)
+
+        // b = sqrt( zk' * J * zk ) = sqrt( zt' * J * zt )
+        // z := z / a = zt / b
+        bb = jnrm2(z, offset = ind, n = m) 
+        blas.scal(1.0/bb, z, offset = ind, n = m)
+
+        // c = sqrt( ( 1 + (st'*zt) / (a*b) ) / 2 )
+        cc = math.sqrt( ( 1.0 + blas.dot(s, z, offsetx = ind, offsety = 
+            ind, n = m) ) / 2.0 )
+
+        // vs = v' * st / a 
+        vs = blas.dot(v, s, offsety = ind, n = m) 
+
+        // vz = v' * J *zt / b
+        vz = jdot(v, z, offsety = ind, n = m) 
+
+        // vq = v' * q where q = (st/a + J * zt/b) / (2 * c)
+        vq = (vs + vz ) / 2.0 / cc
+
+        // vu = v' * u  where u =  st/a - J * zt/b 
+        vu = vs - vz  
+
+        // lambda_k0 = c
+        lmbda[ind] = cc
+
+        // wk0 = 2 * vk0 * (vk' * q) - q0 
+        wk0 = 2 * v[0] * vq - ( s[ind] + z[ind] ) / 2.0 / cc 
+
+        // d = (v[0] * (vk' * u) - u0/2) / (wk0 + 1)
+        dd = (v[0] * vu - s[ind]/2.0 + z[ind]/2.0) / (wk0 + 1.0)
+
+        // lambda_k1 = 2 * v_k1 * vk' * (-d*q + u/2) - d*q1 + u1/2
+        blas.copy(v, lmbda, offsetx = 1, offsety = ind+1, n = m-1)
+        blas.scal(2.0 * (-dd * vq + 0.5 * vu), lmbda, offset = ind+1, 
+           n = m-1)
+        blas.axpy(s, lmbda, 0.5 * (1.0 - dd/cc), offsetx = ind+1, offsety 
+           = ind+1, n = m-1)
+        blas.axpy(z, lmbda, 0.5 * (1.0 + dd/cc), offsetx = ind+1, offsety
+           = ind+1, n = m-1)
+
+        // Scale so that sqrt(lambda_k' * J * lambda_k) = sqrt(aa*bb).
+        blas.scal(math.sqrt(aa*bb), lmbda, offset = ind, n = m)
+            
+        // v := (2*v*v' - J) * q 
+        //    = 2 * (v'*q) * v' - (J* st/a + zt/b) / (2*c)
+        blas.scal(2.0 * vq, v)
+        v[0] -= s[ind] / 2.0 / cc
+        blas.axpy(s, v,  0.5/cc, offsetx = ind+1, offsety = 1, n = m-1)
+        blas.axpy(z, v, -0.5/cc, offsetx = ind, n = m)
+
+        // v := v^{1/2} = 1/sqrt(2 * (v0 + 1)) * (v + e)
+        v[0] += 1.0
+        blas.scal(1.0 / math.sqrt(2.0 * v[0]), v)
+
+        // beta[k] *= ( aa / bb )**1/2
+        W['beta'][k] *= math.sqrt( aa / bb )
+            
+        ind += m
+
+
+    // 's' blocks
+    // 
+    // Let st, zt be the updated variables in the old scaling:
+    // 
+    //     st = Ls * Ls', zt = Lz * Lz'.
+    //
+    // where Ls and Lz are the 's' components of s, z.
+    //
+    // 1.  SVD Lz'*Ls = Uk * lambda_k^+ * Vk'.
+    //
+    // 2.  New scaling is 
+    //
+    //         r[k] := r[k] * Ls * Vk * diag(lambda_k^+)^{-1/2}
+    //         rti[k] := r[k] * Lz * Uk * diag(lambda_k^+)^{-1/2}.
+    //
+
+    work = matrix(0.0, (max( [0] + [r.size[0] for r in W['r']])**2, 1))
+    ind = mnl + ml + sum([ len(v) for v in W['v'] ])
+    ind2, ind3 = ind, 0
+    for k in xrange(len(W['r'])):
+        r, rti = W['r'][k], W['rti'][k]
+        m = r.size[0]
+
+        // r := r*sk = r*Ls
+        blas.gemm(r, s, work, m = m, n = m, k = m, ldB = m, ldC = m,
+            offsetB = ind2)
+        blas.copy(work, r, n = m**2)
+
+        // rti := rti*zk = rti*Lz
+        blas.gemm(rti, z, work, m = m, n = m, k = m, ldB = m, ldC = m,
+            offsetB = ind2)
+        blas.copy(work, rti, n = m**2)
+
+        // SVD Lz'*Ls = U * lmbds^+ * V'; store U in sk and V' in zk.
+        blas.gemm(z, s, work, transA = 'T', m = m, n = m, k = m, ldA = m,
+            ldB = m, ldC = m, offsetA = ind2, offsetB = ind2)
+        lapack.gesvd(work, lmbda, jobu = 'A', jobvt = 'A', m = m, n = m, 
+            ldA = m, U = s, Vt = z, ldU = m, ldVt = m, offsetS = ind, 
+            offsetU = ind2, offsetVt = ind2)
+
+        // r := r*V
+        blas.gemm(r, z, work, transB = 'T', m = m, n = m, k = m, ldB = m,
+            ldC = m, offsetB = ind2)
+        blas.copy(work, r, n = m**2)
+
+        // rti := rti*U
+        blas.gemm(rti, s, work, n = m, m = m, k = m, ldB = m, ldC = m,
+            offsetB = ind2)
+        blas.copy(work, rti, n = m**2)
+
+        // r := r*lambda^{-1/2}; rti := rti*lambda^{-1/2}
+        for i in xrange(m):    
+            a = 1.0 / math.sqrt(lmbda[ind+i])
+            blas.scal(a, r, offset = m*i, n = m)
+            blas.scal(a, rti, offset = m*i, n = m)
+
+        ind += m
+        ind2 += m*m
+        ind3 += m
+            */
+}
+
+/**
+ The product x := y o y.   The 's' components of y are diagonal and
+ only the diagonals of x and y are stored.     
+*/
+void ssqr(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
+    x = y.array() * y.array();
+    int ind = mnl + dims.l;
+    
+    if (!dims.q.empty() || !dims.s.empty())
+        // see below
+        KQP_NOT_IMPLEMENTED;
+
+    /*
+    for m in dims['q']:
+        x[ind] = blas.nrm2(y, offset = ind, n = m)**2
+        blas.scal(2.0*y[ind], x, n = m-1, offset = ind+1)
+        ind += m 
+    blas.tbmv(y, x, n = sum(dims['s']), k = 0, ldA = 1, offsetA = ind, 
+        offsetx = ind) 
+     */
+}
+
+
+/**
+ The product x := (y o x).  If diag is true, the 's' part of y is 
+diagonal and only the diagonal is stored.
+*/
+void sprod(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0, bool diag = false) {
+
+    // For the nonlinear and 'l' blocks:  
+    //
+    //     yk o xk = yk .* xk.
+
+    int n = mnl +dims.l;
+    x.topRows(n).array() *= y.topRows(n).array();
+    
+    if (!dims.q.empty() || !dims.s.empty())
+        // see below
+        KQP_NOT_IMPLEMENTED;
+
+    /*
+    // For 'q' blocks: 
+    //
+    //               [ l0   l1'  ]
+    //     yk o xk = [           ] * xk
+    //               [ l1   l0*I ] 
+    //
+    // where yk = (l0, l1).
+    
+    ind = mnl +dims.l
+    for m in dims['q']:
+        dd = blas.dot(x, y, offsetx = ind, offsety = ind, n = m)
+        blas.scal(y[ind], x, offset = ind+1, n = m-1)
+        blas.axpy(y, x, alpha = x[ind], n = m-1, offsetx = ind+1, offsety 
+            = ind+1)
+        x[ind] = dd
+        ind += m
+
+
+    // For the 's' blocks:
+    //
+    //    yk o sk = .5 * ( Yk * mat(xk) + mat(xk) * Yk )
+    // 
+    // where Yk = mat(yk) if diag is 'N' and Yk = diag(yk) if diag is 'D'.
+
+    if diag is 'N':
+        maxm = max([0] + dims['s'])
+        A = matrix(0.0, (maxm, maxm))
+
+        for m in dims['s']:
+            blas.copy(x, A, offsetx = ind, n = m*m)
+
+            // Write upper triangular part of A and yk.
+            for i in xrange(m-1):
+                symm(A, m)
+                symm(y, m, offset = ind)
+
+            // xk = 0.5 * (A*yk + yk*A)
+            blas.syr2k(A, y, x, alpha = 0.5, n = m, k = m, ldA = m,  ldB = 
+                m, ldC = m, offsetB = ind, offsetC = ind)
+
+            ind += m*m
+
+    else:
+        ind2 = ind
+        for m in dims['s']:
+            for j in xrange(m):
+                u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
+                blas.tbmv(u, x, n = m-j, k = 0, ldA = 1, offsetx = 
+                    ind + j*(m+1))  
+            ind += m*m
+            ind2 += m
+                */
+
+}
+
+ /*
+ Evaluates
+ 
+ x := H(lambda^{1/2}) * x   (inverse is 'N')
+ x := H(lambda^{-1/2}) * x  (inverse is 'I').
+ 
+ H is the Hessian of the logarithmic barrier.
+*/
+void scale2(const Vector &lmbda, Vector &x, const Dimensions &dims, int mnl = 0, bool inverse = false) {
+
+    // For the nonlinear and 'l' blocks, 
+    //
+    //     xk := xk ./ l   (inverse is 'N')
+    //     xk := xk .* l   (inverse is 'I')
+    //
+    // where l is lmbda[:mnl+dims.l].
+
+    if (!inverse)
+        x.topRows(mnl + dims.l).array() /= lmbda.topRows(mnl + dims.l).array();
+    else
+        x.topRows(mnl + dims.l).array() *= lmbda.topRows(mnl + dims.l).array();
+   
+  
+    if (!dims.q.empty() || !dims.s.empty())
+        // see below
+        KQP_NOT_IMPLEMENTED;
+/*
+    // For 'q' blocks, if inverse is 'N',
+    //
+    //     xk := 1/a * [ l'*J*xk;  
+    //         xk[1:] - (xk[0] + l'*J*xk) / (l[0] + 1) * l[1:] ].
+    //
+    // If inverse is 'I',
+    //
+    //     xk := a * [ l'*xk; 
+    //         xk[1:] + (xk[0] + l'*xk) / (l[0] + 1) * l[1:] ].
+    //
+    // a = sqrt(lambda_k' * J * lambda_k), l = lambda_k / a.
+
+    ind = mnl +dims.l
+    for m in dims['q']:
+        a = jnrm2(lmbda, n = m, offset = ind)
+        if inverse == 'N':
+            lx = jdot(lmbda, x, n = m, offsetx = ind, offsety = ind)/a
+        else:
+            lx = blas.dot(lmbda, x, n = m, offsetx = ind, offsety = ind)/a
+        x0 = x[ind]
+        x[ind] = lx
+        c = (lx + x0) / (lmbda[ind]/a + 1) / a 
+        if inverse == 'N':  c *= -1.0
+        blas.axpy(lmbda, x, alpha = c, n = m-1, offsetx = ind+1, offsety =
+            ind+1)
+        if inverse == 'N': a = 1.0/a 
+        blas.scal(a, x, offset = ind, n = m)
+        ind += m
+        
+
+    // For the 's' blocks, if inverse is 'N',
+    //
+    //     xk := vec( diag(l)^{-1/2} * mat(xk) * diag(k)^{-1/2}).
+    //
+    // If inverse is 'I',
+    //
+    //     xk := vec( diag(l)^{1/2} * mat(xk) * diag(k)^{1/2}).
+    //
+    // where l is kth block of lambda.
+    // 
+    // We scale upper and lower triangular part of mat(xk) because the
+    // inverse operation will be applied to nonsymmetric matrices.
+
+    ind2 = ind
+    for k in xrange(len(dims['s'])):
+        m = dims['s'][k]
+        for j in xrange(m):
+            c = math.sqrt(lmbda[ind2+j]) * base.sqrt(lmbda[ind2:ind2+m])
+            if inverse == 'N':  
+                blas.tbsv(c, x, n = m, k = 0, ldA = 1, offsetx = ind + j*m)
+            else:
+                blas.tbmv(c, x, n = m, k = 0, ldA = 1, offsetx = ind + j*m)
+        ind += m*m
+        ind2 += m
+ */
+
+}
 
 /**  Solves a pair of primal and dual convex quadratic cone programs
  
@@ -537,7 +1178,7 @@ void f4_no_ir(const ScalingMatrix &W, const KKTSolver &solver, const Matrix &lmb
  
  dims is a dictionary with the dimensions of the components of C.  
  It has three fields.
- - dims['l'] = ml, the dimension of the nonnegative orthant C_0.
+ -dims.l = ml, the dimension of the nonnegative orthant C_0.
  (ml >= 0.)
  - dims['q'] = mq = [ mq[0], mq[1], ..., mq[N-1] ], a list of N 
  integers with the dimensions of the second order cones 
@@ -805,7 +1446,7 @@ void f4_no_ir(const ScalingMatrix &W, const KKTSolver &solver, const Matrix &lmb
 ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h = NULL, Dimensions dims = Dimensions(), 
             Matrix *_A = NULL, Vector *_b = NULL,
             const ConeQPInitVals *initvals = NULL,
-            KKTPreSolver* kktpresolver = NULL, ConeQPOptions options = ConeQPOptions()){
+            KKTPreSolver* kktpresolver = NULL, ConeQPOptions options = ConeQPOptions()) {
      
      const double STEP = 0.99;
      const double EXPON = 3;
@@ -853,7 +1494,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
     /*
     if (dims.l < 0) 
-        raise TypeError("'dims['l']' must be a nonnegative integer")
+        raise TypeError("'dims.l' must be a nonnegative integer")
     if [ k for k in dims['q'] if type(k) is not int or k < 1 ]:
         raise TypeError("'dims['q']' must be a list of positive integers")
     if [ k for k in dims['s'] if type(k) is not int or k < 0 ]:
@@ -1104,10 +1745,10 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     Vector dx = x, dy = y;
     Vector dz = Vector(cdim), ds = Vector(cdim);
     
-    Matrix lmbda = Matrix(dims.l + dimsq + dimss, 1);
-    Matrix lmbdasq = lmbda;
-    Matrix sigs(dimss, 1);
-    Matrix sigz(dimss, 1);
+    Vector lmbda = Vector(dims.l + dimsq + dimss);
+    Vector lmbdasq = lmbda;
+    Vector sigs(dimss);
+    Vector sigz(dimss);
     
     std::string &status = r.status;
     double &pcost = r.primal_objective, &dcost = r.dual_objective, &dres = r.dual_infeasibility, &pres = r.primal_infeasibility;
@@ -1119,6 +1760,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     gap = sdot(s, z, dims);
 
     int &iters = r.iterations;
+    ScalingMatrix W;
     for(iters = 0; iters <= options.maxiters; iters++) {
 
         // f0 = (1/2)*x'*P*x + q'*x + r and  rx = P*x + q + A'*y + G'*z.
@@ -1158,12 +1800,13 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
             int ind = dims.l  + dimsq;
             for(int m: dims.s) {
-                misc.symm(s, m, ind);
-                misc.symm(z, m, ind);
+                KQP_NOT_IMPLEMENTED;
+//                misc.symm(s, m, ind);
+//                misc.symm(z, m, ind);
                 ind += m * m;
             }
-            ts = misc.max_step(s, dims);
-            tz = misc.max_step(z, dims);
+            double ts = max_step(s, dims);
+            double tz = max_step(z, dims);
             if (iters == options.maxiters) {
                 if (options.show_progress)
                     std::cerr << "Terminated (maximum number of iterations reached)." << std::endl;
@@ -1172,7 +1815,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             else {
                 if (options.show_progress)
                     std::cerr << "Optimal solution found." << std::endl;
-                status = 'optimal'
+                status = "optimal";
             }
             r.dual_slack = -tz;
             r.primal_slack = -ts;
@@ -1186,9 +1829,9 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         // lmbdasq = lambda o lambda.
         
         if (iters == 0) 
-            W = misc.compute_scaling(s, z, lmbda, dims);
+            compute_scaling(W, s, z, lmbda, dims);
         
-        misc.ssqr(lmbdasq, lmbda, dims);
+        ssqr(lmbdasq, lmbda, dims);
 
 
         // f3(x, y, z) solves
@@ -1200,73 +1843,58 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         // On entry, x, y, z containg bx, by, bz.
         // On exit, they contain ux, uy, uz.
 
-        try: f3 = kktsolver(W)
-        except ArithmeticError: 
-            if iters == 0:
-                raise ValueError("Rank(A) < p or Rank([P; A; G]) < n")
-            else:  
-                ind = dims['l'] + sum(dims['q'])
-                for m in dims['s']:
-                    misc.symm(s, m, ind)
-                    misc.symm(z, m, ind)
-                    ind += m**2
-                ts = misc.max_step(s, dims)
-                tz = misc.max_step(z, dims)
-                print("Terminated (singular KKT matrix).")
-                return { 'x': x,  'y': y,  's': s,  'z': z,  
-                    'status': 'unknown', 'gap': gap,  
-                    'relative gap': relgap, 'primal objective': pcost,  
-                    'dual objective': dcost, 'primal infeasibility': pres,
-                    'dual infeasibility': dres, 'primal slack': -ts,
-                    'dual slack': -tz, 'iterations': iters }   
-
+        boost::shared_ptr<KKTSolver> f3; 
+        try { 
+            f3 = boost::shared_ptr<KKTSolver>(kktpresolver->get(W)); 
+        } catch(arithmetic_exception &) {
+            if (iters == 0)
+                BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+            else {
+                int ind = dims.l + dimsq;
+                for(int m: dims.s) {
+                    KQP_NOT_IMPLEMENTED;
+//                    misc.symm(s, m, ind)
+//                    misc.symm(z, m, ind)
+//                    ind += m**2
+                }
+                r.primal_slack = -max_step(s, dims);
+                r.dual_slack = -max_step(z, dims);
+                std::cerr << "Terminated (singular KKT matrix).";
+                status = "unknown";
+                return r;
+            }
+        }
       
-        // HERE WAS f4noir
+        f4_no_ir_class f4_no_ir(W, *f3, dims, lmbda);
         
-        // f4(x, y, z, s) solves the same system as f4_no_ir, but applies
-        // iterative refinement.
 
-        if iters == 0:
-            if refinement or DEBUG:
-                wx, wy = xnewcopy(q), ynewcopy(b) 
-                wz, ws = matrix(0.0, (cdim,1)), matrix(0.0, (cdim,1)) 
-            if refinement:
-                wx2, wy2 = xnewcopy(q), ynewcopy(b) 
-                wz2, ws2 = matrix(0.0, (cdim,1)), matrix(0.0, (cdim,1)) 
-
-        def f4(x, y, z, s):
-            if refinement or DEBUG {
-                xcopy(x, wx)        
-                ycopy(y, wy)        
-                blas.copy(z, wz)        
-                blas.copy(s, ws)    
+        Vector wx, wy, wz, ws;
+        Vector wx2, wy2, wz2, ws2;
+        
+        if (iters == 0) {
+            if (options.refinement > 0 || options.DEBUG) {               
+                wx = q;
+                wy = b;
+                wz = Vector(cdim);
+                ws = Vector(cdim);
             }
-            f4_no_ir(x, y, z, s)        
-            for i in xrange(refinement) {
-                xcopy(wx, wx2)        
-                ycopy(wy, wy2)        
-                blas.copy(wz, wz2)        
-                blas.copy(ws, ws2)        
-                res(x, y, z, s, wx2, wy2, wz2, ws2, W, lmbda) 
-                f4_no_ir(wx2, wy2, wz2, ws2)
-                xaxpy(wx2, x)
-                yaxpy(wy2, y)
-                blas.axpy(wz2, z)
-                blas.axpy(ws2, s)
+            if (options.refinement > 0) {
+                wx2 = q;
+                wy2 = b;
+                wz2 = Vector(cdim);
+                ws2 = Vector(cdim);
             }
-            if (DEBUG) {
-                res(x, y, z, s, wx, wy, wz, ws, W, lmbda)
-                print("KKT residuals:")
-                print("    'x': %e" %math.sqrt(xdot(wx, wx)))
-                print("    'y': %e" %math.sqrt(ydot(wy, wy)))
-                print("    'z': %e" %misc.snrm2(wz, dims))
-                print("    's': %e" %misc.snrm2(ws, dims))
-            }
+        }
 
-        mu = gap / (dims['l'] + len(dims['q']) + sum(dims['s']))
-        sigma, eta = 0.0, 0.0
+        f4_class f4(options.refinement, options.DEBUG, f4_no_ir, W, lmbda, dims, P, A, G);
 
-        for(size_t i = 0; i < 1; i++) {
+        double mu = gap / (dims.l + dims.q.size() + dimss);
+        double sigma = 0.;
+        double eta = 0.0;
+
+        double step = 0.0;
+        
+        for(size_t i = 0; i <= 1; i++) {
 
             // Solve
             //
@@ -1282,59 +1910,60 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             // ds = -lmbdasq + sigma * mu * e  (if i is 0)
             //    = -lmbdasq - dsa o dza + sigma * mu * e  (if i is 1), 
             //     where ds, dz are solution for i is 0.
-            blas.scal(0.0, ds)
-            if options.correction and i == 1:  
-                blas.axpy(ws3, ds, alpha = -1.0)
-            blas.axpy(lmbdasq, ds, n = dims['l'] + sum(dims['q']), 
-                alpha = -1.0)
-            ds[:dims['l']] += sigma*mu
-            ind = dims['l']
-            for m in dims['q']:
-                ds[ind] += sigma*mu
-                ind += m
-            ind2 = ind
-            for m in dims['s']:
-                blas.axpy(lmbdasq, ds, n = m, offsetx = ind2, offsety =  
-                    ind, incy = m + 1, alpha = -1.0)
-                ds[ind : ind + m*m : m+1] += sigma*mu
-                ind += m*m
-                ind2 += m
+            ds.setZero();
+            if (options.correction && i == 1)  
+                ds += -ws3;
+
+            ds.topRows(dims.l + dimsq) += -lmbdasq.topRows(dims.l+dimsq);
+            ds.topRows(dims.l).array() += sigma*mu;
+            int ind =dims.l;
+            for(int m: dims.q) {
+                ds[ind] += sigma*mu;
+                ind += m;
+            }
+            int ind2 = ind;
+            for(int m: dims.s) {
+                KQP_NOT_IMPLEMENTED;
+//                blas.axpy(lmbdasq, ds, n = m, offsetx = ind2, offsety =  
+//                    ind, incy = m + 1, alpha = -1.0)
+//                ds[ind : ind + m*m : m+1] += sigma*mu
+//                ind += m*m
+//                ind2 += m
+            }
 
        
             // (dx, dy, dz) := -(1 - eta) * (rx, ry, rz)
-            xscal(0.0, dx);  xaxpy(rx, dx, alpha = -1.0 + eta)
-            yscal(0.0, dy);  yaxpy(ry, dy, alpha = -1.0 + eta)
-            blas.scal(0.0, dz) 
-            blas.axpy(rz, dz, alpha = -1.0 + eta)
+            dx = -(1-eta) * rx;
+            dy = -(1-eta) * ry;
+            dz = -(1-eta) * rz;
             
-            try: f4(dx, dy, dz, ds)
-            except ArithmeticError: 
-                if iters == 0:
-                    raise ValueError("Rank(A) < p or Rank([P; A; G]) < n")
-                else:
-                    ind = dims['l'] + sum(dims['q'])
-                    for m in dims['s']:
-                        misc.symm(s, m, ind)
-                        misc.symm(z, m, ind)
-                        ind += m**2
-                    ts = misc.max_step(s, dims)
-                    tz = misc.max_step(z, dims)
-                    print("Terminated (singular KKT matrix).")
-                    return { 'x': x,  'y': y,  's': s,  'z': z,  
-                        'status': 'unknown', 'gap': gap,  
-                        'relative gap': relgap, 'primal objective': pcost, 
-                        'dual objective': dcost,
-                        'primal infeasibility': pres,
-                        'dual infeasibility': dres, 'primal slack': -ts,
-                        'dual slack': -tz, 'iterations': iters }
+            try { f4(dx, dy, dz, ds); }
+            catch(arithmetic_exception &) {
+                if (iters == 0)
+                    BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
 
-            dsdz = misc.sdot(ds, dz, dims)
+                ind =dims.l + dimsq;
+                for(int m: dims.s) {
+                    KQP_NOT_IMPLEMENTED;
+                    //                        misc.symm(s, m, ind)
+                    //                        misc.symm(z, m, ind)
+                    //                        ind += m**2
+                }
+                r.primal_slack = -max_step(s, dims);
+                r.dual_slack = -max_step(z, dims);
+                std::cerr << "Terminated (singular KKT matrix)." << std::endl;
+                status = "unknown";
+                return r;
+                
+            }
+            
+            double dsdz = sdot(ds, dz, dims);
 
             // Save ds o dz for Mehrotra NULL
-            if NULL and i == 0:
-                blas.copy(ds, ws3)
-                misc.sprod(ws3, dz, dims)
-
+            if (options.correction && i == 0) {               
+                ws3 = ds;
+                sprod(ws3, dz, dims);
+            }
 
             // Maximum steps to boundary.  
             // 
@@ -1342,30 +1971,36 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             // 's' blocks in ds,dz.  The eigenvectors Qs, Qz are stored in 
             // dsk, dzk.  The eigenvalues are stored in sigs, sigz.
 
-            misc.scale2(lmbda, ds, dims)
-            misc.scale2(lmbda, dz, dims)
-            if i == 0: 
-                ts = misc.max_step(ds, dims)
-                tz = misc.max_step(dz, dims)
-            else:
-                ts = misc.max_step(ds, dims, sigma = sigs)
-                tz = misc.max_step(dz, dims, sigma = sigz)
-            t = max([ 0.0, ts, tz ])
-            if t == 0:
-                step = 1.0
-            else:
-                if i == 0:
-                    step = min(1.0, 1.0 / t)
-                else:
-                    step = min(1.0, STEP / t)
-            if i == 0: 
-                sigma = min(1.0, max(0.0, 
-                    1.0 - step + dsdz/gap * step**2))**EXPON
-                eta = 0.0
+            scale2(lmbda, ds, dims);
+            scale2(lmbda, dz, dims);
+            double ts, tz;
+            if (i == 0) {
+                ts = max_step(ds, dims);
+                tz = max_step(dz, dims);
+            } else {
+                ts = max_step(ds, dims, 0, &sigs);
+                tz = max_step(dz, dims, 0, &sigz);
+            }
+                
+            
+            double t = std::max(std::max(0.0, ts), tz);
+            if (t == 0)
+                step = 1.0;
+            else
+                if (i == 0)
+                    step = std::min(1.0, 1.0 / t);
+                else
+                    step = std::min(1.0, STEP / t);
+            if (i == 0) {
+                sigma = std::pow(std::min(1.0, std::max(0.0, 
+                                     1.0 - step + dsdz/gap * step*step)), EXPON);
+                eta = 0.0;
+            }
         }
 
-        xaxpy(dx, x, alpha = step)
-        yaxpy(dy, y, alpha = step)
+            
+        x += step * dx;
+        y += step * dy;
 
 
         // We will now replace the 'l' and 'q' blocks of ds and dz with 
@@ -1376,15 +2011,16 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
         // ds := e + step*ds for nonlinear, 'l' and 'q' blocks.
         // dz := e + step*dz for nonlinear, 'l' and 'q' blocks.
-        blas.scal(step, ds, n = dims['l'] + sum(dims['q']))
-        blas.scal(step, dz, n = dims['l'] + sum(dims['q']))
-        ind = dims['l']
-        ds[:ind] += 1.0
-        dz[:ind] += 1.0
-        for m in dims['q']:
-            ds[ind] += 1.0
-            dz[ind] += 1.0
-            ind += m
+        ds.topRows(dims.l + dimsq) *= step;
+        dz.topRows(dims.l + dimsq) *= step;
+        int ind =dims.l;
+        ds.topRows(ind).array() += 1.0;
+        dz.topRows(ind).array() += 1.0;
+        for(int m : dims.q) {
+            ds[ind] += 1.0;
+            dz[ind] += 1.0;
+            ind += m;
+        }
 
         // ds := H(lambda)^{-1/2} * ds and dz := H(lambda)^{-1/2} * dz.
         //
@@ -1395,66 +2031,69 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         //     diag(lmbda_k)^{1/2} * Qs * diag(lmbda_k)^{1/2}
         //     diag(lmbda_k)^{1/2} * Qz * diag(lmbda_k)^{1/2}
         // 
-        misc.scale2(lmbda, ds, dims, inverse = 'I')
-        misc.scale2(lmbda, dz, dims, inverse = 'I')
+        scale2(lmbda, ds, dims, false, true);
+        scale2(lmbda, dz, dims, false, true);
 
         // sigs := ( e + step*sigs ) ./ lambda for 's' blocks.
         // sigz := ( e + step*sigz ) ./ lmabda for 's' blocks.
-        blas.scal(step, sigs)
-        blas.scal(step, sigz)
-        sigs += 1.0
-        sigz += 1.0
-        blas.tbsv(lmbda, sigs, n = sum(dims['s']), k = 0, ldA = 1, offsetA
-            = dims['l'] + sum(dims['q']))
-        blas.tbsv(lmbda, sigz, n = sum(dims['s']), k = 0, ldA = 1, offsetA
-            = dims['l'] + sum(dims['q']))
+        sigs = (1.0 + step * sigs.array()) / lmbda.segment(dims.l + dimsq, dimss).array();
+        sigz = (1.0 + step * sigz.array()) / lmbda.segment(dims.l + dimsq, dimss).array();
+        
 
         // dsk := Ls = dsk * sqrt(sigs).
         // dzk := Lz = dzk * sqrt(sigz).
-        ind2, ind3 = dims['l'] + sum(dims['q']), 0
-        for k in xrange(len(dims['s'])):
-            m = dims['s'][k]
-            for i in xrange(m):
-                blas.scal(math.sqrt(sigs[ind3+i]), ds, offset = ind2 + m*i,
-                    n = m)
-                blas.scal(math.sqrt(sigz[ind3+i]), dz, offset = ind2 + m*i,
-                    n = m)
-            ind2 += m*m
-            ind3 += m
+        int ind2 = dims.l + dimsq;
+        int ind3 = 0;
+        for(int k = 0; k < dims.s.size(); k++) {
+            KQP_NOT_IMPLEMENTED;
+//            m = dims['s'][k]
+//            for i in xrange(m):
+//                blas.scal(math.sqrt(sigs[ind3+i]), ds, offset = ind2 + m*i,
+//                    n = m)
+//                blas.scal(math.sqrt(sigz[ind3+i]), dz, offset = ind2 + m*i,
+//                    n = m)
+//            ind2 += m*m
+//            ind3 += m
+        }
 
 
         // Update lambda and scaling.
-        misc.update_scaling(W, lmbda, ds, dz)
+        update_scaling(dims, W, lmbda, ds, dz);
 
 
         // Unscale s, z (unscaled variables are used only to compute 
         // feasibility residuals).
 
-        blas.copy(lmbda, s, n = dims['l'] + sum(dims['q']))
-        ind = dims['l'] + sum(dims['q'])
-        ind2 = ind
-        for m in dims['s']:
-            blas.scal(0.0, s, offset = ind2)
-            blas.copy(lmbda, s, offsetx = ind, offsety = ind2, n = m, 
-                incy = m+1)
-            ind += m
-            ind2 += m*m
-        misc.scale(s, W, trans = 'T')
+        s.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
+        ind =dims.l + dimsq;
+        ind2 = ind;
+        for(int m : dims.s) {
+            KQP_NOT_IMPLEMENTED;
+//            blas.scal(0.0, s, offset = ind2)
+//            blas.copy(lmbda, s, offsetx = ind, offsety = ind2, n = m, 
+//                incy = m+1)
+//            ind += m
+//            ind2 += m*m
+        }
+        
+        scale(s, W, true, false);
 
-        blas.copy(lmbda, z, n = dims['l'] + sum(dims['q']))
-        ind = dims['l'] + sum(dims['q'])
-        ind2 = ind
-        for m in dims['s']:
-            blas.scal(0.0, z, offset = ind2)
-            blas.copy(lmbda, z, offsetx = ind, offsety = ind2, n = m, 
-                incy = m+1)
-            ind += m
-            ind2 += m*m
-        misc.scale(z, W, inverse = 'I')
+        z.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
+        ind =dims.l + dimsq;
+        ind2 = ind;
+        for(int m :dims.s) {
+            KQP_NOT_IMPLEMENTED;
+//            blas.scal(0.0, z, offset = ind2)
+//            blas.copy(lmbda, z, offsetx = ind, offsety = ind2, n = m, 
+//                incy = m+1)
+//            ind += m
+//            ind2 += m*m
+        }
+        scale(z, W, false, true);
 
-        gap = blas.dot(lmbda, lmbda) 
+        gap = lmbda.squaredNorm();
             
-            }
+     }
 }
 
 
@@ -1462,474 +2101,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
 /*
 
-if use_C:
-  scale2 = misc_solvers.scale2
-else:
-  def scale2(lmbda, x, dims, mnl = 0, inverse = 'N'):
-    """
-    Evaluates
 
-        x := H(lambda^{1/2}) * x   (inverse is 'N')
-        x := H(lambda^{-1/2}) * x  (inverse is 'I').
-    
-    H is the Hessian of the logarithmic barrier.
-    """
-      
-
-    // For the nonlinear and 'l' blocks, 
-    //
-    //     xk := xk ./ l   (inverse is 'N')
-    //     xk := xk .* l   (inverse is 'I')
-    //
-    // where l is lmbda[:mnl+dims['l']].
-
-    if inverse == 'N':
-        blas.tbsv(lmbda, x, n = mnl + dims['l'], k = 0, ldA = 1)
-    else:
-        blas.tbmv(lmbda, x, n = mnl + dims['l'], k = 0, ldA = 1)
-   
-  
-    // For 'q' blocks, if inverse is 'N',
-    //
-    //     xk := 1/a * [ l'*J*xk;  
-    //         xk[1:] - (xk[0] + l'*J*xk) / (l[0] + 1) * l[1:] ].
-    //
-    // If inverse is 'I',
-    //
-    //     xk := a * [ l'*xk; 
-    //         xk[1:] + (xk[0] + l'*xk) / (l[0] + 1) * l[1:] ].
-    //
-    // a = sqrt(lambda_k' * J * lambda_k), l = lambda_k / a.
-
-    ind = mnl + dims['l']
-    for m in dims['q']:
-        a = jnrm2(lmbda, n = m, offset = ind)
-        if inverse == 'N':
-            lx = jdot(lmbda, x, n = m, offsetx = ind, offsety = ind)/a
-        else:
-            lx = blas.dot(lmbda, x, n = m, offsetx = ind, offsety = ind)/a
-        x0 = x[ind]
-        x[ind] = lx
-        c = (lx + x0) / (lmbda[ind]/a + 1) / a 
-        if inverse == 'N':  c *= -1.0
-        blas.axpy(lmbda, x, alpha = c, n = m-1, offsetx = ind+1, offsety =
-            ind+1)
-        if inverse == 'N': a = 1.0/a 
-        blas.scal(a, x, offset = ind, n = m)
-        ind += m
-        
-
-    // For the 's' blocks, if inverse is 'N',
-    //
-    //     xk := vec( diag(l)^{-1/2} * mat(xk) * diag(k)^{-1/2}).
-    //
-    // If inverse is 'I',
-    //
-    //     xk := vec( diag(l)^{1/2} * mat(xk) * diag(k)^{1/2}).
-    //
-    // where l is kth block of lambda.
-    // 
-    // We scale upper and lower triangular part of mat(xk) because the
-    // inverse operation will be applied to nonsymmetric matrices.
-
-    ind2 = ind
-    for k in xrange(len(dims['s'])):
-        m = dims['s'][k]
-        for j in xrange(m):
-            c = math.sqrt(lmbda[ind2+j]) * base.sqrt(lmbda[ind2:ind2+m])
-            if inverse == 'N':  
-                blas.tbsv(c, x, n = m, k = 0, ldA = 1, offsetx = ind + j*m)
-            else:
-                blas.tbmv(c, x, n = m, k = 0, ldA = 1, offsetx = ind + j*m)
-        ind += m*m
-        ind2 += m
-
-
-def compute_scaling(s, z, lmbda, dims, mnl = None):
-    """
-    Returns the Nesterov-Todd scaling W at points s and z, and stores the 
-    scaled variable in lmbda. 
-    
-        W * z = W^{-T} * s = lmbda. 
-
-    """
-     
-    W = {}
-
-    // For the nonlinear block:
-    //
-    //     W['dnl'] = sqrt( s[:mnl] ./ z[:mnl] )
-    //     W['dnli'] = sqrt( z[:mnl] ./ s[:mnl] )
-    //     lambda[:mnl] = sqrt( s[:mnl] .* z[:mnl] )
-
-    if mnl is None:
-        mnl = 0
-    else:
-        W['dnl'] = base.sqrt( base.div( s[:mnl], z[:mnl] ))
-        W['dnli'] = W['dnl']**-1
-        lmbda[:mnl] = base.sqrt( base.mul( s[:mnl], z[:mnl] ) ) 
-        
-
-    // For the 'l' block: 
-    //
-    //     W['d'] = sqrt( sk ./ zk )
-    //     W['di'] = sqrt( zk ./ sk )
-    //     lambdak = sqrt( sk .* zk )
-    //
-    // where sk and zk are the first dims['l'] entries of s and z.
-    // lambda_k is stored in the first dims['l'] positions of lmbda.
-             
-    m = dims['l']
-    W['d'] = base.sqrt( base.div( s[mnl:mnl+m], z[mnl:mnl+m] ))
-    W['di'] = W['d']**-1
-    lmbda[mnl:mnl+m] = base.sqrt( base.mul( s[mnl:mnl+m], z[mnl:mnl+m] ) ) 
-
-
-    // For the 'q' blocks, compute lists 'v', 'beta'.
-    //
-    // The vector v[k] has unit hyperbolic norm: 
-    // 
-    //     (sqrt( v[k]' * J * v[k] ) = 1 with J = [1, 0; 0, -I]).
-    // 
-    // beta[k] is a positive scalar.
-    //
-    // The hyperbolic Householder matrix H = 2*v[k]*v[k]' - J
-    // defined by v[k] satisfies 
-    // 
-    //     (beta[k] * H) * zk  = (beta[k] * H) \ sk = lambda_k
-    //
-    // where sk = s[indq[k]:indq[k+1]], zk = z[indq[k]:indq[k+1]].
-    //
-    // lambda_k is stored in lmbda[indq[k]:indq[k+1]].
-           
-    ind = mnl + dims['l']
-    W['v'] = [ matrix(0.0, (k,1)) for k in dims['q'] ]
-    W['beta'] = len(dims['q']) * [ 0.0 ] 
-
-    for k in xrange(len(dims['q'])):
-        m = dims['q'][k]
-        v = W['v'][k]
-
-        // a = sqrt( sk' * J * sk )  where J = [1, 0; 0, -I]
-        aa = jnrm2(s, offset = ind, n = m)
-
-        // b = sqrt( zk' * J * zk )
-        bb = jnrm2(z, offset = ind, n = m) 
-
-        // beta[k] = ( a / b )**1/2
-        W['beta'][k] = math.sqrt( aa / bb )
-
-        // c = sqrt( (sk/a)' * (zk/b) + 1 ) / sqrt(2)    
-        cc = math.sqrt( ( blas.dot(s, z, n = m, offsetx = ind, offsety = 
-            ind) / aa / bb + 1.0 ) / 2.0 )
-
-        // vk = 1/(2*c) * ( (sk/a) + J * (zk/b) )
-        blas.copy(z, v, offsetx = ind, n = m)
-        blas.scal(-1.0/bb, v)
-        v[0] *= -1.0 
-        blas.axpy(s, v, 1.0/aa, offsetx = ind, n = m)
-        blas.scal(1.0/2.0/cc, v)
-
-        // v[k] = 1/sqrt(2*(vk0 + 1)) * ( vk + e ),  e = [1; 0]
-        v[0] += 1.0
-        blas.scal(1.0/math.sqrt(2.0 * v[0]), v)
-            
-        // To get the scaled variable lambda_k
-        // 
-        //     d =  sk0/a + zk0/b + 2*c
-        //     lambda_k = [ c; 
-        //                  (c + zk0/b)/d * sk1/a + (c + sk0/a)/d * zk1/b ]
-        //     lambda_k *= sqrt(a * b)
-
-        lmbda[ind] = cc
-        dd = 2*cc + s[ind]/aa + z[ind]/bb
-        blas.copy(s, lmbda, offsetx = ind+1, offsety = ind+1, n = m-1) 
-        blas.scal((cc + z[ind]/bb)/dd/aa, lmbda, n = m-1, offset = ind+1)
-        blas.axpy(z, lmbda, (cc + s[ind]/aa)/dd/bb, n = m-1, offsetx = 
-            ind+1, offsety = ind+1)
-        blas.scal(math.sqrt(aa*bb), lmbda, offset = ind, n = m)
-
-        ind += m
-
-
-    // For the 's' blocks: compute two lists 'r' and 'rti'.
-    //
-    //     r[k]' * sk^{-1} * r[k] = diag(lambda_k)^{-1}
-    //     r[k]' * zk * r[k] = diag(lambda_k)
-    //
-    // where sk and zk are the entries inds[k] : inds[k+1] of
-    // s and z, reshaped into symmetric matrices.
-    //
-    // rti[k] is the inverse of r[k]', so 
-    //
-    //     rti[k]' * sk * rti[k] = diag(lambda_k)^{-1}
-    //     rti[k]' * zk^{-1} * rti[k] = diag(lambda_k).
-    //
-    // The vectors lambda_k are stored in 
-    // 
-    //     lmbda[ dims['l'] + sum(dims['q']) : -1 ]
-            
-    W['r'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-    W['rti'] = [ matrix(0.0, (m,m)) for m in dims['s'] ]
-    work = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
-    Ls = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
-    Lz = matrix(0.0, (max( [0] + dims['s'] )**2, 1))
-
-    ind2 = ind
-    for k in xrange(len(dims['s'])):
-        m = dims['s'][k]
-        r, rti = W['r'][k], W['rti'][k]
-
-        // Factor sk = Ls*Ls'; store Ls in ds[inds[k]:inds[k+1]].
-        blas.copy(s, Ls, offsetx = ind2, n = m**2) 
-        lapack.potrf(Ls, n = m, ldA = m)
-
-        // Factor zs[k] = Lz*Lz'; store Lz in dz[inds[k]:inds[k+1]].
-        blas.copy(z, Lz, offsetx = ind2, n = m**2) 
-        lapack.potrf(Lz, n = m, ldA = m)
-	 
-        // SVD Lz'*Ls = U*diag(lambda_k)*V'.  Keep U in work. 
-        for i in xrange(m): 
-            blas.scal(0.0, Ls, offset = i*m, n = i)
-        blas.copy(Ls, work, n = m**2)
-        blas.trmm(Lz, work, transA = 'T', ldA = m, ldB = m, n = m, m = m) 
-        lapack.gesvd(work, lmbda, jobu = 'O', ldA = m, m = m, n = m, 
-            offsetS = ind)
-	       
-        // r = Lz^{-T} * U 
-        blas.copy(work, r, n = m*m)
-        blas.trsm(Lz, r, transA = 'T', m = m, n = m, ldA = m)
-
-        // rti = Lz * U 
-        blas.copy(work, rti, n = m*m)
-        blas.trmm(Lz, rti, m = m, n = m, ldA = m)
-
-        // r := r * diag(sqrt(lambda_k))
-        // rti := rti * diag(1 ./ sqrt(lambda_k))
-        for i in xrange(m):
-            a = math.sqrt( lmbda[ind+i] )
-            blas.scal(a, r, offset = m*i, n = m)
-            blas.scal(1.0/a, rti, offset = m*i, n = m)
-
-        ind += m
-        ind2 += m*m
-
-    return W
-
-
-def update_scaling(W, lmbda, s, z):
-    """
-    Updates the Nesterov-Todd scaling matrix W and the scaled variable 
-    lmbda so that on exit
-    
-          W * zt = W^{-T} * st = lmbda.
-     
-    On entry, the nonlinear, 'l' and 'q' components of the arguments s 
-    and z contain W^{-T}*st and W*zt, i.e, the new iterates in the current 
-    scaling.
-    
-    The 's' components contain the factors Ls, Lz in a factorization of 
-    the new iterates in the current scaling, W^{-T}*st = Ls*Ls',   
-    W*zt = Lz*Lz'.
-    """
-  
-
-    // Nonlinear and 'l' blocks
-    //
-    //    d :=  d .* sqrt( s ./ z )
-    //    lmbda := lmbda .* sqrt(s) .* sqrt(z)
-
-    if 'dnl' in W:
-        mnl = len(W['dnl'])
-    else:
-        mnl = 0
-    ml = len(W['d'])
-    m = mnl + ml
-    s[:m] = base.sqrt( s[:m] )
-    z[:m] = base.sqrt( z[:m] )
- 
-    // d := d .* s .* z 
-    if 'dnl' in W:
-        blas.tbmv(s, W['dnl'], n = mnl, k = 0, ldA = 1)
-        blas.tbsv(z, W['dnl'], n = mnl, k = 0, ldA = 1)
-        W['dnli'][:] = W['dnl'][:] ** -1
-    blas.tbmv(s, W['d'], n = ml, k = 0, ldA = 1, offsetA = mnl)
-    blas.tbsv(z, W['d'], n = ml, k = 0, ldA = 1, offsetA = mnl)
-    W['di'][:] = W['d'][:] ** -1
-         
-    // lmbda := s .* z
-    blas.copy(s, lmbda, n = m)
-    blas.tbmv(z, lmbda, n = m, k = 0, ldA = 1)
-
-
-    // 'q' blocks.
-    // 
-    // Let st and zt be the new variables in the old scaling:
-    //
-    //     st = s_k,   zt = z_k
-    //
-    // and a = sqrt(st' * J * st),  b = sqrt(zt' * J * zt).
-    //
-    // 1. Compute the hyperbolic Householder transformation 2*q*q' - J 
-    //    that maps st/a to zt/b.
-    // 
-    //        c = sqrt( (1 + st'*zt/(a*b)) / 2 ) 
-    //        q = (st/a + J*zt/b) / (2*c). 
-    //
-    //    The new scaling point is 
-    //
-    //        wk := betak * sqrt(a/b) * (2*v[k]*v[k]' - J) * q 
-    //
-    //    with betak = W['beta'][k].
-    // 
-    // 3. The scaled variable:
-    //
-    //        lambda_k0 = sqrt(a*b) * c
-    //        lambda_k1 = sqrt(a*b) * ( (2vk*vk' - J) * (-d*q + u/2) )_1
-    //
-    //    where 
-    //
-    //        u = st/a - J*zt/b 
-    //        d = ( vk0 * (vk'*u) + u0/2 ) / (2*vk0 *(vk'*q) - q0 + 1).
-    //
-    // 4. Update scaling
-    //   
-    //        v[k] := wk^1/2 
-    //              = 1 / sqrt(2*(wk0 + 1)) * (wk + e).
-    //        beta[k] *=  sqrt(a/b)
-
-    ind = m
-    for k in xrange(len(W['v'])):
-
-        v = W['v'][k]
-        m = len(v)
-
-        // ln = sqrt( lambda_k' * J * lambda_k )
-        ln = jnrm2(lmbda, n = m, offset = ind) 
-
-        // a = sqrt( sk' * J * sk ) = sqrt( st' * J * st ) 
-        // s := s / a = st / a
-        aa = jnrm2(s, offset = ind, n = m)
-        blas.scal(1.0/aa, s, offset = ind, n = m)
-
-        // b = sqrt( zk' * J * zk ) = sqrt( zt' * J * zt )
-        // z := z / a = zt / b
-        bb = jnrm2(z, offset = ind, n = m) 
-        blas.scal(1.0/bb, z, offset = ind, n = m)
-
-        // c = sqrt( ( 1 + (st'*zt) / (a*b) ) / 2 )
-        cc = math.sqrt( ( 1.0 + blas.dot(s, z, offsetx = ind, offsety = 
-            ind, n = m) ) / 2.0 )
-
-        // vs = v' * st / a 
-        vs = blas.dot(v, s, offsety = ind, n = m) 
-
-        // vz = v' * J *zt / b
-        vz = jdot(v, z, offsety = ind, n = m) 
-
-        // vq = v' * q where q = (st/a + J * zt/b) / (2 * c)
-        vq = (vs + vz ) / 2.0 / cc
-
-        // vu = v' * u  where u =  st/a - J * zt/b 
-        vu = vs - vz  
-
-        // lambda_k0 = c
-        lmbda[ind] = cc
-
-        // wk0 = 2 * vk0 * (vk' * q) - q0 
-        wk0 = 2 * v[0] * vq - ( s[ind] + z[ind] ) / 2.0 / cc 
-
-        // d = (v[0] * (vk' * u) - u0/2) / (wk0 + 1)
-        dd = (v[0] * vu - s[ind]/2.0 + z[ind]/2.0) / (wk0 + 1.0)
-
-        // lambda_k1 = 2 * v_k1 * vk' * (-d*q + u/2) - d*q1 + u1/2
-        blas.copy(v, lmbda, offsetx = 1, offsety = ind+1, n = m-1)
-        blas.scal(2.0 * (-dd * vq + 0.5 * vu), lmbda, offset = ind+1, 
-           n = m-1)
-        blas.axpy(s, lmbda, 0.5 * (1.0 - dd/cc), offsetx = ind+1, offsety 
-           = ind+1, n = m-1)
-        blas.axpy(z, lmbda, 0.5 * (1.0 + dd/cc), offsetx = ind+1, offsety
-           = ind+1, n = m-1)
-
-        // Scale so that sqrt(lambda_k' * J * lambda_k) = sqrt(aa*bb).
-        blas.scal(math.sqrt(aa*bb), lmbda, offset = ind, n = m)
-            
-        // v := (2*v*v' - J) * q 
-        //    = 2 * (v'*q) * v' - (J* st/a + zt/b) / (2*c)
-        blas.scal(2.0 * vq, v)
-        v[0] -= s[ind] / 2.0 / cc
-        blas.axpy(s, v,  0.5/cc, offsetx = ind+1, offsety = 1, n = m-1)
-        blas.axpy(z, v, -0.5/cc, offsetx = ind, n = m)
-
-        // v := v^{1/2} = 1/sqrt(2 * (v0 + 1)) * (v + e)
-        v[0] += 1.0
-        blas.scal(1.0 / math.sqrt(2.0 * v[0]), v)
-
-        // beta[k] *= ( aa / bb )**1/2
-        W['beta'][k] *= math.sqrt( aa / bb )
-            
-        ind += m
-
-
-    // 's' blocks
-    // 
-    // Let st, zt be the updated variables in the old scaling:
-    // 
-    //     st = Ls * Ls', zt = Lz * Lz'.
-    //
-    // where Ls and Lz are the 's' components of s, z.
-    //
-    // 1.  SVD Lz'*Ls = Uk * lambda_k^+ * Vk'.
-    //
-    // 2.  New scaling is 
-    //
-    //         r[k] := r[k] * Ls * Vk * diag(lambda_k^+)^{-1/2}
-    //         rti[k] := r[k] * Lz * Uk * diag(lambda_k^+)^{-1/2}.
-    //
-
-    work = matrix(0.0, (max( [0] + [r.size[0] for r in W['r']])**2, 1))
-    ind = mnl + ml + sum([ len(v) for v in W['v'] ])
-    ind2, ind3 = ind, 0
-    for k in xrange(len(W['r'])):
-        r, rti = W['r'][k], W['rti'][k]
-        m = r.size[0]
-
-        // r := r*sk = r*Ls
-        blas.gemm(r, s, work, m = m, n = m, k = m, ldB = m, ldC = m,
-            offsetB = ind2)
-        blas.copy(work, r, n = m**2)
-
-        // rti := rti*zk = rti*Lz
-        blas.gemm(rti, z, work, m = m, n = m, k = m, ldB = m, ldC = m,
-            offsetB = ind2)
-        blas.copy(work, rti, n = m**2)
-
-        // SVD Lz'*Ls = U * lmbds^+ * V'; store U in sk and V' in zk.
-        blas.gemm(z, s, work, transA = 'T', m = m, n = m, k = m, ldA = m,
-            ldB = m, ldC = m, offsetA = ind2, offsetB = ind2)
-        lapack.gesvd(work, lmbda, jobu = 'A', jobvt = 'A', m = m, n = m, 
-            ldA = m, U = s, Vt = z, ldU = m, ldVt = m, offsetS = ind, 
-            offsetU = ind2, offsetVt = ind2)
-
-        // r := r*V
-        blas.gemm(r, z, work, transB = 'T', m = m, n = m, k = m, ldB = m,
-            ldC = m, offsetB = ind2)
-        blas.copy(work, r, n = m**2)
-
-        // rti := rti*U
-        blas.gemm(rti, s, work, n = m, m = m, k = m, ldB = m, ldC = m,
-            offsetB = ind2)
-        blas.copy(work, rti, n = m**2)
-
-        // r := r*lambda^{-1/2}; rti := rti*lambda^{-1/2}
-        for i in xrange(m):    
-            a = 1.0 / math.sqrt(lmbda[ind+i])
-            blas.scal(a, r, offset = m*i, n = m)
-            blas.scal(a, rti, offset = m*i, n = m)
-
-        ind += m
-        ind2 += m*m
-        ind3 += m
 
 
 if use_C:
@@ -1945,7 +2117,7 @@ else:
      sqrt(2).
      """
 
-     nlq = mnl + dims['l'] + sum(dims['q'])
+     nlq = mnl +dims.l + dimsq
      blas.copy(x, y, n = nlq, offsetx = offsetx, offsety = offsety)
      iu, ip = offsetx + nlq, offsety + nlq
      for n in dims['s']:
@@ -1970,7 +2142,7 @@ else:
      """
 
      if not dims['s']: return
-     iu = mnl + dims['l'] + sum(dims['q'])
+     iu = mnl +dims.l + dimsq
      ip = iu
      for n in dims['s']:
          for k in xrange(n):
@@ -1993,7 +2165,7 @@ else:
      unpacked storage.
      """
 
-     nlq = mnl + dims['l'] + sum(dims['q'])
+     nlq = mnl +dims.l + dimsq
      blas.copy(x, y, n = nlq, offsetx = offsetx, offsety = offsety)
      iu, ip = offsety+nlq, offsetx+nlq
      for n in dims['s']:
@@ -2046,8 +2218,8 @@ else:
     and scales the strictly lower triangular part by 2.0.
     """ 
 
-    m = dims['l'] + sum(dims['q']) + sum([ k**2 for k in dims['s'] ]) 
-    ind = offset + dims['l'] + sum(dims['q'])
+    m =dims.l + dimsq + sum([ k**2 for k in dims['s'] ]) 
+    ind = offset +dims.l + dimsq
     for mk in dims['s']:
         for j in xrange(1, mk):  
             blas.scal(0.0, x, n = mk-j, inc = mk, offset = 
@@ -2065,8 +2237,8 @@ else:
     by 0.5.
     """ 
 
-    m = dims['l'] + sum(dims['q']) + sum([ k**2 for k in dims['s'] ]) 
-    ind = offset + dims['l'] + sum(dims['q'])
+    m =dims.l + dimsq + sum([ k**2 for k in dims['s'] ]) 
+    ind = offset +dims.l + dimsq
     for mk in dims['s']:
         for j in xrange(1, mk):  
                 blas.scal(0.5, x, offset = ind + mk*(j-1) + j, n = mk-j) 
@@ -2080,7 +2252,7 @@ def sgemv(A, x, y, dims, trans = 'N', alpha = 1.0, beta = 0.0, n = None,
 
     A is a matrix or spmatrix of size (m, n) where 
     
-        N = dims['l'] + sum(dims['q']) + sum( k**2 for k in dims['s'] ) 
+        N =dims.l + dimsq + sum( k**2 for k in dims['s'] ) 
 
     representing a mapping from R^n to S.  
     
@@ -2099,7 +2271,7 @@ def sgemv(A, x, y, dims, trans = 'N', alpha = 1.0, beta = 0.0, n = None,
     The 's' components in S are stored in unpacked 'L' storage.
     """
 
-    m = dims['l'] + sum(dims['q']) + sum([ k**2 for k in dims['s'] ]) 
+    m =dims.l + dimsq + sum([ k**2 for k in dims['s'] ]) 
     if n is None: n = A.size[1]
     if trans == 'T' and alpha:  trisc(x, dims, offsetx)
     base.gemv(A, x, y, trans = trans, alpha = alpha, beta = beta, m = m,
@@ -2133,91 +2305,7 @@ def jnrm2(x, n = None, offset = 0):
 
 
 
-if use_C:
-  sprod = misc_solvers.sprod
-else:
-  def sprod(x, y, dims, mnl = 0, diag = 'N'):   
-    """
-    The product x := (y o x).  If diag is 'D', the 's' part of y is 
-    diagonal and only the diagonal is stored.
-    """
 
-
-    // For the nonlinear and 'l' blocks:  
-    //
-    //     yk o xk = yk .* xk.
-
-    blas.tbmv(y, x, n = mnl + dims['l'], k = 0, ldA = 1) 
-
-
-    // For 'q' blocks: 
-    //
-    //               [ l0   l1'  ]
-    //     yk o xk = [           ] * xk
-    //               [ l1   l0*I ] 
-    //
-    // where yk = (l0, l1).
-    
-    ind = mnl + dims['l']
-    for m in dims['q']:
-        dd = blas.dot(x, y, offsetx = ind, offsety = ind, n = m)
-        blas.scal(y[ind], x, offset = ind+1, n = m-1)
-        blas.axpy(y, x, alpha = x[ind], n = m-1, offsetx = ind+1, offsety 
-            = ind+1)
-        x[ind] = dd
-        ind += m
-
-
-    // For the 's' blocks:
-    //
-    //    yk o sk = .5 * ( Yk * mat(xk) + mat(xk) * Yk )
-    // 
-    // where Yk = mat(yk) if diag is 'N' and Yk = diag(yk) if diag is 'D'.
-
-    if diag is 'N':
-        maxm = max([0] + dims['s'])
-        A = matrix(0.0, (maxm, maxm))
-
-        for m in dims['s']:
-            blas.copy(x, A, offsetx = ind, n = m*m)
-
-            // Write upper triangular part of A and yk.
-            for i in xrange(m-1):
-                symm(A, m)
-                symm(y, m, offset = ind)
-
-            // xk = 0.5 * (A*yk + yk*A)
-            blas.syr2k(A, y, x, alpha = 0.5, n = m, k = m, ldA = m,  ldB = 
-                m, ldC = m, offsetB = ind, offsetC = ind)
-
-            ind += m*m
-
-    else:
-        ind2 = ind
-        for m in dims['s']:
-            for j in xrange(m):
-                u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
-                blas.tbmv(u, x, n = m-j, k = 0, ldA = 1, offsetx = 
-                    ind + j*(m+1))  
-            ind += m*m
-            ind2 += m
-
-
-def ssqr(x, y, dims, mnl = 0):
-    """
-    The product x := y o y.   The 's' components of y are diagonal and
-    only the diagonals of x and y are stored.     
-    """
-
-    blas.copy(y, x)
-    blas.tbmv(y, x, n = mnl + dims['l'], k = 0, ldA = 1) 
-    ind = mnl + dims['l']
-    for m in dims['q']:
-        x[ind] = blas.nrm2(y, offset = ind, n = m)**2
-        blas.scal(2.0*y[ind], x, n = m-1, offset = ind+1)
-        ind += m 
-    blas.tbmv(y, x, n = sum(dims['s']), k = 0, ldA = 1, offsetA = ind, 
-        offsetx = ind) 
 
 
 
@@ -2240,11 +2328,11 @@ def kkt_ldl(G, dims, A, mnl = 0):
         [ GG    0   -W'*W  ]   [ uz ]   [ bz ]
     
     H is n x n,  A is p x n, Df is mnl x n, G is N x n where
-    N = dims['l'] + sum(dims['q']) + sum( k**2 for k in dims['s'] ).
+    N =dims.l + dimsq + sum( k**2 for k in dims['s'] ).
     """
     
     p, n = A.size
-    ldK = n + p + mnl + dims['l'] + sum(dims['q']) + sum([ k*(k+1)/2 for k 
+    ldK = n + p + mnl +dims.l + dimsq + sum([ k*(k+1)/2 for k 
         in dims['s'] ])
     K = matrix(0.0, (ldK, ldK))
     ipiv = matrix(0, (ldK, 1))
@@ -2310,7 +2398,7 @@ def kkt_ldl2(G, dims, A, mnl = 0):
         [ GG   0   -W'*W  ]   [ uz ]   [ bz ]
     
     H is n x n,  A is p x n, Df is mnl x n, G is N x n where
-    N = dims['l'] + sum(dims['q']) + sum( k**2 for k in dims['s'] ).
+    N =dims.l + dimsq + sum( k**2 for k in dims['s'] ).
     """
 
     p, n = A.size
@@ -2398,13 +2486,13 @@ def kkt_chol(G, dims, A, mnl = 0):
         [ GG   0    -W'*W  ]   [ uz ]   [ bz ]
     
     H is n x n,  A is p x n, Df is mnl x n, G is N x n where
-    N = dims['l'] + sum(dims['q']) + sum( k**2 for k in dims['s'] ).
+    N =dims.l + dimsq + sum( k**2 for k in dims['s'] ).
     """
 
     p, n = A.size
-    cdim = mnl + dims['l'] + sum(dims['q']) + sum([ k**2 for k in 
+    cdim = mnl +dims.l + dimsq + sum([ k**2 for k in 
         dims['s'] ])
-    cdim_pckd = mnl + dims['l'] + sum(dims['q']) + sum([ k*(k+1)/2 for k 
+    cdim_pckd = mnl +dims.l + dimsq + sum([ k*(k+1)/2 for k 
         in dims['s'] ])
 
     // A' = [Q1, Q2] * [R; 0]  (Q1 is n x p, Q2 is n x n-p).
@@ -2541,7 +2629,7 @@ def kkt_chol2(G, dims, A, mnl = 0):
         [ A     0    0     ] * [ uy ] = [ by ].
         [ GG    0   -W'*W  ]   [ uz ]   [ bz ]
     
-    H is n x n,  A is p x n, Df is mnl x n, G is dims['l'] x n.
+    H is n x n,  A is p x n, Df is mnl x n, G isdims.l x n.
     """
 
     if dims['q'] or dims['s']:
@@ -2549,7 +2637,7 @@ def kkt_chol2(G, dims, A, mnl = 0):
             "only for problems with no second-order or semidefinite cone "\
             "constraints")
     p, n = A.size
-    ml = dims['l']
+    ml =dims.l
     F = {'firstcall': True, 'singular': False}
 
     def factor(W, H = None, Df = None):
@@ -2753,15 +2841,15 @@ def kkt_chol2(G, dims, A, mnl = 0):
  [ A    0    0     ] * [ uy ] = [ by ].
  [ G    0   -W'*W  ]   [ uz ]   [ bz ]
  
- A is p x n and G is N x n where N = dims['l'] + sum(dims['q']) + 
+ A is p x n and G is N x n where N =dims.l + dimsq + 
  sum( k**2 for k in dims['s'] ).
 
  * /
                        void kkt_qr(G, dims, A) {
  
     p, n = A.size
-    cdim = dims['l'] + sum(dims['q']) + sum([ k**2 for k in dims['s'] ])
-    cdim_pckd = dims['l'] + sum(dims['q']) + sum([ k*(k+1)/2 for k in 
+    cdim =dims.l + dimsq + sum([ k**2 for k in dims['s'] ])
+    cdim_pckd =dims.l + dimsq + sum([ k*(k+1)/2 for k in 
         dims['s'] ])
 
     // A' = [Q1, Q2] * [R1; 0]
