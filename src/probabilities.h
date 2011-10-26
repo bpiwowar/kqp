@@ -184,6 +184,16 @@ namespace kqp {
             return this->mX.computeInnerProducts(vector) * this->mY * this->mS;
         }
         
+        /**
+         * @brief Computes the divergence with another density
+         *
+         * Computes the divergence defined in the paper
+         * "Conditional expectation in an operator algebra. IV. Entropy and information" by H. Umegaki (1962),
+         * at page 69. The formula is:
+         * \f[ J(\rho || \tau) = tr(\rho \log (\rho) - \rho \log(\tau))) \f]
+         */
+        double computeDivergence(const Density<scalar, F> &tau);
+        
 
     };
     

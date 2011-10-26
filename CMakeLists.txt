@@ -11,9 +11,11 @@ set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
 add_library (kqp src/coneprog.cpp src/fastRankOneUpdate.cpp src/fastRankOneUpdate.h src/kernel_evd.cpp src/kernel_evd.h src/kqp.cpp src/kqp.h src/probabilities.cpp src/probabilities.h)
 
 
-# --- Galahad
+# --- Tests
 
-# add_subdirectory(galahad)
+ENABLE_TESTING()
+ add_subdirectory(tests)
+
 
 # --- JNI Java library
 

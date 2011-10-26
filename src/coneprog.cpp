@@ -24,7 +24,7 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagonalMatrix;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> IntVector;
-
+typedef std::vector<int>::const_iterator IntIterator;
 
 
 /// Options to be used for the coneq 
@@ -132,11 +132,12 @@ struct ScalingMatrix {
 /// Inner product of two vectors in S.
 double sdot(const Vector &x, const Vector &y, const Dimensions &dims, size_t mnl = 0) {
     size_t ind = mnl + dims.l;
-    for(int k: dims.q) ind += k;
+    for(std::vector<int>::const_iterator k = dims.q.begin(); k != dims.q.end(); k++)
+        ind += *k;
     
     double a = x.head(ind).adjoint() * y.head(ind);
     
-    for(int m: dims.s) {
+    for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
         KQP_NOT_IMPLEMENTED;
          /*
         a +=
@@ -176,7 +177,7 @@ double max_step(Vector &x, const Dimensions &dims, int mnl = 0, const Vector * s
     
     if (!dims.q.empty()) {
         KQP_NOT_IMPLEMENTED;
-//    for(int m: dims.q) {
+//    for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
 //        if (m > 0) 
 //            t += [ blas.nrm2(x, offset = ind + 1, n = m-1) - x[ind] ];
 //        ind += m;
@@ -238,7 +239,7 @@ void scale(Eigen::Matrix<double, Eigen::Dynamic, ColsAtCompileTime> &x, const Sc
     // dnli = W['dnli'].
 
     if (W.dnl.rows() > 0) {
-        const Vector &w = inverse ? W.dnli : W.dnl;        
+        const DiagonalMatrix &w = inverse ? W.dnli : W.dnl;        
         x.block(0, 0, w.rows(), x.cols()) = w * x.block(0, 0, w.rows(), x.cols());
         ind += w.rows();
     }
@@ -418,7 +419,8 @@ void sinv(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
     // 
     //     yk o\ xk = yk .\ xk.
 
-    y.topRows(mnl + dims.l).diagonal().triangularView<Eigen::Lower>().solveInPlace(x);
+    x.topRows(mnl + dims.l).array() /= y.topRows(mnl + dims.l).array();
+    
     // blas.tbsv(y, x, n = mnl + dims.l, k = 0, ldA = 1)
 
     // For the 'q' blocks: 
@@ -430,7 +432,7 @@ void sinv(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
     // where yk = (l0, l1) and a = l0^2 - l1'*l1.
 
     int ind = mnl + dims.l;
-    for(int m: dims.q) {
+    for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
         KQP_NOT_IMPLEMENTED;
 //        aa = jnrm2(y, n = m, offset = ind)**2
 //        cc = x[ind]
@@ -450,7 +452,7 @@ void sinv(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
     // where gammaij = .5 * (yk_i + yk_j).
 
     int ind2 = ind;
-    for(int m: dims.s) {
+    for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
         KQP_NOT_IMPLEMENTED;
 //        for j in xrange(m):
 //            u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
@@ -1509,11 +1511,11 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
     int cdim = dims.l;
     int dimsq = 0, dimss = 0;
-    for(int &i: dims.q) { cdim += i; dimsq += i; }
-    for(int &i: dims.s) { cdim += i * i; dimss += i; }
+    for(IntIterator i = dims.q.begin(); i != dims.q.end(); i++) { cdim += *i; dimsq += *i; }
+    for(IntIterator i = dims.s.begin(); i != dims.q.end(); i++) { cdim += *i * *i; dimss += *i; }
     
     boost::shared_ptr<Vector> __h;
-    Vector &h = _h ? *_h : *(__h = boost::shared_ptr<Matrix>(new Vector(cdim)));
+    Vector &h = _h ? *_h : *(__h = boost::shared_ptr<Vector>(new Vector(cdim)));
 
     if (h.rows() != cdim)
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'h' must be a 'd' matrix of size (%d,1)") %cdim).str()));
@@ -1521,15 +1523,16 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     // Data for kth 'q' constraint are found in rows indq[k]:indq[k+1] of G.
     std::vector<int> indq(dims.l);
     
-    for(int &k: dims.q) 
-        indq.push_back(indq.back() + k);        
+    for(IntIterator k = dims.q.begin(); k != dims.q.end(); k++)
+        indq.push_back(indq.back() + *k);        
     
 
     // Data for kth 's' constraint are found in rows inds[k]:inds[k+1] of G.
     std::vector<int> inds;
     inds.push_back(indq.back());
     
-    for(int &k: dims.s) inds.push_back(inds.back() + k * k);
+    for(IntIterator k = dims.s.begin(); k != dims.s.end(); k++)
+        inds.push_back(inds.back() + *k * *k);
     
     boost::shared_ptr<Matrix> __G;
     Matrix &G = _G ? *_G : *(__G = boost::shared_ptr<Matrix>(new Matrix(cdim, q.rows())));
@@ -1624,13 +1627,14 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         W.d = DiagonalMatrix(dims.l, dims.l); W.d.setIdentity();
         W.di = W.d;
         
-        for(int m: dims.q) 
-            W.v.push_back(Matrix(m,1));
+        for(IntIterator m = dims.q.begin(); m != dims.q.end(); m++) 
+            W.v.push_back(Matrix(*m,1));
         
         W.beta.push_back(dims.q.size());
-        for(Matrix &v: W.v) v(0,0) = 1.0;
+        for(std::vector<Matrix>::iterator v = W.v.begin();  v != W.v.end(); v++) 
+            (*v)(0,0) = 1.0;
         
-        for(int m: dims.s) {
+        for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
             W.r.push_back(Matrix(m,m));
             W.r.back().setIdentity();
             W.rti.push_back(Matrix(m,m));
@@ -1670,7 +1674,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             for(int i = 0; i < indq.size() - 1; i++)
                 s[indq[i]] += a;
             int ind = dims.l + dimsq;
-            for(int m: dims.s) {
+            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                 for(int i = ind; i < ind + m * m; i += m+1) s[i] += a;
                 ind += m * m;
             }
@@ -1683,7 +1687,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             for(int i = 0; i < dims.l; i++) z[i] += a;
             for(int i = 0; i < indq.size() - 1; i++) z[indq[i]] += a;
             int ind = dims.l + dimsq;
-            for(int m: dims.s) {
+            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                  for(int i = ind; i < ind + m * m; i += m+1) 
                      z[i] += a;
                 ind += m * m;
@@ -1706,12 +1710,12 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             for(int i = 0; i < dims.l; i++) s[i] = 1.;
             
             int ind = dims.l;
-            for(int m: dims.q) {
+            for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
                 s[ind] = 1.0;
                 ind += m;
             }
             
-            for(int m: dims.s) {
+            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                 for(int i = ind; i < ind+m*m; i += m+1) 
                     s[i] = 1.;
                 ind += m * m;
@@ -1728,12 +1732,12 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         } else {
             for(int i = 0; i < dims.l; i++) z[i] = 1.;
             int ind = dims.l;
-            for(int m: dims.q) {
+            for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
                 z[ind] = 1.0;
                 ind += m;
             }
             
-            for(int m: dims.s) {
+            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                 for(int i = ind; i < ind+m*m; i += m+1) 
                     z[i] = 1.;
                 ind += m * m;
@@ -1799,7 +1803,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
         if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
             int ind = dims.l  + dimsq;
-            for(int m: dims.s) {
+            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                 KQP_NOT_IMPLEMENTED;
 //                misc.symm(s, m, ind);
 //                misc.symm(z, m, ind);
@@ -1851,7 +1855,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
                 BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
             else {
                 int ind = dims.l + dimsq;
-                for(int m: dims.s) {
+                for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
                     KQP_NOT_IMPLEMENTED;
 //                    misc.symm(s, m, ind)
 //                    misc.symm(z, m, ind)
@@ -1917,12 +1921,12 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             ds.topRows(dims.l + dimsq) += -lmbdasq.topRows(dims.l+dimsq);
             ds.topRows(dims.l).array() += sigma*mu;
             int ind =dims.l;
-            for(int m: dims.q) {
+            for(size_t j = 0; j < dims.q.size(); j++) { int m = dims.q[j];
                 ds[ind] += sigma*mu;
                 ind += m;
             }
             int ind2 = ind;
-            for(int m: dims.s) {
+            for(size_t j = 0; j < dims.s.size(); j++) { int m = dims.s[j];
                 KQP_NOT_IMPLEMENTED;
 //                blas.axpy(lmbdasq, ds, n = m, offsetx = ind2, offsety =  
 //                    ind, incy = m + 1, alpha = -1.0)
@@ -1943,7 +1947,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
                     BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
 
                 ind =dims.l + dimsq;
-                for(int m: dims.s) {
+                for(size_t j = 0; j < dims.s.size(); j++) { int m = dims.s[j];
                     KQP_NOT_IMPLEMENTED;
                     //                        misc.symm(s, m, ind)
                     //                        misc.symm(z, m, ind)
@@ -2016,10 +2020,10 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         int ind =dims.l;
         ds.topRows(ind).array() += 1.0;
         dz.topRows(ind).array() += 1.0;
-        for(int m : dims.q) {
+        for(IntIterator m = dims.q.begin(); m != dims.q.end(); m++) {
             ds[ind] += 1.0;
             dz[ind] += 1.0;
-            ind += m;
+            ind += *m;
         }
 
         // ds := H(lambda)^{-1/2} * ds and dz := H(lambda)^{-1/2} * dz.
@@ -2067,7 +2071,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         s.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
         ind =dims.l + dimsq;
         ind2 = ind;
-        for(int m : dims.s) {
+        for(IntIterator m = dims.s.begin(); m != dims.s.end(); m++) {
             KQP_NOT_IMPLEMENTED;
 //            blas.scal(0.0, s, offset = ind2)
 //            blas.copy(lmbda, s, offsetx = ind, offsety = ind2, n = m, 
@@ -2081,7 +2085,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         z.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
         ind =dims.l + dimsq;
         ind2 = ind;
-        for(int m :dims.s) {
+        for(IntIterator m = dims.s.begin(); m != dims.s.end(); m++) {
             KQP_NOT_IMPLEMENTED;
 //            blas.scal(0.0, z, offset = ind2)
 //            blas.copy(lmbda, z, offsetx = ind, offsety = ind2, n = m, 

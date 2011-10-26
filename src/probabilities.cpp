@@ -49,3 +49,7 @@ Density<scalar,F>::getProbabilityMatrix(const Event<scalar, F> &subspace,
 
 
 
+template<typename scalar, class F>  
+double Density<scalar,F>::computeDivergence(const Density<scalar, F> &tau) {
+    BOOST_THROW_EXCEPTION(not_implemented_exception());
+}
