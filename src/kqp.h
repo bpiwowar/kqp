@@ -9,6 +9,7 @@
 #include <string>
 
 namespace kqp {
+    
     /** Check if the value is a NaN */
     inline double isNaN(double x) {
         return !(x == x);

@@ -2,6 +2,7 @@
 #define __KQP_FASTRANKONEUPDATE_H__
 
 #include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "Eigen/Core"
 
 namespace kqp {
@@ -11,7 +12,7 @@ namespace kqp {
 	 * 
 	 * @author B. Piwowarski <benjamin@bpiwowar.net>
 	 */
-	class Result {
+	class EvdUpdateResult {
     public:
         /**
          * The eigenvalues
@@ -86,11 +87,19 @@ namespace kqp {
         FastRankOneUpdate();
                
         /**
-         * Rank one update
+         * @brief Rank one update
+         * 
+         * Computes the EVD of a rank-one perturbed eigenvalue decomposition
+         * @param Z If given, instead of returning the eigenvectors matrix Q, returns \f$ Z Q \f$
+         *        This allows to compute the eigenvalue decomposition of \f$ Z (D + \alpha z * z^\top \f$ 
+         * 
+         * @param keep Keep all the eigenvectors (even those of the not selected eigenvalues)
          *
          */
-        Result rankOneUpdate(const Eigen::VectorXd& D, double rho, const Eigen::VectorXd& z,
-                                    bool computeEigenvectors, const Selector *selector, bool keep);
+        void rankOneUpdate(const boost::shared_ptr<Eigen::MatrixXd>& Z, const Eigen::VectorXd& D, double rho, 
+                             const Eigen::VectorXd& z,
+                             bool computeEigenvectors, const Selector *selector, bool keep,
+                             EvdUpdateResult &result);
         
         
     };

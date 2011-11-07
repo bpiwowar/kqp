@@ -8,7 +8,7 @@
 
 #include "kqp.h"
 #include "kernel_evd.h"
-#include "fastRankOneUpdate.h"
+#include "evd_update.h"
 
 using namespace kqp;
 
@@ -237,8 +237,10 @@ public:
 FastRankOneUpdate::FastRankOneUpdate() : gamma(10.) {}
 
 
-Result FastRankOneUpdate::rankOneUpdate(const Eigen::VectorXd& D, double rho, const Eigen::VectorXd& z,
-                                        bool computeEigenvectors, const Selector *selector, bool keep) {
+void FastRankOneUpdate::rankOneUpdate(const boost::shared_ptr<Eigen::MatrixXd>& Z,
+                                        const Eigen::VectorXd& D, double rho, const Eigen::VectorXd& z,
+                                        bool computeEigenvectors, const Selector *selector, bool keep,
+                                      EvdUpdateResult &result) {
     // ---
     // --- Deflate the matrix (see. G.W. Steward, p. 176)
     // ---
@@ -472,7 +474,6 @@ Result FastRankOneUpdate::rankOneUpdate(const Eigen::VectorXd& D, double rho, co
     }
     
     // --- Let's construct the result ---
-    Result result;
      
     // --- First, take the opposite of eigenvalues if
     // --- we are doing a negative update
@@ -516,7 +517,7 @@ Result FastRankOneUpdate::rankOneUpdate(const Eigen::VectorXd& D, double rho, co
     if (nbNaN > 0)
         BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("We had some eigen value(s) that is/are NaN"));
        
-    // --- Compute V
+    // --- Compute the eigenvectors
     
     if (computeEigenvectors) {
         // Creates the matrix
@@ -550,7 +551,7 @@ Result FastRankOneUpdate::rankOneUpdate(const Eigen::VectorXd& D, double rho, co
             }
         }
         
-        // --- Rotate the vectors of U that need to be rotated
+        // --- Rotate the vectors that need to be rotated
         for (size_t r = 0; r < rotations.size(); r++) {
             Rotation &rot = rotations[r];
             size_t i = rot.vi->position;
@@ -569,8 +570,12 @@ Result FastRankOneUpdate::rankOneUpdate(const Eigen::VectorXd& D, double rho, co
         if (!keep && rank < N)
             Q = Q.block(0,0,rank,rank);
         
+        if (Z) {
+            // TODO: optimise this
+            Q = (*Z) * Q;
+        }
+        
     }
     
-    return result;
-    
+   
 }

@@ -19,6 +19,7 @@
 namespace kqp {
     using Eigen::Dynamic;
     
+  
     /** Numerical zero when approximating */
     extern double EPSILON; 
     
@@ -37,6 +38,8 @@ namespace kqp {
      * 
      * This class holds a list of vectors whose exact representation might not be
      * known. All sub-classes must implement basic list operations (add, remove).
+     * Vectors added to the feature matrix are considered as immutable by default
+     * since they might be kept as is.
      * 
      * @ingroup FeatureMatrix
      * @param scalar A valid scalar (float, double, std::complex)
@@ -45,6 +48,7 @@ namespace kqp {
     template <typename scalar, class F> class FeatureMatrix {
         typedef Eigen::Matrix<scalar, Dynamic, Dynamic> Matrix;
         typedef Eigen::Matrix<scalar, Dynamic, 1> Vector;
+        typedef typename Vector::Index Index;
         
         /**
          * Computes the inner product between a given vector and the i<sup>th</sup>
@@ -93,7 +97,7 @@ namespace kqp {
         }
         
         /** 
-         * Linear combination of vectors
+         * @brief Linear combination of vectors
          *
          * In this implementation, we just use the pairwise combiner if it exists
          */
@@ -117,16 +121,19 @@ namespace kqp {
         virtual long size() const = 0;
         
         /** Get the i<sup>th</sup> feature vector */
-        virtual const F& get(size_t i) const = 0;
+        virtual const F& get(Index i) const = 0;
 
         /** Get the i<sup>th</sup> feature vector */
         virtual const F& add(const F &f) const = 0;
 
         /** Get the i<sup>th</sup> feature vector */
-        virtual const F& set(size_t i, const F &f) const = 0;
+        virtual const F& set(Index i, const F &f) const = 0;
 
-        /** Get the i<sup>th</sup> feature vector */
-        virtual const F& remove(size_t i) const = 0;
+        /** 
+          * Remove the i<sup>th</sup> feature vector 
+          * @param if swap is true, then the last vector will be swapped with one to remove (faster)
+          */
+        virtual const Index remove(Index i, bool swap = false) const = 0;
 };
     
     /**
@@ -136,20 +143,22 @@ namespace kqp {
      */
     template <typename scalar, class F> class FeatureList : public FeatureMatrix<scalar, F> {
         std::vector<F> list;
-        
+        typedef typename FeatureMatrix<scalar, F>::Index Index;
+  
     public:
-        size_t size() const { return this->list.size(); }
-        const F& get(size_t i) const { return this->list[i]; }
+        Index size() const { return this->list.size(); }
+        const F& get(Index i) const { return this->list[i]; }
     };
     
     
     /**
-     * @brief Case where the feature vectors are dense vectors
+     * @brief A feature matrix where vectors 
      * @ingroup FeatureMatrix
      */
     template <typename scalar> class ScalarMatrix : public FeatureMatrix<scalar, Eigen::Matrix<scalar, Dynamic, 1> > {
         typedef Eigen::Matrix<scalar, Dynamic, Dynamic> Matrix;
         typedef Eigen::Matrix<scalar, Dynamic, 1> F;
+        typedef typename Matrix::Index Index;
         
         Matrix matrix;
     public:
@@ -157,15 +166,31 @@ namespace kqp {
         long size() const { return this->matrix.cols();  }
         const F& get(size_t i) const { return this->matrix.col(i); }
         
-        virtual const F& add(const F &f) const {}
-        virtual const F& set(size_t i, const F &f) const;
-        virtual const F& remove(size_t i) const;
+        virtual const F& add(const F &f) const {
+            Index n = matrix.cols();
+            matrix.resize(n + 1);
+            matrix.col(n) = f;
+        }
+        virtual const F& set(Index i, const F &f) const {
+            matrix.col(i) = f;
+        }
+        virtual const F& remove(Index i, bool swap) const {
+            Index last = matrix.cols() - 1;
+            if (swap) {
+                if (i != last) 
+                    matrix.col(i) = matrix.col(last);
+            } else {
+                for(Index j = i + 1; j <= last; j++)
+                    matrix.col(i-1) = matrix.col(i);
+            }
+            matrix.resize(last);
+        }
 
         
     };
     
     /**
-     * Builds a compact representation of an hermitian operator. 
+     * @brief Builds a compact representation of an hermitian operator. 
      *
      * Computes \f$ \mathfrak{U} = \sum_{i} \alpha_i \mathcal U A A^\top \mathcal U ^ \top   \f$
      * 
@@ -175,6 +200,7 @@ namespace kqp {
      *            The scalar type
      * @param <F>
      *            The type of the base vectors in the original space
+     * @ingroup OperatorBuilder
      */
     template <typename scalar, class F> class OperatorBuilder {
         
@@ -207,12 +233,43 @@ namespace kqp {
          */
         virtual void add(double alpha, const FeatureMatrix<scalar, F> &mX, const Matrix &mA) = 0;
         
+        /**
+         * Copy the operator builder
+         * @param fullCopy is true if the current data should also be copied
+         */
+        virtual void copy(bool fullCopy) = 0;       
+        
     protected:
         List list;
     };
     
+    
     /**
-     * Direct computation of the density
+     * @brief Uses other operator builders and combine them.
+     * @ingroup OperatorBuilder
+     */
+    template <typename scalar, class F> class DivideAndConquerBuilder : public OperatorBuilder<scalar, F> {
+    public:
+        virtual void add(double alpha, const F &v);
+    };
+    
+    /**
+     * @brief Accumulation based computation of the density.
+     *
+     * Stores the vectors and performs an EVD at the end
+     * 
+     * @ingroup OperatorBuilder
+     */
+    template <typename scalar, class F> class AccumulatorBuilder : public OperatorBuilder<scalar, F> {
+    public:
+        virtual void add(double alpha, const F &v);
+    };
+    
+    
+    /**
+     * Direct computation of the density (i.e. matrix representation)
+     * 
+     * @ingroup OperatorBuilder
      */
     template <typename scalar, class F> class DirectBuilder : public OperatorBuilder<scalar, F> {
     public:

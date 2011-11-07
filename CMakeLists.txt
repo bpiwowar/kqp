@@ -7,8 +7,10 @@ OPTION(JAVA_KQP "Build kqp JNI library" ON)
 FIND_PACKAGE(Boost)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
+file(GLOB kqp_SRC   "src/*.h"  "src/*.cpp")
+
 set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
-add_library (kqp src/coneprog.cpp src/fastRankOneUpdate.cpp src/fastRankOneUpdate.h src/kernel_evd.cpp src/kernel_evd.h src/kqp.cpp src/kqp.h src/probabilities.cpp src/probabilities.h)
+add_library (kqp ${kqp_SRC})
 
 
 # --- Tests
