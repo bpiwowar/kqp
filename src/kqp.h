@@ -7,13 +7,23 @@
 #include <boost/exception/info.hpp>
 #include <boost/exception/exception.hpp>
 #include <string>
+#include <complex>
 
 namespace kqp {
     
     /** Check if the value is a NaN */
-    inline double isNaN(double x) {
+    inline bool isNaN(double x) {
         return !(x == x);
     }
+    
+    inline bool isNaN(float x) {
+        return !(x == x);
+    }
+
+    template<typename scalar> inline bool isNaN(const std::complex<scalar> &x) {
+        return !(std::real(x) == std::real(x)) || !(std::imag(x) == std::imag(x));
+    }
+
     
     /** Anything below is considered zero in approximations */
     extern double EPSILON;
