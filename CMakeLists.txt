@@ -1,17 +1,32 @@
 cmake_minimum_required (VERSION 2.6)
 project (kqp) 
 
+# --- Options
+
 OPTION(JAVA_KQP "Build kqp JNI library" ON)
 
-# --- Main Library
+# --- Add our own modules
+
+set(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
+
+# --- Find Boost
+
 FIND_PACKAGE(Boost)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+
+# -- Find log4cxx
+
+FIND_PACKAGE(log4cxx)
+
+
+# --- Build kip
 
 file(GLOB kqp_SRC   "src/*.h"  "src/*.cpp")
 
 set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
 add_library (kqp ${kqp_SRC})
-
+TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 
 # --- Tests
 
