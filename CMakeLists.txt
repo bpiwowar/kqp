@@ -18,9 +18,10 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 # -- Find log4cxx
 
 FIND_PACKAGE(log4cxx)
+INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 
-# --- Build kip
+# --- Build kqp
 
 file(GLOB kqp_SRC   "src/*.h"  "src/*.cpp")
 

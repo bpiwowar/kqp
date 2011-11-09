@@ -11,13 +11,12 @@
 #include <algorithm>
 #include <numeric>
 
-
+#include "coneprog.h"
 #include "Eigen/Core"
 #include "kqp.h"
 
-#define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(not_implemented_exception())
+#define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(kqp::not_implemented_exception())
 
-using namespace kqp;
 
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
@@ -26,107 +25,27 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> IntVector;
 typedef std::vector<int>::const_iterator IntIterator;
 
+using namespace kqp;
+using namespace kqp::cvxopt;
 
-/// Options to be used for the coneq 
-struct ConeQPOptions {
-    /** Use corrections or not */
-    bool useCorrection;
+ConeQPOptions::ConeQPOptions() :
+useCorrection(true),
+DEBUG(false),
+correction(true),
+show_progress(true),
+maxiters(100),
+abstol(1e-7),
+reltol(1e-6),
+feastol(1e-7),
+refinement(-1)
+{
     
-    /** Debug flag */
-    bool DEBUG;
-    
-    /** Use Mehrotra correction or not. */
-    bool correction;
-    
-    /** Show progress */
-    bool show_progress;
-    
-    /** Maximum number of iterations */
-    int maxiters;
-    
-    double abstol;
-    double reltol;
-    double feastol;
-    
-    int refinement;
-    
-    ConeQPOptions() :
-    useCorrection(true),
-    DEBUG(false),
-    correction(true),
-    show_progress(true),
-    maxiters(100),
-    abstol(1e-7),
-    reltol(1e-6),
-    feastol(1e-7),
-    refinement(-1)
-    {
-
-    }
-};
+}
 
 
-struct ConeQPInitVals {
-    Vector x;
-    Vector y;
-    Vector s;
-    Vector z;
-};
-
-struct ConeQPReturn : public ConeQPInitVals {
-    
-    std::string status;
-    
-    double gap;
-    double relative_gap;
-    double primal_objective;
-    double dual_objective;
-    
-    double primal_infeasibility;
-    double dual_infeasibility;
-    
-    double primal_slack;
-    double dual_slack;
-    
-    int iterations;
-    
-    ConeQPReturn() :
-    gap(0), relative_gap(0), primal_objective(0), dual_objective(0), primal_infeasibility(0), dual_infeasibility(0), primal_slack(0), dual_slack(0), iterations(0) {}
-    
-};
-
-
-/** Problem dimensions */
-struct Dimensions {
-    /// Quadrant \f$\mathbb{R}^{+l}\f$
-    int l;
-    /// A list with the dimensions of the second-order cones (positive integers)
-    std::vector<int> q;
-    /// a list with the dimensions of the positive semidefinite cones (nonnegative integers)
-    std::vector<int> s;
-    
-};
-
-/*
- Nesterov-Todd scaling matrix
-- W['dnl']: positive vector
-- W['dnli']: componentwise inverse of W['dnl']
-- W['d']: positive vector
-- W['di']: componentwise inverse of W['d']
-- W['v']: lists of 2nd order cone vectors with unit hyperbolic norms
-- W['beta']: list of positive numbers
-- W['r']: list of square matrices 
-- W['rti']: list of square matrices.  rti[k] is the inverse transpose
-of r[k].
-*/
-struct ScalingMatrix {
-    DiagonalMatrix d, di;
-    DiagonalMatrix dnl, dnli;
-    
-    std::vector<double> beta;
-    std::vector<Matrix> r, rti;
-    std::vector<Matrix> v;
-};
+ConeQPReturn::ConeQPReturn() :
+gap(0), relative_gap(0), primal_objective(0), dual_objective(0), primal_infeasibility(0), dual_infeasibility(0), primal_slack(0), dual_slack(0), iterations(0) {}
+        
 
 
 /// Inner product of two vectors in S.
@@ -137,7 +56,8 @@ double sdot(const Vector &x, const Vector &y, const Dimensions &dims, size_t mnl
     
     double a = x.head(ind).adjoint() * y.head(ind);
     
-    for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
+    for(size_t i = 0; i < dims.s.size(); i++) { 
+        int m = dims.s[i];
         KQP_NOT_IMPLEMENTED;
          /*
         a +=
@@ -351,19 +271,6 @@ void scale(Eigen::Matrix<double, Eigen::Dynamic, ColsAtCompileTime> &x, const Sc
 
 }
 
-// The KKTSolver
-class KKTSolver {
-public:
-    virtual void solve(Vector &x, Vector &y, Vector & z) const = 0;  
-};
-
-/// The KKT solver
-class KKTPreSolver {
-public:
-    KKTSolver *get(const ScalingMatrix &w) {
-        return 0;
-    };
-};
 
 
 
@@ -2959,4 +2866,5 @@ def kkt_chol2(G, dims, A, mnl = 0):
 
          }
 */
+
 
