@@ -8,6 +8,12 @@
 #include <boost/exception/exception.hpp>
 #include <string>
 #include <complex>
+#include "cxxabi.h"
+
+#ifndef NOLOGGING
+#include "log4cxx/logger.h"
+#endif
+
 
 namespace kqp {
     
@@ -49,6 +55,102 @@ namespace kqp {
     /** Not implemented */
     class not_implemented_exception : public virtual exception {};
 
-}
+    
+    inline std::string demangle(const std::type_info &x) {
+        //     __cxa_demangle(const char* __mangled_name, char* __output_buffer, size_t* __length, int* __status);
+        static size_t size = 500;
+        static char *buffer = (char*)malloc(size * sizeof(char));
+        return abi::__cxa_demangle(x.name(), buffer, &size, 0);
+    }
+    
+    /** Convert anything to a string. Might be specialized */
+    template <class T> std::string convert(const T &x) {
+        std::ostringstream strout;
+        strout << x;
+        return strout.str();
+    }
+    
+    /** Convert anything to a string. Might be specialized */
+    template<class T> T convert(const std::string &s) {
+        T x;
+        std::istringstream str_in(s);
+        if (!str_in) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
+        else if (! (str_in >> x )) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
+        return x;
+    }
+    
+
+
+
+// --- USEFUL MACROS ---
+
+//! Demangle a pointer
+#define KQP_DEMANGLEP(x) (x ? demangle(typeid(x)) : demangle(typeid(*x)))
+//! Demangle a reference
+#define KQP_DEMANGLE(x) demangle(typeid(x))
+
+//! Hidden macro for STRING_IT(x)
+#define KQP_XSTRING_IT(x) #x
+
+//! String-ize the parameter
+#define KQP_STRING_IT(x) XSTRING_IT(x)
+
+
+// ---- LOGGING MACROS ---
+
+#ifdef NOLOGGING
+
+#define DEFINE_LOGGER(logger, loggerName)
+#define KQP_LOG_DEBUG(name,message)
+#define KQP_LOG_DEBUG_S(name,message)
+#define KQP_LOG_INFO(name,message)
+#define KQP_LOG_WARN(name,message)
+#define KQP_LOG_ERROR(name,message)
+#define KQP_LOG_ASSERT(name,condition,message)
+
+#else
+
+    class LoggerInit {
+    public:
+        LoggerInit();
+    };
+    extern const LoggerInit __LOGGER_INIT;
+    
+// We define the logger
+
+#define DEFINE_LOGGER(logger, loggerName) \
+namespace { log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger(loggerName)); }
+
+// Note: Use the if (false) construct to compile code; the code optimizer
+// is able to remove the corresponding code, so it does change
+// the speed 
+#ifndef NDEBUG
+
+/** Debug */
+#define KQP_LOG_DEBUG(name,message) LOG4CXX_DEBUG(name, message)
+/** Debug and display the class name */
+#define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
+/** Assertion with message */
+#define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+
+#else
+
+/** Debug */
+#define KQP_LOG_DEBUG(name,message) { if (false) LOG4CXX_DEBUG(name, message) }
+/** Debug and display the class name */
+#define KQP_LOG_DEBUG_S(name,message) { if (false) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "/" << "] " << message); }
+/** Assertion with message */
+#define KQP_LOG_ASSERT(name,condition,message) { if (false && !(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+
+#endif // ELSE
+
+
+#define KQP_LOG_INFO(name,message) LOG4CXX_INFO(name, message)
+#define KQP_LOG_WARN(name,message) LOG4CXX_WARN(name, message)
+#define KQP_LOG_ERROR(name,message) LOG4CXX_ERROR(name, message)
+
+#endif
+    
+} // NS kqp
 
 #endif

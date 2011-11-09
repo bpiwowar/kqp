@@ -11,6 +11,8 @@
 #include "kernel_evd.h"
 #include "evd_update.h"
 
+DEFINE_LOGGER(logger, "kqp.evd-update");
+
 namespace kqp {
     
     // Useful scalar dependant functions
@@ -222,21 +224,24 @@ namespace kqp {
     template <typename scalar> scalar computeZ(const std::vector<IndexedValue<scalar>*>& v, int M,
                                                double lambda0, int i, const IndexedValue<scalar>& vi, double di,
                                                bool debug) {
-        double newz = -(di - lambda0);
+        double normZ = -(di - lambda0);
         
         // lambda_j < di
         for (int j = i + 1; j < M; j++) {
             IndexedValue<scalar> &vj = *v[j];
-            newz *= (di - vj.lambda) / (di - vj.d);
+            normZ *= (di - vj.lambda) / (di - vj.d);
         }
         
         for (int j = 1; j <= i; j++) {
-            newz *= (di - v[j]->lambda) / (di - v[j - 1]->d);
+            normZ *= (di - v[j]->lambda) / (di - v[j - 1]->d);
         }
         
-        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
+        // ensures the norm of zi is the same as newz
+        scalar new_z = vi.z * (scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
+        KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(vi.z));
+//        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
         
-        return newz;
+        return new_z;
     }
     
     
@@ -272,6 +277,7 @@ namespace kqp {
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> Vector;
         
+        
         // ---
         // --- Deflate the matrix (see. G.W. Steward, p. 176)
         // ---
@@ -279,8 +285,9 @@ namespace kqp {
         // The deflated diagonal and corresponding z
         // The matrix we are working on is a (N + 1, N)
         std::size_t N = z.size();
-        std::size_t rankD = D.cols();
+        std::size_t rankD = D.rows();
         
+        KQP_LOG_DEBUG(logger, "EVD rank-one update in dimension " << convert(rankD));
         if (rankD > N)
             BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("D and z are of compatible dimensions"));
         
@@ -312,13 +319,13 @@ namespace kqp {
         for (long i = N; --i >= 0;) {
             double di = 0;
             
-            if (!is_real(D(iprime, iprime))) 
+            if (!is_real(D(iprime))) 
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("Diagonal value is not real"));
             
             
             // Check the current D[i', i'] if necessary
             if (iprime >= 0 && offset > 0 && !foundNonNegative)
-                foundNonNegative = kqp::real(D(iprime, iprime)) >= 0;
+                foundNonNegative = kqp::real(D(iprime)) >= 0;
             
             long position = 0;
             long index = negativeUpdate ? N - 1 - i : i;
@@ -332,7 +339,7 @@ namespace kqp {
                 position = z.size() + offset - (N - rankD);
                 zpos = z(position);
             } else {
-                di = kqp::real(D(iprime, iprime));
+                di = kqp::real(D(iprime));
                 di = negativeUpdate ? -di : di;
                 position = i - offset;
                 zpos = z(position);
@@ -349,7 +356,7 @@ namespace kqp {
             
             // If the update is negative, we have to reverse the order since
             // we take the opposite of diagonal entries
-            v[index] = &(indexedValues[index] = IndexedValue<scalar>(position, di, sqrt(rho) * zpos));
+            v[index] = &(indexedValues[index] = IndexedValue<scalar>(position, di, ((scalar)sqrt(rho)) * zpos));
         }
         normD = sqrt(normD);
         
@@ -378,7 +385,7 @@ namespace kqp {
             if (std::abs(zi) <= tauM2) {
             } else if (M > 0 && (last->d - vi.d <= tauM2)) {
                 double r = sqrt(kqp::norm(last->z) + kqp::norm(zi));
-                rotations.push_back(Rotation<scalar>(last->z / r, zi / r, last, &vi));
+                rotations.push_back(Rotation<scalar>(last->z / (scalar)r, zi / (scalar)r, last, &vi));
                 last->z = r;
                 vi.z = 0;
             } else {
@@ -419,7 +426,7 @@ namespace kqp {
         
         // For the stopping criterion
         double e = gamma * EPSILON * M;
-        
+        KQP_LOG_DEBUG(logger, "Computing " << convert(M) << " eigenvalues");
         for (int j = 0; j < M; j++) {
             IndexedValue<scalar> &svj = *v[j];
             double diagj = svj.d;
@@ -472,8 +479,7 @@ namespace kqp {
                      || std::abs(f) > (1 + std::abs(psi) + std::abs(phi)) * e);
             
             // Done, store the eigen value
-            // logger.info("LAPACK value = %g, computed value = %g", svj.lambda,
-            // middle + nu);
+            KQP_LOG_DEBUG(logger, "Eigenvalue: old = " << convert(svj.lambda) << ", computed = " << convert(middle + nu));
             svj.lambda = middle + nu;
             
             // Because of rounding errors, that can happen
@@ -574,7 +580,7 @@ namespace kqp {
                         IndexedValue<scalar> &vi = *v[i];
                         if (vi.isSelected()) {
                             double di = vi.d;
-                            scalar x = vi.z / (di - vj.lambda);
+                            scalar x = vi.z / (scalar)(di - vj.lambda);
                             columnNorm += kqp::norm(x);
                             Q(vi.position, j) = x;
                             
@@ -618,7 +624,7 @@ namespace kqp {
         
     }
     
-    //explicit instantiation of Test(int)
+//explicit instantiation of 
 #define RANK_ONE_UPDATE(scalar) \
 template void FastRankOneUpdate::update<scalar>(const boost::shared_ptr<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> >& Z, \
 const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, \
@@ -629,7 +635,7 @@ EvdUpdateResult<scalar> &result);
     RANK_ONE_UPDATE(double);
     RANK_ONE_UPDATE(float);
     RANK_ONE_UPDATE(std::complex<double>);
-    //RANK_ONE_UPDATE(std::complex<float>);
+    RANK_ONE_UPDATE(std::complex<float>);
 }
 
 

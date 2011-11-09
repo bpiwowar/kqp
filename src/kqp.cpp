@@ -1,8 +1,31 @@
+#ifndef NOLOGGING
+#include "log4cxx/logger.h"
+#include "log4cxx/basicconfigurator.h"
+#include "log4cxx/consoleappender.h"
+#include "log4cxx/patternlayout.h"
+#include "log4cxx/propertyconfigurator.h"
+#include "log4cxx/helpers/exception.h"
+#endif
 #include "kqp.h"
 
 using namespace kqp;
 
 double kqp::EPSILON = 1e-15;
+
+
+#ifndef NOLOGGING
+const LoggerInit kqp::__LOGGER_INIT;
+
+kqp::LoggerInit::LoggerInit() {
+    log4cxx::BasicConfigurator::configure();
+    log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
+//    log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender();
+//    appender->setTarget("system.err");
+//    appender->setLayout(new log4cxx::PatternLayout());
+//    log4cxx::BasicConfigurator::configure(appender);
+    KQP_LOG_DEBUG(logger, "Initialised the logging system");
+}
+#endif
 
 
 /** 
