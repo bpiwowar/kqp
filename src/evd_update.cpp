@@ -268,11 +268,11 @@ namespace kqp {
     
     
     template <typename scalar>
-    void FastRankOneUpdate::update(const boost::shared_ptr<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> >& Z, 
-                                   const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
+    void FastRankOneUpdate::update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
                                    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
                                    bool computeEigenvectors, const Selector *selector, bool keep,
-                                   EvdUpdateResult<scalar> &result) {
+                                   EvdUpdateResult<scalar> &result,
+                                   Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z) {
         
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> Vector;
@@ -626,11 +626,11 @@ namespace kqp {
     
 //explicit instantiation of 
 #define RANK_ONE_UPDATE(scalar) \
-template void FastRankOneUpdate::update<scalar>(const boost::shared_ptr<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> >& Z, \
-const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, \
-double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,\
-bool computeEigenvectors, const Selector *selector, bool keep,\
-EvdUpdateResult<scalar> &result);
+template void FastRankOneUpdate::update<scalar>(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D,  \
+    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z, \
+    bool computeEigenvectors, const Selector *selector, bool keep, \
+    EvdUpdateResult<scalar> &result, \
+    Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z = 0);
     
     RANK_ONE_UPDATE(double);
     RANK_ONE_UPDATE(float);

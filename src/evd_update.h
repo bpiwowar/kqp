@@ -101,11 +101,11 @@ namespace kqp {
          *
          */
         template <typename scalar>
-        void update(const boost::shared_ptr<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> >& Z, 
-                           const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
-                           double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
-                           bool computeEigenvectors, const Selector *selector, bool keep,
-                           EvdUpdateResult<scalar> &result);
+        void update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
+                    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
+                    bool computeEigenvectors, const Selector *selector, bool keep,
+                    EvdUpdateResult<scalar> &result,
+                    Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z = 0);
         
         
     };

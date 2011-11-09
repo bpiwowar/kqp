@@ -7,3 +7,4 @@ ADD_EXECUTABLE(kqp_test ${kqp_test_SRC})
 TARGET_LINK_LIBRARIES(kqp_test kqp)
 
 add_test(evd-update ${EXECUTABLE_OUTPUT_PATH}/kqp_test "evd-update" "simple")
+add_test(evd-update-c ${EXECUTABLE_OUTPUT_PATH}/kqp_test "evd-update" "complex")

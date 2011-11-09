@@ -9,6 +9,8 @@
 #include "test.h"
 #include "evd_update.h"
 
+DEFINE_LOGGER(logger, "kqp.test.evd-update")
+
 namespace kqp {
 
     using std::cerr;
@@ -16,72 +18,72 @@ namespace kqp {
     
     double tolerance = 1e-10;
     
+    /**
+     * Performs an EVD rank one update and compares to the direct computation of the rank one update
+     *
+     * @param seed The random seed
+     * @param N dimension of the problem
+     * @param rho Coefficient
+     * @param nzeroD Number of zero entries in diagonal matrix
+     * @param nzeroZ Number of zero entries in vector
+     */
+    template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int nzeroD, int nzeroZ) {
+        typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> Vector;
+        
+        std::srand(seed);
+
+        Vector D(dim);
+        for(int i = 0; i < dim; i++)
+            D(i) = std::rand();
+        
+        int i = 0;
+        while (rhos[i++] != 0) {
+            FastRankOneUpdate updater;
+
+            double rho = rhos[i];
+            Vector z(dim);    
+            for(int i = 0; i < dim; i++)
+                z(i) = rand();
+            
+            EvdUpdateResult<scalar> result;
+            updater.update(D, rho, z, true, 0, true, result);
+            
+            
+            Matrix zzt = z*z.adjoint();
+            Matrix mD = D.asDiagonal();
+            Matrix delta = result.mQ * result.mD * result.mQ.adjoint() - (mD + rho * z * z.adjoint());
+            
+            double error = delta.norm();
+            
+            KQP_LOG_INFO(logger, "Error is ");
+            if (error < tolerance) return 0;
+
+            return 1;
+//            cerr << "D + z * z' = " << std::endl << mD + zzt  << std::endl;
+//            cerr << "Q = " << std::endl << result.mQ << std::endl;
+//            cerr << "S = " << std::endl << result.mD.diagonal() << std::endl;
+//            cerr << "Q * S * Q.T = " << std::endl << result.mQ * result.mD * result.mQ.adjoint() << std::endl;
+//            cerr << "Delta" << std::endl << delta << std::endl;
+        }
+        
+    }
+    
+       
 int evd_update_test(int argc, const char **argv) {
     if (argc != 1) 
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("evd_update_test needs one argument"));
     
     std::string name = argv[0];
     
+    double rhos[] = { 1. };
+    
     if (name == "simple") {
-        FastRankOneUpdate updater;
-        
-        Eigen::VectorXd D(3);
-        D << 0.2, 0.3, 1.2;
-        
-        Eigen::VectorXd z(3); 
-        z << 0.1, -0.1, 0.2;
-        
-        EvdUpdateResult<double> result;
-        updater.update(boost::shared_ptr<Eigen::MatrixXd>(), D, 1, z, true, 0, true, result);
-        
-        
-        Eigen::MatrixXd zzt = z*z.transpose();
-        Eigen::MatrixXd mD = D.asDiagonal();
-        Eigen::MatrixXd delta = result.mQ * result.mD * result.mQ.transpose() - (mD + z * z.transpose());
-        
-        if (delta.norm() < tolerance) return 0;
-        
-        std::cerr << "D + z * z' = " << std::endl << mD + zzt  << std::endl;
-        std::cerr << "Q = " << std::endl << result.mQ << std::endl;
-        std::cerr << "S = " << std::endl << result.mD.diagonal() << std::endl;
-        std::cerr << "Q * S * Q.T = " << std::endl << result.mQ * result.mD * result.mQ.transpose() << std::endl;
-        std::cerr << "Delta" << std::endl << delta << std::endl;
-        return 1;
+        return evd_update_random<double>(rhos, 0, 10, 0, 0);
     } else if (name == "complex") {
-        FastRankOneUpdate updater;
-        typedef std::complex<double> dcomplex;
-        
-        Eigen::VectorXcd D(3);
-        D << dcomplex(0.2), dcomplex(0.3), dcomplex(1);
-        
-        Eigen::VectorXcd z(3); 
-        z << dcomplex(0.2,1), dcomplex(0,-0.4), dcomplex(0.2,1);
-        
-        EvdUpdateResult<dcomplex> result;
-        updater.update<dcomplex>(boost::shared_ptr<Eigen::MatrixXcd>(), D, 1, z, true, 0, true, result);
-        
-        
-        Eigen::MatrixXcd zzt = z*z.adjoint();
-        Eigen::MatrixXcd mD = D.asDiagonal();
-        Eigen::MatrixXcd updated_D = mD + z * z.adjoint();
-        Eigen::MatrixXcd delta = result.mQ * result.mD * result.mQ.adjoint() - (updated_D);
-        
-        if (delta.norm() < tolerance) return 0;
-        
-        std::cerr << "D + z * z' = " << std::endl << mD + zzt  << std::endl;
-        std::cerr << "Q = " << std::endl << result.mQ << std::endl;
-        std::cerr << "S = " << std::endl << result.mD.diagonal() << std::endl;
-        std::cerr << "Q * S * Q.T = " << std::endl << result.mQ * result.mD * result.mQ.adjoint() << std::endl;
-        std::cerr << "Delta" << std::endl << delta << std::endl;
-        
-        // Does an EVD
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> ces;
-        ces.compute(updated_D);
-        cerr << "The eigenvalues of A are:" << endl << ces.eigenvalues() << endl;
-        cerr << "The matrix of eigenvectors, V, is:" << endl << ces.eigenvectors() << endl << endl;
-
-        return 1;
+        return evd_update_random<std::complex<double> >(rhos, 0, 10, 0, 0);
     }
+        
     
     BOOST_THROW_EXCEPTION(illegal_argument_exception()
                           << errinfo_message((boost::format("Unknown evd_update_test [%s]") % name).str()));
