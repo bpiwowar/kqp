@@ -7,8 +7,7 @@
 using namespace kqp;
 
 int main(int argc, const char **argv) {
-    std::cerr << "Everything went OK" << std::endl;
-    
+   
     if (argc < 2) {
         std::cerr << "No test name given" << std::endl;
         return 1;   
@@ -20,6 +19,9 @@ int main(int argc, const char **argv) {
     try {
         if (name == "evd-update") 
             return evd_update_test(argc - 2, other_argv);
+        else if (name == "kqp-qp-solver") {
+            return kqp_qp_solver_test(argc - 2, other_argv);            
+        }
     } catch(const boost::exception &e) {
         std::cerr << boost::diagnostic_information(e) << std::endl;
         throw;

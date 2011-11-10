@@ -12,16 +12,14 @@
 #define __KQP_KERNEL_EVD_H__
 
 #include "Eigen/Core"
+#include "Eigen/Cholesky"
 #include "kqp.h"
+#include "coneprog.h"
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
 namespace kqp {
     using Eigen::Dynamic;
-    
-  
-    /** Numerical zero when approximating */
-    extern double EPSILON; 
     
     /** By default, vectors cannot be combined */
     template<typename scalar, typename T> 
@@ -276,7 +274,22 @@ namespace kqp {
         virtual void add(double alpha, const F &v);
     };
     
- 
+    
+    
+    /**
+     * The KKT pre-solver to solver the QP problem
+     */
+    class KQP_KKTPreSolver : public cvxopt::KKTPreSolver {
+        Eigen::LLT<Eigen::MatrixXd> lltOfK;
+        Eigen::MatrixXd B, BBT;
+        
+    public:
+        KQP_KKTPreSolver(const Eigen::MatrixXd& gramMatrix);
+        
+        cvxopt::KKTSolver *get(const cvxopt::ScalingMatrix &w);
+    };
+
+    
 } // end namespace
 
 #endif

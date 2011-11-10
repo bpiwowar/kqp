@@ -20,8 +20,8 @@ choice = "random"
 
 if choice == "random":
     # Bulds up a random example
-    n = 200
-    r = 100
+    n = 100
+    r = 50
     Lambda = 0.1
 
     # Construct an n * n positive definite matrix by computing a lower
@@ -255,6 +255,7 @@ def F(W):
         """
 
         # Maps to our variables x,y,z and t
+        print "... Computing ..."
         a = []
         b = x[n*r:n*r + n]
         c = []
@@ -304,14 +305,11 @@ def F(W):
         x[n*r:n*r + n] = b
         for i in range(r):
             x[i*n:(i+1)*n] = a[i]
-
-            # Normalise
-            for j in range(n):
-                c[i][j] = c[i][j] / U[i*n+j]
-                d[i][j] = d[i][j] / V[i*n+j]
-                
+            
             z[i*n:(i+1)*n] = c[i]
             z[(i+r)*n:(i+r+1)*n] = d[i]
+
+        z = mul( W['di'], z)
 
         if DEBUG:
                print (x - xp).T

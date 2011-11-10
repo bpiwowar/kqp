@@ -67,6 +67,7 @@ namespace kqp {
 //            cerr << "Delta" << std::endl << delta << std::endl;
         }
         
+        return 0;
     }
     
        

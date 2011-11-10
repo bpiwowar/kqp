@@ -8,15 +8,19 @@
 #endif
 #include "kqp.h"
 
-using namespace kqp;
+namespace kqp {
 
-double kqp::EPSILON = 1e-15;
+double EPSILON = 1e-15;
 
 
 #ifndef NOLOGGING
-const LoggerInit kqp::__LOGGER_INIT;
+const LoggerInit __LOGGER_INIT;
 
-kqp::LoggerInit::LoggerInit() {
+bool LoggerInit::check() {
+    return true;
+}
+
+LoggerInit::LoggerInit() {
     log4cxx::BasicConfigurator::configure();
     log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
 //    log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender();
@@ -27,6 +31,7 @@ kqp::LoggerInit::LoggerInit() {
 }
 #endif
 
+}
 
 /** 
  

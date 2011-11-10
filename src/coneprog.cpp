@@ -11,22 +11,25 @@
 #include <algorithm>
 #include <numeric>
 
+
+#include "kqp.h"
 #include "coneprog.h"
 #include "Eigen/Core"
-#include "kqp.h"
+
+DEFINE_LOGGER(logger, "kqp.coneqp")
 
 #define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(kqp::not_implemented_exception())
 
 
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
-typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagonalMatrix;
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> IntVector;
 typedef std::vector<int>::const_iterator IntIterator;
 
-using namespace kqp;
-using namespace kqp::cvxopt;
+namespace kqp { namespace cvxopt {
 
 ConeQPOptions::ConeQPOptions() :
 useCorrection(true),
@@ -49,7 +52,7 @@ gap(0), relative_gap(0), primal_objective(0), dual_objective(0), primal_infeasib
 
 
 /// Inner product of two vectors in S.
-double sdot(const Vector &x, const Vector &y, const Dimensions &dims, size_t mnl = 0) {
+double sdot(const VectorXd &x, const VectorXd &y, const Dimensions &dims, size_t mnl = 0) {
     size_t ind = mnl + dims.l;
     for(std::vector<int>::const_iterator k = dims.q.begin(); k != dims.q.end(); k++)
         ind += *k;
@@ -75,7 +78,7 @@ double sdot(const Vector &x, const Vector &y, const Dimensions &dims, size_t mnl
 }
 
 /// Returns the norm of a vector in S
-double snrm2(const Vector &x, const Dimensions &dims, size_t mnl = 0) {
+double snrm2(const VectorXd &x, const Dimensions &dims, size_t mnl = 0) {
     return std::sqrt(sdot(x, x, dims, mnl));
 }
 
@@ -89,7 +92,7 @@ double snrm2(const Vector &x, const Dimensions &dims, size_t mnl = 0) {
  When called with the argument sigma, also returns the eigenvalues 
  (in sigma) and the eigenvectors (in x) of the 's' components of x.
 */
-double max_step(Vector &x, const Dimensions &dims, int mnl = 0, const Vector * sigma = NULL) {
+double max_step(VectorXd &x, const Dimensions &dims, int mnl = 0, const VectorXd * sigma = NULL) {
     std::vector<double> t;
     int ind = mnl + dims.l;
     if (ind > 0)
@@ -274,7 +277,7 @@ void scale(Eigen::Matrix<double, Eigen::Dynamic, ColsAtCompileTime> &x, const Sc
 
 
 
-void res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, const Vector &  uy, const Vector & uz,const Vector &  us,  Vector & vx,  Vector & vy,  Vector & vz, Vector &  vs, const ScalingMatrix &W, const Vector & lmbda) {
+void res(const Matrix &P, const MatrixXd &A, const Matrix &G, const VectorXd & ux, const VectorXd &  uy, const VectorXd & uz,const VectorXd &  us,  VectorXd & vx,  VectorXd & vy,  VectorXd & vz, VectorXd &  vs, const ScalingMatrix &W, const VectorXd & lmbda) {
     
     // Evaluates residual in Newton equations:
     // 
@@ -285,19 +288,24 @@ void res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, c
     //      vs := vs - lmbda o (uz + us).
     
     // vx := vx - P*ux - A'*uy - G'*W^{-1}*uz
-    Matrix wz3 = uz;
+    MatrixXd wz3 = uz;
     scale(wz3, W, false, true);
     
-    vx -= P * ux - A.transpose() * uy - G.transpose() * uz;
+    VectorXd Pux, Gtuz;
+    P.mult(ux, Pux);
+    G.mult(uz, Gtuz);
+    vx -= Pux - A.transpose() * uy - Gtuz;
     
     
     // vy := vy - A*ux
     vy -= A * ux;
     
     // vz := vz - G*ux - W'*us
-    Matrix ws3 = ux;
+    MatrixXd ws3 = ux;
     scale(ws3, W, true, false);
-    vz -= G * ux - ws3;
+    VectorXd Gux;
+    G.mult(ux, Gux);
+    vz -= Gux - ws3;
     
     // vs := vs - lmbda o (uz + us)
     vs.array() -= lmbda.array() * (uz + us).array();
@@ -308,7 +316,7 @@ void res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, c
  Fills in the upper triangular part of the symmetric matrix stored in 
  x[offset : offset+n*n] using 'L' storage.
  */
-//Matrix symm(const Matrix &x) {
+//MatrixXd symm(const MatrixXd &x) {
 //    if (n <= 1) return x;
 //    return x.selfadjointView<Eigen::Lower>();
 //    for i in xrange(n-1):
@@ -320,7 +328,7 @@ void res(const Matrix &P, const Matrix &A, const Matrix &G, const Vector & ux, c
  The inverse product x := (y o\ x), when the 's' components of y are 
  diagonal.
 */
-void sinv(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
+void sinv(VectorXd &x, const VectorXd &y, const Dimensions &dims, int mnl = 0) {
     
     // For the nonlinear and 'l' blocks:  
     // 
@@ -375,9 +383,9 @@ class f4_no_ir_class {
     const ScalingMatrix &W;
     const KKTSolver &solver;
     const Dimensions &dims; 
-    const Vector &lmbda;
+    const VectorXd &lmbda;
 public:
-    f4_no_ir_class(const ScalingMatrix &W, const KKTSolver &solver, const Dimensions &dims, const Vector &lmbda):
+    f4_no_ir_class(const ScalingMatrix &W, const KKTSolver &solver, const Dimensions &dims, const VectorXd &lmbda):
     W(W), solver(solver), dims(dims), lmbda(lmbda) {}
     
     // f4_no_ir(x, y, z, s) solves
@@ -390,7 +398,7 @@ public:
     //
     // On entry, x, y, z, s contain bx, by, bz, bs.
     // On exit, they contain ux, uy, uz, us.
-    void operator()(Vector &x, Vector &y, Vector &z, Vector &s) const {
+    void operator()(VectorXd &x, VectorXd &y, VectorXd &z, VectorXd &s) const {
         // Solve 
         //
         //     [ P A' G'   ] [ ux        ]    [ bx                    ]
@@ -408,7 +416,7 @@ public:
         
         // z := z - W'*s 
         //    = bz - W'*(lambda o\ bs)
-        Matrix ws3 = s;
+        MatrixXd ws3 = s;
         scale(ws3, W, true, false);
         z = z - ws3;
         
@@ -426,22 +434,23 @@ class f4_class {
     const bool DEBUG;
     const f4_no_ir_class &f4_no_ir;
     const ScalingMatrix& W;
-    const Vector &lmbda;
+    const VectorXd &lmbda;
     const Dimensions &dims;
-    const Matrix &P, &A, &G;
+    const MatrixXd &A;
+    const Matrix &P, &G;
     
 public:
-    f4_class(int refinement, bool DEBUG, const f4_no_ir_class &f4_no_ir, const ScalingMatrix &W, const Vector &lmbda, const Dimensions &dims,
-             const Matrix &P, const Matrix &A, const Matrix &G) 
+    f4_class(int refinement, bool DEBUG, const f4_no_ir_class &f4_no_ir, const ScalingMatrix &W, const VectorXd &lmbda, const Dimensions &dims,
+             const Matrix &P, const MatrixXd &A, const Matrix &G) 
     : refinement(refinement), DEBUG(DEBUG), f4_no_ir(f4_no_ir), W(W), lmbda(lmbda), dims(dims), P(P), A(A), G(G)
     {
         
     }
     
-    void operator()(Vector &x, Vector &y, Vector &z, Vector &s) {
+    void operator()(VectorXd &x, VectorXd &y, VectorXd &z, VectorXd &s) {
         
-        Vector wx, wy, wz, ws;
-        Vector wx2, wy2, wz2, ws2;
+        VectorXd wx, wy, wz, ws;
+        VectorXd wx2, wy2, wz2, ws2;
         
         if (refinement > 0|| DEBUG) {
             wx = x;
@@ -483,7 +492,7 @@ public:
  
  W * z = W^{-T} * s = lmbda. 
 */
-void compute_scaling(ScalingMatrix &W, const Vector &s, const Vector &z, Vector &lmbda, const Dimensions &dims, int mnl = -1) {
+void compute_scaling(ScalingMatrix &W, const VectorXd &s, const VectorXd &z, VectorXd &lmbda, const Dimensions &dims, int mnl = -1) {
 
 
     // For the nonlinear block:
@@ -666,7 +675,7 @@ void compute_scaling(ScalingMatrix &W, const Vector &s, const Vector &z, Vector 
  the new iterates in the current scaling, W^{-T}*st = Ls*Ls',   
  W*zt = Lz*Lz'.
 */
-void update_scaling(const Dimensions &dims, ScalingMatrix &W, Vector &lmbda, Vector &s, Vector &z) {
+void update_scaling(const Dimensions &dims, ScalingMatrix &W, VectorXd &lmbda, VectorXd &s, VectorXd &z) {
     // Nonlinear and 'l' blocks
     //
     //    d :=  d .* sqrt( s ./ z )
@@ -685,7 +694,7 @@ void update_scaling(const Dimensions &dims, ScalingMatrix &W, Vector &lmbda, Vec
         W.dnli = W.dnl.inverse();
     }
     
-    W.d.diagonal() = W.d.diagonal().array() * s.segment(mnl, ml).array() / z.segment(0, mnl).array();
+    W.d.diagonal() = W.d.diagonal().array() * s.segment(mnl, ml).array() / z.segment(0, ml).array();
     W.di = W.d.inverse();
          
     // lmbda := s .* z
@@ -872,7 +881,7 @@ void update_scaling(const Dimensions &dims, ScalingMatrix &W, Vector &lmbda, Vec
  The product x := y o y.   The 's' components of y are diagonal and
  only the diagonals of x and y are stored.     
 */
-void ssqr(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
+void ssqr(VectorXd &x, const VectorXd &y, const Dimensions &dims, int mnl = 0) {
     x = y.array() * y.array();
     int ind = mnl + dims.l;
     
@@ -895,7 +904,7 @@ void ssqr(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0) {
  The product x := (y o x).  If diag is true, the 's' part of y is 
 diagonal and only the diagonal is stored.
 */
-void sprod(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0, bool diag = false) {
+void sprod(VectorXd &x, const VectorXd &y, const Dimensions &dims, int mnl = 0, bool diag = false) {
 
     // For the nonlinear and 'l' blocks:  
     //
@@ -972,7 +981,7 @@ void sprod(Vector &x, const Vector &y, const Dimensions &dims, int mnl = 0, bool
  
  H is the Hessian of the logarithmic barrier.
 */
-void scale2(const Vector &lmbda, Vector &x, const Dimensions &dims, int mnl = 0, bool inverse = false) {
+void scale2(const VectorXd &lmbda, VectorXd &x, const Dimensions &dims, int mnl = 0, bool inverse = false) {
 
     // For the nonlinear and 'l' blocks, 
     //
@@ -1049,313 +1058,15 @@ void scale2(const Vector &lmbda, Vector &x, const Dimensions &dims, int mnl = 0,
 
 }
 
-/**  Solves a pair of primal and dual convex quadratic cone programs
- 
- Adapted from cvxopt - restriction to the first order cones (commented the non first order parters for latter inclusion)
- 
- minimize    \f$ \frac{1}{2} x^\top P x + q^\top*x \f$
- subject to  \f$ Gx + s = h\f$
- A*x = b
- s >= 0
- 
- maximize    -(1/2)*(q + G'*z + A'*y)' * pinv(P) * (q + G'*z + A'*y)
- - h'*z - b'*y 
- subject to  q + G'*z + A'*y in range(P)
- z >= 0.
- 
- The inequalities are with respect to a cone C defined as the Cartesian
- product of N + M + 1 cones:
- 
- C = C_0 x C_1 x .... x C_N x C_{N+1} x ... x C_{N+M}.
- 
- The first cone C_0 is the nonnegative orthant of dimension ml.  
- The next N cones are 2nd order cones of dimension mq[0], ..., mq[N-1].
- The second order cone of dimension m is defined as
- 
- { (u0, u1) in R x R^{m-1} | u0 >= ||u1||_2 }.
- 
- The next M cones are positive semidefinite cones of order ms[0], ...,
- ms[M-1] >= 0.  
- 
- 
 
- @param P is a dense or sparse 'd' matrix of size (n,n) with the lower 
- triangular part of the Hessian of the objective stored in the 
- lower triangle.  Must be positive semidefinite.
- 
- @param q is a dense 'd' matrix of size (n,1).
- 
- dims is a dictionary with the dimensions of the components of C.  
- It has three fields.
- -dims.l = ml, the dimension of the nonnegative orthant C_0.
- (ml >= 0.)
- - dims['q'] = mq = [ mq[0], mq[1], ..., mq[N-1] ], a list of N 
- integers with the dimensions of the second order cones 
- C_1, ..., C_N.  (N >= 0 and mq[k] >= 1.)
- - dims['s'] = ms = [ ms[0], ms[1], ..., ms[M-1] ], a list of M  
- integers with the orders of the semidefinite cones 
- C_{N+1}, ..., C_{N+M}.  (M >= 0 and ms[k] >= 0.)
- The default value of dims = {'l': G.size[0], 'q': [], 's': []}.
- 
- G is a dense or sparse 'd' matrix of size (K,n), where
- 
- K = ml + mq[0] + ... + mq[N-1] + ms[0]**2 + ... + ms[M-1]**2.
- 
- Each column of G describes a vector 
- 
- v = ( v_0, v_1, ..., v_N, vec(v_{N+1}), ..., vec(v_{N+M}) ) 
- 
- in V = R^ml x R^mq[0] x ... x R^mq[N-1] x S^ms[0] x ... x S^ms[M-1]
- stored as a column vector
- 
- [ v_0; v_1; ...; v_N; vec(v_{N+1}); ...; vec(v_{N+M}) ].
- 
- Here, if u is a symmetric matrix of order m, then vec(u) is the 
- matrix u stored in column major order as a vector of length m**2.
- We use BLAS unpacked 'L' storage, i.e., the entries in vec(u) 
- corresponding to the strictly upper triangular entries of u are 
- not referenced.
- 
- h is a dense 'd' matrix of size (K,1), representing a vector in V,
- in the same format as the columns of G.
- 
- A is a dense or sparse 'd' matrix of size (p,n).   The default
- value is a sparse 'd' matrix of size (0,n).
- 
- b is a dense 'd' matrix of size (p,1).  The default value is a 
- dense 'd' matrix of size (0,1).
- 
- initvals is a dictionary with optional primal and dual starting 
- points initvals['x'], initvals['s'], initvals['y'], initvals['z'].
- - initvals['x'] is a dense 'd' matrix of size (n,1).   
- - initvals['s'] is a dense 'd' matrix of size (K,1), representing
- a vector that is strictly positive with respect to the cone C.  
- - initvals['y'] is a dense 'd' matrix of size (p,1).  
- - initvals['z'] is a dense 'd' matrix of size (K,1), representing
- a vector that is strictly positive with respect to the cone C.
- A default initialization is used for the variables that are not
- specified in initvals.
- 
- It is assumed that rank(A) = p and rank([P; A; G]) = n.
- 
- The other arguments are normally not needed.  They make it possible
- to exploit certain types of structure, as described below.
- 
- 
- Output arguments.
- 
- Returns a dictionary with keys 'status', 'x', 's', 'z', 'y',
- 'primal objective', 'dual objective', 'gap', 'relative gap', 
- 'primal infeasibility', 'dual infeasibility', 'primal slack',
- 'dual slack', 'iterations'. 
- 
- The 'status' field has values 'optimal' or 'unknown'.  'iterations'
- is the number of iterations taken.
- 
- If the status is 'optimal', 'x', 's', 'y', 'z' are an approximate 
- solution of the primal and dual optimality conditions   
- 
- G*x + s = h,  A*x = b  
- P*x + G'*z + A'*y + q = 0 
- s >= 0,  z >= 0
- s'*z = 0.
- 
- If the status is 'unknown', 'x', 'y', 's', 'z' are the last 
- iterates before termination.  These satisfy s > 0 and z > 0, 
- but are not necessarily feasible.
- 
- The values of the other fields are defined as follows.
- 
- - 'primal objective': the primal objective (1/2)*x'*P*x + q'*x.
- 
- - 'dual objective': the dual objective 
- 
- L(x,y,z) = (1/2)*x'*P*x + q'*x + z'*(G*x - h) + y'*(A*x-b).
- 
- - 'gap': the duality gap s'*z.  
- 
- - 'relative gap': the relative gap, defined as 
- 
- gap / -primal objective 
- 
- if the primal objective is negative, 
- 
- gap / dual objective
- 
- if the dual objective is positive, and NULL otherwise.
- 
- - 'primal infeasibility': the residual in the primal constraints,
- defined as the maximum of the residual in the inequalities 
- 
- || G*x + s + h || / max(1, ||h||) 
- 
- and the residual in the equalities 
- 
- || A*x - b || / max(1, ||b||).
- 
- 
- - 'dual infeasibility': the residual in the dual constraints,
- defined as 
- 
- || P*x + G'*z + A'*y + q || / max(1, ||q||).
- 
- 
- - 'primal slack': the smallest primal slack, sup {t | s >= t*e }, 
- where 
- 
- e = ( e_0, e_1, ..., e_N, e_{N+1}, ..., e_{M+N} )
- 
- is the identity vector in C.  e_0 is an ml-vector of ones, 
- e_k, k = 1,..., N, is the unit vector (1,0,...,0) of length
- mq[k], and e_k = vec(I) where I is the identity matrix of order
- ms[k].
- 
- - 'dual slack': the smallest dual slack, sup {t | z >= t*e }.
- 
- If the exit status is 'optimal', then the primal and dual
- infeasibilities are guaranteed to be less than 
- solvers.options['feastol'] (default 1e-7).  The gap is less than 
- solvers.options['abstol'] (default 1e-7) or the relative gap is 
- less than solvers.options['reltol'] (default 1e-6).
- 
- Termination with status 'unknown' indicates that the algorithm 
- failed to find a solution that satisfies the specified tolerances.
- In some cases, the returned solution may be fairly accurate.  If 
- the primal and dual infeasibilities, the gap, and the relative gap
- are small, then x, y, s, z are close to optimal.  
- 
- 
- Advanced usage.
- 
- Three mechanisms are provided to express problem structure.
- 
- 1.  The user can provide a customized routine for solving linear 
- equations (`KKT systems')
- 
- [ P   A'  G'    ] [ ux ]   [ bx ]
- [ A   0   0     ] [ uy ] = [ by ].
- [ G   0   -W'*W ] [ uz ]   [ bz ]
- 
- W is a scaling matrix, a block diagonal mapping
- 
- W*u = ( W0*u_0, ..., W_{N+M}*u_{N+M} )
- 
- defined as follows.
- 
- - For the 'l' block (W_0):
- 
- W_0 = diag(d),
- 
- with d a positive vector of length ml.
- 
- - For the 'q' blocks (W_{k+1}, k = 0, ..., N-1):
- 
- W_{k+1} = beta_k * ( 2 * v_k * v_k' - J )
- 
- where beta_k is a positive scalar, v_k is a vector in R^mq[k]
- with v_k[0] > 0 and v_k'*J*v_k = 1, and J = [1, 0; 0, -I].
- 
- - For the 's' blocks (W_{k+N}, k = 0, ..., M-1):
- 
- W_k * u = vec(r_k' * mat(u) * r_k)
- 
- where r_k is a nonsingular matrix of order ms[k], and mat(x) is
- the inverse of the vec operation.
- 
- The optional argument kktsolver is a Python function that will be
- called as g = kktsolver(W).  W is a dictionary that contains
- the parameters of the scaling:
- 
- - W['d'] is a positive 'd' matrix of size (ml,1).
- - W['di'] is a positive 'd' matrix with the elementwise inverse of
- W['d'].
- - W['beta'] is a list [ beta_0, ..., beta_{N-1} ]
- - W['v'] is a list [ v_0, ..., v_{N-1} ]
- - W['r'] is a list [ r_0, ..., r_{M-1} ]
- - W['rti'] is a list [ rti_0, ..., rti_{M-1} ], with rti_k the
- inverse of the transpose of r_k.
- 
- The call g = kktsolver(W) should return a function g that solves 
- the KKT system by g(x, y, z).  On entry, x, y, z contain the 
- righthand side bx, by, bz.  On exit, they contain the solution,
- with uz scaled, the argument z contains W*uz.  In other words, 
- on exit x, y, z are the solution of
- 
- [ P   A'  G'*W^{-1} ] [ ux ]   [ bx ]
- [ A   0   0         ] [ uy ] = [ by ].
- [ G   0   -W'       ] [ uz ]   [ bz ]
- 
- 
- 2.  The linear operators P*u, G*u and A*u can be specified 
- by providing Python functions instead of matrices.  This can only 
- be done in combination with 1. above, i.e., it requires the 
- kktsolver argument.
- 
- If P is a function, the call P(u, v, alpha, beta) should evaluate 
- the matrix-vectors product
- 
- v := alpha * P * u + beta * v.
- 
- The arguments u and v are required.  The other arguments have 
- default values alpha = 1.0, beta = 0.0. 
- 
- If G is a function, the call G(u, v, alpha, beta, trans) should 
- evaluate the matrix-vector products
- 
- v := alpha * G * u + beta * v  if trans is 'N'
- v := alpha * G' * u + beta * v  if trans is 'T'.
- 
- The arguments u and v are required.  The other arguments have
- default values alpha = 1.0, beta = 0.0, trans = 'N'.
- 
- If A is a function, the call A(u, v, alpha, beta, trans) should
- evaluate the matrix-vectors products
- 
- v := alpha * A * u + beta * v if trans is 'N'
- v := alpha * A' * u + beta * v if trans is 'T'.
- 
- The arguments u and v are required.  The other arguments
- have default values alpha = 1.0, beta = 0.0, trans = 'N'.
- 
- 
- 3.  Instead of using the default representation of the primal 
- variable x and the dual variable y as one-column 'd' matrices, 
- we can represent these variables and the corresponding parameters 
- q and b by arbitrary Python objects (matrices, lists, dictionaries,
- etc).  This can only be done in combination with 1. and 2. above,
- i.e., it requires a user-provided KKT solver and an operator 
- description of the linear mappings.   It also requires the 
- arguments xnewcopy, xdot, xscal, xaxpy, ynewcopy, ydot, yscal, 
- yaxpy.  These arguments are functions defined as follows.
- 
- If X is the vector space of primal variables x, then:
- - xnewcopy(u) creates a new copy of the vector u in X.
- - xdot(u, v) returns the inner product of two vectors u and v in X.
- - xscal(alpha, u) computes u := alpha*u, where alpha is a scalar
- and u is a vector in X.
- - xaxpy(u, v, alpha = 1.0) computes v := alpha*u + v for a scalar 
- alpha and two vectors u and v in X.
- If this option is used, the argument q must be in the same format
- as x, the argument P must be a Python function, the arguments A 
- and G must be Python functions or NULL, and the argument 
- kktsolver is required.
- 
- If Y is the vector space of primal variables y:
- - ynewcopy(u) creates a new copy of the vector u in Y.
- - ydot(u, v) returns the inner product of two vectors u and v in Y.
- - yscal(alpha, u) computes u := alpha*u, where alpha is a scalar
- and u is a vector in Y.
- - yaxpy(u, v, alpha = 1.0) computes v := alpha*u + v for a scalar 
- alpha and two vectors u and v in Y.
- If this option is used, the argument b must be in the same format
- as y, the argument A must be a Python function or NULL, and the 
- argument kktsolver is required.
- 
- */
-ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h = NULL, Dimensions dims = Dimensions(), 
-            Matrix *_A = NULL, Vector *_b = NULL,
-            const ConeQPInitVals *initvals = NULL,
-            KKTPreSolver* kktpresolver = NULL, ConeQPOptions options = ConeQPOptions()) {
+void coneqp(const Matrix &P, Eigen::VectorXd &q,
+            ConeQPReturn &result,
+            bool initVals,
+            Dimensions dims,
+            const Matrix *_G, Eigen::VectorXd* _h, 
+            Eigen::MatrixXd *_A, Eigen::VectorXd *_b,
+            KKTPreSolver* kktpresolver, 
+            ConeQPOptions options) {
      
      const double STEP = 0.99;
      const double EXPON = 3;
@@ -1384,8 +1095,9 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     if (q.cols() != 1)
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'q' must be a matrix with one column"));
 
-    if (P.rows() != q.rows() || P.cols() != q.rows())
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'P' must be a 'd' matrix of size (%d, %d)"));
+//    if (P.rows() != q.rows() || P.cols() != q.rows())
+//        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'P' must be a 'd' matrix of size (%d, %d)"));
+    
 /*
     def fP(x, y, alpha = 1.0, beta = 0.0):
             base.symv(P, x, y, alpha = alpha, beta = beta)
@@ -1398,7 +1110,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'h' must be a 'd' matrix with one column"));
 
     if (dims.l == -1) {
-        dims.l = _h ? _h->rows() : 0;
+        dims.l = _h ? _h->rows() : (_G ? _G->rows() : 0);
     }
 
     /*
@@ -1421,8 +1133,8 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     for(IntIterator i = dims.q.begin(); i != dims.q.end(); i++) { cdim += *i; dimsq += *i; }
     for(IntIterator i = dims.s.begin(); i != dims.q.end(); i++) { cdim += *i * *i; dimss += *i; }
     
-    boost::shared_ptr<Vector> __h;
-    Vector &h = _h ? *_h : *(__h = boost::shared_ptr<Vector>(new Vector(cdim)));
+    boost::shared_ptr<VectorXd> __h;
+    VectorXd &h = _h ? *_h : *(__h = boost::shared_ptr<VectorXd>(new VectorXd(cdim)));
 
     if (h.rows() != cdim)
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'h' must be a 'd' matrix of size (%d,1)") %cdim).str()));
@@ -1436,30 +1148,30 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
     // Data for kth 's' constraint are found in rows inds[k]:inds[k+1] of G.
     std::vector<int> inds;
-    inds.push_back(indq.back());
+    if (!indq.empty()) inds.push_back(indq.back());
     
     for(IntIterator k = dims.s.begin(); k != dims.s.end(); k++)
         inds.push_back(inds.back() + *k * *k);
     
-    boost::shared_ptr<Matrix> __G;
-    Matrix &G = _G ? *_G : *(__G = boost::shared_ptr<Matrix>(new Matrix(cdim, q.rows())));
-    if (G.rows() != cdim || G.cols() != q.rows())
-        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'G' must be a 'd' matrix of size (%d, %d)") % cdim % q.rows()).str()));
+    boost::shared_ptr<MatrixXd> __G;
+    const Matrix &G = *_G; // _G ? *_G : *(__G = boost::shared_ptr<Matrix>(new  *(cdim, q.rows())));
+//    if (G.rows() != cdim || G.cols() != q.rows())
+//        BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'G' must be a 'd' matrix of size (%d, %d)") % cdim % q.rows()).str()));
     
     
-    boost::shared_ptr<Matrix> __A;
-    Matrix &A = _A ? *_A : *(__A = boost::shared_ptr<Matrix>(new Matrix(1, 0)));
+    boost::shared_ptr<MatrixXd> __A;
+    MatrixXd &A = _A ? *_A : *(__A = boost::shared_ptr<MatrixXd>(new MatrixXd(0, q.rows())));
     
     if (A.cols() != q.rows())
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'A' must be a 'd' matrix with %d columns") % q.rows()).str()));
           
-    boost::shared_ptr<Vector> __b;
-    Vector &b = _b ? *_b : *(__b = boost::shared_ptr<Vector>(new Vector(A.rows())));
+    boost::shared_ptr<VectorXd> __b;
+    VectorXd &b = _b ? *_b : *(__b = boost::shared_ptr<VectorXd>(new VectorXd(A.rows())));
     if (b.rows() != A.rows())
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'b' must have length %d") % A.rows()).str()));
 
-    Vector ws3(cdim);
-    Vector wz3(cdim);
+    VectorXd ws3(cdim);
+    VectorXd wz3(cdim);
         
     // HERE was res (moved to cvxopt_res)
         
@@ -1469,8 +1181,8 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
    
     double resz0 = std::max(1.0, snrm2(h, dims));
 
-    ConeQPReturn r;
-    Vector &x = r.x, &y = r.y, &z = r.z, &s = r.s;
+    ConeQPReturn &r = result;
+    VectorXd &x = r.x, &y = r.y, &z = r.z, &s = r.s;
     
     if (cdim == 0) {
 
@@ -1483,8 +1195,8 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         boost::shared_ptr<KKTSolver> f3;
         try {
             ScalingMatrix w;
+            KQP_LOG_DEBUG(logger, "Constructing a KKT solver");
             f3 = boost::shared_ptr<KKTSolver>(kktpresolver->get(w));
-            // {'d': matrix(0.0, (0,1)), 'di': matrix(0.0, (0,1)), 'beta': [], 'v': [], 'r': [], 'rti': []})
         } catch(...) {
              BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
@@ -1496,7 +1208,8 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
 
         // dres = || P*x + q + A'*y || / resx0 
-        Vector rx = P * x;
+        VectorXd rx;
+        P.mult(x, rx);
         double pcost = 0.5 * (x.dot(rx) + x.dot(q));
         
         rx += A.transpose() * y;
@@ -1505,7 +1218,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
         // pres = || A*x - b || / resy0
         
-        // Vector ry = A * x - b;
+        // VectorXd ry = A * x - b;
         //double pres = ry.norm() / resy0;
 
         double relgap;
@@ -1514,15 +1227,15 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
         r.status = "optimal";      
         r.primal_objective = r.dual_objective = pcost;
-        return r;
+        return;
     }
 
     x = q;
     y = b;
-    s = Vector(cdim);
-    z = Vector(cdim);
+    s = VectorXd(cdim);
+    z = VectorXd(cdim);
 
-    if (initvals == NULL) {
+    if (!initVals) {
 
         // Factor
         //
@@ -1531,20 +1244,20 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         //     [ G   0  -I  ]
         
         ScalingMatrix W; 
-        W.d = DiagonalMatrix(dims.l, dims.l); W.d.setIdentity();
+        W.d.setIdentity(dims.l);
         W.di = W.d;
         
         for(IntIterator m = dims.q.begin(); m != dims.q.end(); m++) 
-            W.v.push_back(Matrix(*m,1));
+            W.v.push_back(MatrixXd(*m,1));
         
         W.beta.push_back(dims.q.size());
-        for(std::vector<Matrix>::iterator v = W.v.begin();  v != W.v.end(); v++) 
+        for(std::vector<MatrixXd>::iterator v = W.v.begin();  v != W.v.end(); v++) 
             (*v)(0,0) = 1.0;
         
         for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
-            W.r.push_back(Matrix(m,m));
+            W.r.push_back(MatrixXd(m,m));
             W.r.back().setIdentity();
-            W.rti.push_back(Matrix(m,m));
+            W.rti.push_back(MatrixXd(m,m));
             W.rti.back().setIdentity();
         }
 
@@ -1552,6 +1265,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
 
         try {
             f = boost::shared_ptr<KKTSolver>(kktpresolver->get(W));   
+            KQP_LOG_DEBUG(logger, "Got a solver " << convert(f.get()));
         } catch(arithmetic_exception &e) {
             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
@@ -1563,7 +1277,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         //     [ A   0   0  ] * [ y ] = [  b ].
         //     [ G   0  -I  ]   [ z ]   [  h ]
 
-        Vector x = - q, y = b, z = h;
+        VectorXd x = - q, y = b, z = h;
 
         try {
             f->solve(x, y, z);
@@ -1571,7 +1285,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
         
-        Vector s = -z;
+        VectorXd s = -z;
 
         double nrms = snrm2(s, dims);
         double ts = max_step(s, dims);
@@ -1603,12 +1317,13 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         }
         
     } else {
-        Vector x;
+        VectorXd x;
         
-        if (initvals->x.rows()) x = initvals->x; else x.setZero();
+        if (result.x.rows() > 0) x = result.x; 
+        else x.setZero();
 
-        if (initvals->s.rows()) {
-            s = initvals->s;
+        if (result.s.rows()) {
+            s = result.s;
             // ts = min{ t | s + t*e >= 0 }
             if (max_step(s, dims) >= 0.)
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("initial s is not positive"));
@@ -1617,22 +1332,24 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             for(int i = 0; i < dims.l; i++) s[i] = 1.;
             
             int ind = dims.l;
-            for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
+            for(size_t i = 0; i < dims.q.size(); i++) {
+                int m = dims.q[i];
                 s[ind] = 1.0;
                 ind += m;
             }
             
-            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
+            for(size_t i = 0; i < dims.s.size(); i++) { 
+                int m = dims.s[i];
                 for(int i = ind; i < ind+m*m; i += m+1) 
                     s[i] = 1.;
                 ind += m * m;
             }
         }
         
-        if (initvals->y.rows()) y = initvals->y; else y.setZero();
+        if (result.y.rows()) y = result.y; else y.setZero();
 
-        if (initvals->z.rows()) {
-            z = initvals->z;
+        if (result.z.rows()) {
+            z = result.z;
             // tz = min{ t | z + t*e >= 0 }
             if (max_step(z, dims) >= 0.)
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("initial z is not positive"));
@@ -1652,14 +1369,14 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         }
     }
 
-    Vector rx = q, ry = b, rz = Vector(cdim);
-    Vector dx = x, dy = y;
-    Vector dz = Vector(cdim), ds = Vector(cdim);
+    VectorXd rx = q, ry = b, rz = VectorXd(cdim);
+    VectorXd dx = x, dy = y;
+    VectorXd dz = VectorXd(cdim), ds = VectorXd(cdim);
     
-    Vector lmbda = Vector(dims.l + dimsq + dimss);
-    Vector lmbdasq = lmbda;
-    Vector sigs(dimss);
-    Vector sigz(dimss);
+    VectorXd lmbda = VectorXd(dims.l + dimsq + dimss);
+    VectorXd lmbdasq = lmbda;
+    VectorXd sigs(dimss);
+    VectorXd sigz(dimss);
     
     std::string &status = r.status;
     double &pcost = r.primal_objective, &dcost = r.dual_objective, &dres = r.dual_infeasibility, &pres = r.primal_infeasibility;
@@ -1675,16 +1392,24 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
     for(iters = 0; iters <= options.maxiters; iters++) {
 
         // f0 = (1/2)*x'*P*x + q'*x + r and  rx = P*x + q + A'*y + G'*z.
-        Vector rx = P * x + q + A.transpose() * y + G.transpose() * z;
-        double f0 = 0.5 * x.transpose() * P * x;
+        VectorXd rx;
+        P.mult(x, rx);
+        double f0 = 0.5 * x.transpose() * rx;
+        
+        VectorXd Gz;
+        G.mult(z, Gz, true);
+        
+        rx += q + A.transpose() * y + Gz;
         double resx = rx.norm();
            
         // ry = A*x - b
-        Vector ry = A * x - b;
+        VectorXd ry = A * x - b;
         double resy = ry.norm();
 
         // rz = s + G*x - h
-        Vector rz = s + G * x - h;
+        VectorXd rz;
+        G.mult(x, rz);
+        rz += s - h;
         double resz = snrm2(rz, dims);
 
 
@@ -1730,7 +1455,7 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
             }
             r.dual_slack = -tz;
             r.primal_slack = -ts;
-            return r;
+            return;
         }
 
         // Compute initial scaling W and scaled iterates:  
@@ -1779,21 +1504,21 @@ ConeQPReturn coneqp(Matrix &P, Eigen::VectorXd &q, Matrix *_G = NULL, Vector* _h
         f4_no_ir_class f4_no_ir(W, *f3, dims, lmbda);
         
 
-        Vector wx, wy, wz, ws;
-        Vector wx2, wy2, wz2, ws2;
+        VectorXd wx, wy, wz, ws;
+        VectorXd wx2, wy2, wz2, ws2;
         
         if (iters == 0) {
             if (options.refinement > 0 || options.DEBUG) {               
                 wx = q;
                 wy = b;
-                wz = Vector(cdim);
-                ws = Vector(cdim);
+                wz = VectorXd(cdim);
+                ws = VectorXd(cdim);
             }
             if (options.refinement > 0) {
                 wx2 = q;
                 wy2 = b;
-                wz2 = Vector(cdim);
-                ws2 = Vector(cdim);
+                wz2 = VectorXd(cdim);
+                ws2 = VectorXd(cdim);
             }
         }
 
@@ -2159,7 +1884,7 @@ else:
 def sgemv(A, x, y, dims, trans = 'N', alpha = 1.0, beta = 0.0, n = None, 
     offsetA = 0, offsetx = 0, offsety = 0): 
     """
-    Matrix-vector multiplication.
+    MatrixXd-vector multiplication.
 
     A is a matrix or spmatrix of size (m, n) where 
     
@@ -2867,4 +2592,6 @@ def kkt_chol2(G, dims, A, mnl = 0):
          }
 */
 
+} // ns
+} // ns
 

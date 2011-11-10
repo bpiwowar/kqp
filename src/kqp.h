@@ -3,12 +3,13 @@
 #define __KQP_H__
 
 #include <boost/exception/errinfo_at_line.hpp>
-
 #include <boost/exception/info.hpp>
 #include <boost/exception/exception.hpp>
 #include <string>
 #include <complex>
 #include "cxxabi.h"
+
+#include "Eigen/Core"
 
 #ifndef NOLOGGING
 #include "log4cxx/logger.h"
@@ -16,6 +17,8 @@
 
 
 namespace kqp {
+    
+    typedef Eigen::MatrixXd::Index Index;
     
     /** Check if the value is a NaN */
     inline bool isNaN(double x) {
@@ -113,13 +116,17 @@ namespace kqp {
     class LoggerInit {
     public:
         LoggerInit();
+        static bool check();
     };
     extern const LoggerInit __LOGGER_INIT;
     
 // We define the logger
 
-#define DEFINE_LOGGER(logger, loggerName) \
-namespace { log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger(loggerName)); }
+#define DEFINE_LOGGER(loggerId, loggerName) \
+namespace { \
+    bool _KQP_LOG_CHECKER_ = kqp::LoggerInit::check(); \
+    log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
+}
 
 // Note: Use the if (false) construct to compile code; the code optimizer
 // is able to remove the corresponding code, so it does change
