@@ -31,8 +31,6 @@ namespace kqp {
         {
             // The scaling matrix has dimension r * n * 2
             KQP_LOG_DEBUG(logger, "Preparing the KKT solver of dimension r=" << convert(r) << " and n=" << convert(n));
-            KQP_LOG_DEBUG(logger, "BBT is square of dimension " << convert(BBT.rows()));
-
             
             // Gets U and V
             Eigen::VectorXd U = w.d.diagonal().topRows(r*n);
@@ -151,15 +149,14 @@ namespace kqp {
     // Compute the Cholesky decomposition of the gram matrix
     lltOfK(Eigen::LLT<Eigen::MatrixXd>(gramMatrix))
     {
-        
         // Computes B in B A' = Id (L21 and L31)
         // i.e.  computes A B' = Id
         B.setIdentity(gramMatrix.rows(), gramMatrix.cols());
         lltOfK.solveInPlace(B);
         B.adjointInPlace();
-        
+               
         // Computing B * B.T
-        BBT = B * B.adjoint();
+        BBT.noalias() = B * B.adjoint();
         
     }
     

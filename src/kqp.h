@@ -96,7 +96,7 @@ namespace kqp {
 #define KQP_XSTRING_IT(x) #x
 
 //! String-ize the parameter
-#define KQP_STRING_IT(x) XSTRING_IT(x)
+#define KQP_STRING_IT(x) KQP_XSTRING_IT(x)
 
 
 // ---- LOGGING MACROS ---

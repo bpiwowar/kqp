@@ -1135,7 +1135,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
     
     boost::shared_ptr<VectorXd> __h;
     VectorXd &h = _h ? *_h : *(__h = boost::shared_ptr<VectorXd>(new VectorXd(cdim)));
-
+    if (!_h) h.setZero(cdim);
     if (h.rows() != cdim)
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'h' must be a 'd' matrix of size (%d,1)") %cdim).str()));
 
@@ -1160,13 +1160,16 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
     
     
     boost::shared_ptr<MatrixXd> __A;
-    MatrixXd &A = _A ? *_A : *(__A = boost::shared_ptr<MatrixXd>(new MatrixXd(0, q.rows())));
     
+    MatrixXd &A = _A ? *_A : *(__A = boost::shared_ptr<MatrixXd>(new MatrixXd(0, q.rows())));
+        
     if (A.cols() != q.rows())
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'A' must be a 'd' matrix with %d columns") % q.rows()).str()));
           
     boost::shared_ptr<VectorXd> __b;
     VectorXd &b = _b ? *_b : *(__b = boost::shared_ptr<VectorXd>(new VectorXd(A.rows())));
+    if (!_b) b.setZero(b.rows());
+    
     if (b.rows() != A.rows())
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'b' must have length %d") % A.rows()).str()));
 
@@ -1183,9 +1186,10 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
 
     ConeQPReturn &r = result;
     VectorXd &x = r.x, &y = r.y, &z = r.z, &s = r.s;
-    
-    if (cdim == 0) {
 
+    // --- No inequalities in QP
+    if (cdim == 0) {
+        
         // Solve
         //
         //     [ P  A' ] [ x ]   [ -q ]
@@ -1230,6 +1234,9 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         return;
     }
 
+    
+    // --- We have inequalities in the QP
+    
     x = q;
     y = b;
     s = VectorXd(cdim);
@@ -1280,6 +1287,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         VectorXd x = - q, y = b, z = h;
 
         try {
+            KQP_LOG_DEBUG(logger, "Initvals solving with x=" << convert(x) << ", z=" << convert(z));
             f->solve(x, y, z);
         } catch(arithmetic_exception &e) {
             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
@@ -1291,7 +1299,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         double ts = max_step(s, dims);
         if (ts >= -1e-8 * std::max(nrms, 1.0)) {  
             double a = 1.0 + ts;
-            for(int i = 0; i < dims.l; i++) s[i] += a;
+            s.segment(0, dims.l).array() += a;
             for(int i = 0; i < indq.size() - 1; i++)
                 s[indq[i]] += a;
             int ind = dims.l + dimsq;
@@ -1316,6 +1324,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
                 
         }
         
+        KQP_LOG_DEBUG(logger, "Initialised with x=" << convert(s) << ", s=" << convert(s) << ", z=" << convert(z));
     } else {
         VectorXd x;
         
@@ -1369,6 +1378,8 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         }
     }
 
+    // Start the optimisation
+        
     VectorXd rx = q, ry = b, rz = VectorXd(cdim);
     VectorXd dx = x, dy = y;
     VectorXd dz = VectorXd(cdim), ds = VectorXd(cdim);

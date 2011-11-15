@@ -1,6 +1,7 @@
 #include <iostream>
 #include <complex>
 
+#include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 
 #include "kqp.h"
@@ -70,6 +71,34 @@ namespace kqp {
         KQP_LOG_INFO(logger, "Starting qp solver tests");
         std::string name = argv[0];
         
+        if (name == "kkt-solver") {
+            int n = 2;
+            int r = 2;
+            
+            // Test of the KKT solver
+            Eigen::MatrixXd gramMatrix(n, n);
+            gramMatrix << 1, 0, 
+                          0, 1;
+            KQP_KKTPreSolver kkt_presolver(gramMatrix);
+
+            cvxopt::ScalingMatrix w;
+            w.d.resize(2*r*n);
+            w.d.diagonal().setConstant(-1.);
+            w.di = w.d.inverse();
+            
+            boost::shared_ptr<cvxopt::KKTSolver> kktSolver(kkt_presolver.get(w));
+            
+            Eigen::VectorXd x(n*r+n), y, z(2*n*r);
+            
+            x << 1, 2, 3, 4, 5, 6;
+            z << 5, 6, 7, 8, 9, 10, 11, 12;
+            
+            kktSolver->solve(x,y,z);
+            
+            KQP_LOG_ASSERT(logger, std::abs(x[0] - 1./3.) < EPSILON, "x_1 = " << convert(x[0]) << "!= 1/3");
+            KQP_LOG_ASSERT(logger, std::abs(x[1] - 2./3.) < EPSILON, "x_1 = " << convert(x[0]) << "!= 1/3");
+            return 0;
+        }
         
         if (name == "toy") {
             // --- Problem definition
@@ -80,11 +109,12 @@ namespace kqp {
             int r = 2;
             
             Eigen::MatrixXd gramMatrix(n, n);
-            gramMatrix << 1, 0, 0, 1;
+            gramMatrix << 1, 0, 
+                          0, 1;
             
             Eigen::MatrixXd alpha(n, r);
-            alpha << .5, .2, 
-            .1, 1.;
+            alpha << 1, 0, 
+                     0, 1;
             
             // --- Prepare the data structures
             
