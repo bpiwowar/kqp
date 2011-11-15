@@ -7,7 +7,7 @@
 from cvxopt import solvers, matrix, sparse, spmatrix, uniform, printing, mul, div, misc, lapack, blas, spdiag
 from time import  time
 
-printing.options['dformat'] = '%.1f'
+printing.options['dformat'] = '%.2f'
 printing.options['width'] = 15
 
 
@@ -15,7 +15,7 @@ printing.options['width'] = 15
 # r is the rank (number of basis vectors)
 # [Note that n >= r]
 
-DEBUG = False
+DEBUG = 0
 choice = "random"
 
 if choice == "random":
@@ -41,7 +41,7 @@ elif choice == "simple-1":
     n = 2
     r = 2
     Lambda = 1
-    g = matrix([1,0,0,1], (2,2))
+    g = matrix([1.,0.,0.,1.], (2,2))
     a = matrix([1,0,0,.5], (n*r, 1))
 else:
     print "Unknown choice [%s]" % choice
@@ -74,11 +74,12 @@ for i in range(r+1):
     l.append(sl)
 P = sparse(l)
 
+
 print "Constructing q..."
 q = matrix(0., (n * r + n, 1))
 for i in range(r):
-    q[i*n:(i+1)*n,0] = - g * a[i*n:(i+1)*n,0]
-q[n*r:n*r+n] = Lambda / 2.
+    q[i*n:(i+1)*n,0] = - 2 * g * a[i*n:(i+1)*n,0]
+q[n*r:n*r+n] = Lambda
 
 print "Constructing G (%d x %d) and q" % (2 * n*r, n*r + n)
 id_nr = spmatrix(1., range(n*r), range(n*r))
@@ -108,8 +109,10 @@ def Fchol2(W):
 #    print W['di']
     
     def f(x, y, z):
-        print "** SOLVING KKT **"
+        if DEBUG > 0: print "** SOLVING KKT **"
+        if DEBUG > 1: print "bx = %sbz = %s" % (x.T, z.T),
         solve(x,y,z)
+        if DEBUG > 1: print "x = %sz = %s" % (x.T, z.T),
 
     return f
 
@@ -134,33 +137,36 @@ def F(W):
     Returns a function f(x, y, z) that solves the KKT conditions
 
     """
-    global cholK
+    global cholK, BBT, B
 
     if cholK is None:
         # Copy A and compute the Cholesky decomposition
-        print "# Computing the cholesky decomposition of P"
+        if DEBUG > 0: print "# Computing the cholesky decomposition of P"
         cholK = +g
         cholesky(cholK)
         
-        print "# Computing the B in B A.T = Id (L21 and L31)"
+        if DEBUG > 0: print "# Computing the B in B A.T = Id (L21 and L31)"
         B = matrix(id_n, (n,n))
         blas.trsm(cholK, B, side='R', transA='T')
         
-        print "# Computing B B^T"
+        if DEBUG > 0: print "# Computing B B^T"
         BBT = B * B.T
 
 
-    U = W['di'][0:n*r] ** 2
-    V = W['di'][n*r:2*n*r]  ** 2
+    U = +W['d'][0:n*r]
+    U = U ** 2
+    V = +W['d'][n*r:2*n*r] 
+    V = V ** 2
+    Wd = +W['d']
     
-    print "# Computing L22"
+    if DEBUG > 0: print "# Computing L22"
     L22 = []
     for i in range(r):
         BBTi = BBT + spmatrix(U[i*n:(i+1)*n] ,range(n),range(n))
         cholesky(BBTi)
         L22.append(BBTi)
 
-    print "# Computing L32"
+    if DEBUG > 0: print "# Computing L32"
     L32 = []
     for i in range(r):
         # Solves L32 . L22 = - B . B^\top
@@ -168,28 +174,28 @@ def F(W):
         blas.trsm(L22[i], C, side='R', transA='T')
         L32.append(C)
     
-    print "# Computing L33"
+    if DEBUG > 0: print "# Computing L33"
     L33 = []
     for i in range(r):
-        A = spmatrix(U[i*n:(i+1)*n] ,range(n),range(n))  + BBT - L32[i] * L32[i].T
+        A = spmatrix(V[i*n:(i+1)*n] ,range(n),range(n))  + BBT - L32[i] * L32[i].T
         cholesky(A)
         L33.append(A)
         
-    print "# Computing L42"
+    if DEBUG > 0: print "# Computing L42"
     L42 = []
     for i in range(r):
         A = +L22[i].T
         lapack.trtri(A, uplo='U')
         L42.append(A)
     
-    print "# Computing L43"
+    if DEBUG > 0: print "# Computing L43"
     L43 = []
     for i in range(r):
         A =  id_n - L42[i] * L32[i].T
         blas.trsm(L33[i], A, side='R', transA='T')
         L43.append(A)
 
-    print "# Computing L44 and D4"
+    if DEBUG > 0: print "# Computing L44 and D4"
 
     
     # The indices for the diagonal of a dense matrix
@@ -199,13 +205,14 @@ def F(W):
    
     cholesky(L44)
 
-    # WARNING: y and t have been permuted (LD33 and LD44piv)
-    print "## PRE-COMPUTATION DONE ##"
+    # WARNING: y, z and t have been permuted (LD33 and LD44piv)
+
+    if DEBUG > 0: print "## PRE-COMPUTATION DONE ##"
 
 
     # Checking the decomposition
-    if DEBUG:
-        if False:
+    if DEBUG > 1:
+        if DEBUG > 2:
             mA = []
             mB = []
             mD = []
@@ -237,12 +244,13 @@ def F(W):
             mA = sparse(mA)
             mD = spdiag(mD)
 
-            print mA * mD * mA.T
-            print P
+            print "LL^T =\n%s" % (mA * mD * mA.T),
+            print "P =\n%s" % P,
 
             print g
-            print "U = %s" % U.T
-            print "V = %s" % V.T
+            print "W = %s" % W["d"].T,
+            print "U^2 = %s" % U.T,
+            print "V^2 = %s" % V.T,
     
         print "### Pre-compute for check"
         solve = chol2(W,P)
@@ -255,7 +263,9 @@ def F(W):
         """
 
         # Maps to our variables x,y,z and t
-        print "... Computing ..."
+        if DEBUG > 0:
+            print "... Computing ..."
+            print "bx = %sbz = %s" % (x.T, z.T),
         a = []
         b = x[n*r:n*r + n]
         c = []
@@ -305,15 +315,19 @@ def F(W):
         x[n*r:n*r + n] = b
         for i in range(r):
             x[i*n:(i+1)*n] = a[i]
-            
             z[i*n:(i+1)*n] = c[i]
             z[(i+r)*n:(i+r+1)*n] = d[i]
 
-        z = mul( W['di'], z)
+        z[:] = mul( Wd, z)
 
         if DEBUG:
-               print (x - xp).T
-               print (z - zp).T
+            print "x  = %s" % x.T,
+            print "z  = %s" % z.T,
+            print "Delta(x) = %s" % (x - xp).T,
+            print "Delta(z) = %s" % (z - zp).T,
+            delta= blas.nrm2(x-xp) + blas.nrm2(z-zp)
+            if (delta > 1e-8):
+                print "--- DELTA TOO HIGH = %.3e ---" % delta
 
         
     return f
@@ -324,12 +338,24 @@ def F(W):
 
 # --- Solving 
 
-print "   [[[Solving system with default...]]]"
-T1 = time()
-sol=solvers.coneqp(P, q, G, h, kktsolver=Fchol2)
-print "Time taken = %s" % (time() - T1)
-print sol['status']
-if (n * r < 10): print "Solution = %s" % sol['x'].T
+if (n * r < 10):
+    print "=== Problem structure ==="
+    print
+    print "=== P"
+    print P
+    print
+    print "=== q"
+    print q.T
+    print
+    print "=== G"
+    print G
+    print
+    print "=== h"
+    print h.T
+    print
+
+
+print "=== Problem size: n=%d and r=%d ===\n\n" % (n, r)
 
 print "\n\n   [[[Solving with optimised]]]"
 T1 = time()
@@ -337,5 +363,15 @@ sol = solvers.coneqp(P, q, G, h, kktsolver=F)
 print "Time taken = %s" % (time() - T1)
 print sol['status']
 if (n * r < 10): print "Solution = %s" % sol['x'].T
+
+print "   [[[Solving system with default...]]]"
+T1 = time()
+sol=solvers.coneqp(P=P, q=q, G=G, h=h, kktsolver=Fchol2)
+print "Time taken = %s" % (time() - T1)
+print sol['status']
+if (n * r < 10):
+    print "Solution = %s" % sol['x'].T
+    print (G * sol['x']).T
+
 
 print "Done"
