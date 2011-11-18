@@ -4,6 +4,7 @@
  * (c) 2011 B. Piwowarski 
  */
 
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <boost/scoped_ptr.hpp>
