@@ -67,78 +67,25 @@ namespace kqp {
         virtual Index cols() const { return n * (r+1); }
     };
     
+#include "generated/kkt_solver.cpp"
+    
     int kqp_qp_solver_test(int argc, const char **argv) {
         KQP_LOG_INFO(logger, "Starting qp solver tests");
         std::string name = argv[0];
         
-        if (name == "kkt-solver") {
-            int n = 2;
-            int r = 2;
-            Eigen::MatrixXd g(n,n);
-            cvxopt::ScalingMatrix w;
-            w.d.resize(2*r*n);
-            Eigen::VectorXd x(n*(r+1)), y, z(2*n*r);
-            x <<  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ;
-            z <<  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ;
-            g <<  1.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 ,  1.000000000000000e+00 ;
-            w.d.diagonal() <<  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ,  1.000000000000000e+00 ;
-            
-            // Solve
-            KQP_KKTPreSolver kkt_presolver(g);
-            boost::shared_ptr<cvxopt::KKTSolver> kktSolver(kkt_presolver.get(w));
-            kktSolver->solve(x,y,z);
-            
-            
-            // Solution
-            Eigen::VectorXd s_x(n*(r+1)), s_z(2*n*r);
-            s_x <<  3.333333333333334e-01 ,  3.333333333333334e-01 ,  3.333333333333334e-01 ,  3.333333333333334e-01 ,  2.500000000000002e-01 ,  2.500000000000002e-01 ;
-            s_z <<  -5.833333333333335e-01 ,  -5.833333333333335e-01 ,  -5.833333333333335e-01 ,  -5.833333333333335e-01 ,  8.333333333333318e-02 ,  8.333333333333318e-02 ,  8.333333333333318e-02 ,  8.333333333333318e-02 ;
-            
-            std::cerr << "x - x* = " << x - s_x;
-            std::cerr << "z - z* = " << z - s_z;
-            
-            std::cerr << "Average error (x): " << (x - s_x).norm() / (double)x.rows();
-            std::cerr << "Average error (z): " << (z - s_z).norm() / (double)z.rows();
-            return 0;
-            
-        } else if (name == "kk") {
-            int n = 2;
-            int r = 2;
-            
-            // Real solution is given by
-            // (K + G' W^-2 G) x = a + G' W^-2 c
-            
-            // With
-            // G' W^-2 G =
-            // W_1^2+W_r+1^2               0
-            //           ...               .
-            //             W_r^2+W_2r^2    0
-            // 0     ...        0      \sum W_i^2
-            
-            // Test of the KKT solver
-            Eigen::MatrixXd g(n, n);
-            g << 1, 0, 0, 1;
-            KQP_KKTPreSolver kkt_presolver(g);
+        if (name == "kkt-solver-simple") 
+            return kkt_test_simple();
 
-            cvxopt::ScalingMatrix w;
-            w.d.resize(2*r*n);
-            w.d.diagonal().setConstant(-1.);
-            w.di = w.d.inverse();
-            
-            boost::shared_ptr<cvxopt::KKTSolver> kktSolver(kkt_presolver.get(w));
-            
-            Eigen::VectorXd x(n*r+n), y, z(2*n*r);
-            
-            x << 1, 2, 3, 4, 5, 6;
-            z << 0,0,0,0, 0,0,0,0;
-            
-            kktSolver->solve(x,y,z);
-            std::cerr << x;
-            
-            KQP_LOG_ASSERT(logger, std::abs(x[0] - 1./3.) < EPSILON, "x_1 = " << convert(x[0]) << "!= 1/3");
-            KQP_LOG_ASSERT(logger, std::abs(x[1] - 2./3.) < EPSILON, "x_2 = " << convert(x[0]) << "!= 2/3");
-            return 0;
-        }
+        if (name == "kkt-solver-diagonal-g")
+            return kkt_test_diagonal_g();
+
+        if (name == "kkt-solver-diagonal-d")
+            return kkt_test_diagonal_d();
+        
+        if (name == "kkt-solver-random")
+            return kkt_test_random();
+
+        
         
         if (name == "toy") {
             // --- Problem definition

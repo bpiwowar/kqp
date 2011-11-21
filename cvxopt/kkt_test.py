@@ -9,9 +9,12 @@ def print_cxx(name, m):
         if i != N-1: print ", ",
     print ";"
 
-def doit(n,r, g,W, x,z):
+def doit(name, n,r, g,W, x,z):
     print
-    print "// -------"
+    print
+    print "// ------- Generated from kkt_test.py ---"
+    print "int kkt_test_%s() {" % name
+    print
     print "// Problem"
     print "int n = %d;" % n
     print "int r = %d;" % r
@@ -45,6 +48,17 @@ def doit(n,r, g,W, x,z):
     print_cxx("s_x", x)
     print_cxx("s_z", z)
 
+    print """
+            double error_x = (x - s_x).norm() / (double)x.rows();
+            double error_z = (z - s_z).norm() / (double)z.rows();
+
+            KQP_LOG_INFO(logger, "Average error (x): " << convert(error_x));
+            KQP_LOG_INFO(logger, "Average error (z): " << convert(error_z));
+            KQP_LOG_ASSERT(logger, error_x < EPSILON, "Error for x is too high");
+            KQP_LOG_ASSERT(logger, error_z < EPSILON, "Error for z is too high");
+            return 0;
+        }
+"""
 
 # --- Simple test
 
@@ -54,19 +68,51 @@ g = matrix([1,0, 0,1], (n,n), 'd')
 x = matrix(1., (n*(r+1),1))
 z = matrix(0., (2*n*r,1))
 W = {'d': matrix(1., (2*n*r,1))}
-doit(n, r, g, W, x, z)
+doit("simple", n, r, g, W, x, z)
 
-# --- Random test
+# --- Random test (diagonal g)
 
 setseed(0)
 n = 5
 r = 10
-g = uniform(2,2)
-g = g * g.T
-W = {'d': uniform(2*n*r, 1) }
 
+g = matrix(0., (n,n), 'd')
+g[::n+1] = 1
+
+W = {'d': uniform(2*n*r, 1) }
 
 x = uniform(n*(r+1),1)
 z = uniform(2*n*r,1)
 
-doit(n, r, g, W, x, z)
+doit("diagonal_g", n, r, g, W, x, z)
+
+# --- Constant diagonal
+
+setseed(-10)
+n = 5
+r = 10
+g = uniform(n,n)
+g = g * g.T
+
+W = {'d': matrix(1., (2*n*r,1))}
+
+x = uniform(n*(r+1),1)
+z = uniform(2*n*r,1)
+
+doit("diagonal_d", n, r, g, W, x, z)
+
+
+# --- Fully random
+
+setseed(10)
+n = 5
+r = 10
+g = uniform(n,n)
+g = g * g.T
+
+W = {'d': uniform(2*n*r, 1) }
+
+x = uniform(n*(r+1),1)
+z = uniform(2*n*r,1)
+
+doit("random", n, r, g, W, x, z)

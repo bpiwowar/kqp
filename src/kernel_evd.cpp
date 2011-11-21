@@ -11,9 +11,9 @@ namespace kqp {
     // --- QP solver
     
     class KQP_KKTSolver : public cvxopt::KKTSolver {
-        Eigen::LLT<Eigen::MatrixXd> &cholK;
-        Eigen::MatrixXd &B;
-        Eigen::MatrixXd &BBT;
+        const Eigen::LLT<Eigen::MatrixXd> &cholK;
+        const Eigen::MatrixXd &B;
+        const Eigen::MatrixXd &BBT;
         // Number of pre-images
         int n;
         // Rank (number of basis vectors)
@@ -26,7 +26,7 @@ namespace kqp {
         std::vector<Eigen::MatrixXd> L32, L42, L43;
         Eigen::LLT<Eigen::MatrixXd> L44;
     public:
-        KQP_KKTSolver(Eigen::LLT<Eigen::MatrixXd> &cholK, Eigen::MatrixXd &B, Eigen::MatrixXd &BBT, const cvxopt::ScalingMatrix &w) 
+        KQP_KKTSolver(const Eigen::LLT<Eigen::MatrixXd> &cholK, const Eigen::MatrixXd &B, const Eigen::MatrixXd &BBT, const cvxopt::ScalingMatrix &w) 
         : cholK(cholK), B(B), BBT(BBT), n(B.cols()), r(w.d.diagonal().size() / n / 2) , Wd(w.d)
         {
             // The scaling matrix has dimension r * n * 2
@@ -129,7 +129,7 @@ namespace kqp {
                 Eigen::VectorBlock<Eigen::VectorXd> ci = z.segment(i*n, n);
                 Eigen::VectorBlock<Eigen::VectorXd> di = z.segment((i+r)*n, n);
                 
-                cholK.solveInPlace(ai);
+                cholK.matrixL().solveInPlace(ai);
                 
                 // Solves L22 x = - B * ai - ci
                 Eigen::MatrixXd Bai = B * ai;
@@ -144,7 +144,7 @@ namespace kqp {
                 
                 b += L42[i] * ci + L43[i] * di;
             } 
-            L44.solveInPlace(b);
+            L44.matrixL().solveInPlace(b);
             
             //  Second phase
             L44.matrixU().solveInPlace(b);
@@ -179,8 +179,7 @@ namespace kqp {
         // Computes B in B A' = Id (L21 and L31)
         // i.e.  computes A B' = Id
         B.setIdentity(gramMatrix.rows(), gramMatrix.cols());
-        lltOfK.solveInPlace(B);
-        B.adjointInPlace();
+        lltOfK.matrixU().solveInPlace<Eigen::OnTheRight>(B);
                
         // Computing B * B.T
         BBT.noalias() = B * B.adjoint();
