@@ -58,7 +58,8 @@ double sdot(const VectorXd &x, const VectorXd &y, const Dimensions &dims, size_t
     for(std::vector<int>::const_iterator k = dims.q.begin(); k != dims.q.end(); k++)
         ind += *k;
     
-    double a = x.head(ind).adjoint() * y.head(ind);
+    
+    double a = x.head(ind).dot(y.head(ind));
     
     for(size_t i = 0; i < dims.s.size(); i++) { 
         int m = dims.s[i];
@@ -507,7 +508,7 @@ void compute_scaling(ScalingMatrix &W, const VectorXd &s, const VectorXd &z, Vec
     } else {
         W.dnl.diagonal() = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
         W.dnli = W.dnl.inverse();
-        lmbda.segment(0,mnl) = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
+        lmbda.segment(0,mnl) = (s.segment(0, mnl).array() * z.segment(0, mnl).array()).sqrt();
     }
 
     // For the 'l' block: 
@@ -523,8 +524,7 @@ void compute_scaling(ScalingMatrix &W, const VectorXd &s, const VectorXd &z, Vec
     W.d.diagonal() = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
     W.di = W.d.inverse();
     
-    lmbda.segment(mnl, m) = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
-
+    lmbda.segment(mnl, m) = (s.segment(mnl, m).array() * z.segment(mnl, m).array()).sqrt();
 
 
     if (!dims.q.empty() || !dims.s.empty())
@@ -1141,7 +1141,9 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message((boost::format("'h' must be a 'd' matrix of size (%d,1)") %cdim).str()));
 
     // Data for kth 'q' constraint are found in rows indq[k]:indq[k+1] of G.
-    std::vector<int> indq(dims.l);
+    std::vector<int> indq;
+    
+    indq.push_back(dims.l);
     
     for(IntIterator k = dims.q.begin(); k != dims.q.end(); k++)
         indq.push_back(indq.back() + *k);        
@@ -1273,7 +1275,6 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
 
         try {
             f = boost::shared_ptr<KKTSolver>(kktpresolver->get(W));   
-            KQP_LOG_DEBUG(logger, "Got a solver " << convert(f.get()));
         } catch(arithmetic_exception &e) {
             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
@@ -1285,49 +1286,64 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         //     [ A   0   0  ] * [ y ] = [  b ].
         //     [ G   0  -I  ]   [ z ]   [  h ]
 
-        VectorXd x = - q, y = b, z = h;
+        x = - q; 
+        y = b; 
+        z = h;
 
         try {
-            KQP_LOG_DEBUG(logger, "Initvals solving with x=" << convert(x) << ", z=" << convert(z));
+            KQP_LOG_DEBUG(logger, "x=" << x.adjoint());
+            KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
+
             f->solve(x, y, z);
+            KQP_LOG_DEBUG(logger, "x=" << x.adjoint());
+            KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
         } catch(arithmetic_exception &e) {
             BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
         }
         
-        VectorXd s = -z;
+        s = -z;
 
+
+        // Ensures s is positive
         double nrms = snrm2(s, dims);
         double ts = max_step(s, dims);
         if (ts >= -1e-8 * std::max(nrms, 1.0)) {  
             double a = 1.0 + ts;
             s.segment(0, dims.l).array() += a;
+        
             for(int i = 0; i < indq.size() - 1; i++)
                 s[indq[i]] += a;
+        
             int ind = dims.l + dimsq;
-            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
+            for(size_t i = 0; i < dims.s.size(); i++) { 
+                int m = dims.s[i];
                 for(int i = ind; i < ind + m * m; i += m+1) s[i] += a;
                 ind += m * m;
             }
+
         }
         
+        // ensures z is positive
         double nrmz = snrm2(z, dims);
         double tz = max_step(z, dims);
         if (tz >= -1e-8 * std::max(nrmz, 1.0)) {
             double a = 1.0 + tz;
-            for(int i = 0; i < dims.l; i++) z[i] += a;
+            z.segment(0, dims.l).array() += a;
+
             for(int i = 0; i < indq.size() - 1; i++) z[indq[i]] += a;
             int ind = dims.l + dimsq;
-            for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
-                 for(int i = ind; i < ind + m * m; i += m+1) 
-                     z[i] += a;
+            for(size_t i = 0; i < dims.s.size(); i++) { 
+                int m = dims.s[i];
+                for(int i = ind; i < ind + m * m; i += m+1) 
+                    z[i] += a;
                 ind += m * m;
             }
-                
+            
         }
         
-        KQP_LOG_DEBUG(logger, "Initialised with x=" << convert(s) << ", s=" << convert(s) << ", z=" << convert(z));
+
     } else {
-        VectorXd x;
+        // We have initialised values
         
         if (result.x.rows() > 0) x = result.x; 
         else x.setZero();
@@ -1379,7 +1395,8 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         }
     }
 
-    // Start the optimisation
+    
+    // --- Start the optimisation
         
     VectorXd rx = q, ry = b, rz = VectorXd(cdim);
     VectorXd dx = x, dy = y;
@@ -1390,28 +1407,35 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
     VectorXd sigs(dimss);
     VectorXd sigz(dimss);
     
+    // Makes some references for fast access
     std::string &status = r.status;
     double &pcost = r.primal_objective, &dcost = r.dual_objective, &dres = r.dual_infeasibility, &pres = r.primal_infeasibility;
     double &gap = r.gap, &relgap = r.relative_gap;
     
-    if (options.show_progress)
-        std::cerr << boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres;
+        
+    KQP_LOG_INFO(logger, boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres);
                        
     gap = sdot(s, z, dims);
 
     int &iters = r.iterations;
     ScalingMatrix W;
     for(iters = 0; iters <= options.maxiters; iters++) {
+        KQP_LOG_DEBUG(logger, "========= ITERATION " << convert(iters));
+        KQP_LOG_DEBUG(logger, "x=" << convert(x.adjoint()));
+        KQP_LOG_DEBUG(logger, "z=" << convert(z.adjoint()));
+        KQP_LOG_DEBUG(logger, "s=" << convert(s.adjoint()));
+        KQP_LOG_DEBUG(logger, "h=" << convert(h.adjoint()));
 
         // f0 = (1/2)*x'*P*x + q'*x + r and  rx = P*x + q + A'*y + G'*z.
         VectorXd rx;
         P.mult(x, rx);
-        double f0 = 0.5 * x.transpose() * rx;
+        rx += q;
+        double f0 = 0.5 * ( x.dot(rx) + x.dot(q));
         
         VectorXd Gz;
         G.mult(z, Gz, true);
         
-        rx += q + A.transpose() * y + Gz;
+        rx += A.adjoint() * y + Gz;
         double resx = rx.norm();
            
         // ry = A*x - b
@@ -1424,6 +1448,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         rz += s - h;
         double resz = snrm2(rz, dims);
 
+        
 
         // Statistics for stopping criteria.
 
@@ -1442,8 +1467,8 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         pres = std::max(resy/resy0, resz/resz0);
         dres = resx/resx0;
 
-        if (options.show_progress)
-            std::cerr << boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres;
+            
+        KQP_LOG_INFO(logger, boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres);
 
         if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
             int ind = dims.l  + dimsq;
@@ -1476,10 +1501,15 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
         // 
         // lmbdasq = lambda o lambda.
         
-        if (iters == 0) 
+        if (iters == 0) {
             compute_scaling(W, s, z, lmbda, dims);
+            KQP_LOG_DEBUG(logger, "lmbda=" << convert(lmbda.adjoint()));
+        }
+        
+        KQP_LOG_DEBUG(logger, "scaling(d)=" << convert(W.d.diagonal().adjoint()));
         
         ssqr(lmbdasq, lmbda, dims);
+        KQP_LOG_DEBUG(logger, "lmbdasq=" << convert(lmbdasq.adjoint()));
 
 
         // f3(x, y, z) solves
@@ -1509,7 +1539,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
                 r.dual_slack = -max_step(z, dims);
                 std::cerr << "Terminated (singular KKT matrix).";
                 status = "unknown";
-                return r;
+                return;
             }
         }
       
@@ -1585,7 +1615,12 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
             dy = -(1-eta) * ry;
             dz = -(1-eta) * rz;
             
-            try { f4(dx, dy, dz, ds); }
+            try {
+                KQP_LOG_DEBUG(logger, "[dx]=" << convert(dx.adjoint()));
+                KQP_LOG_DEBUG(logger, "[dz]=" << convert(dz.adjoint()));
+                KQP_LOG_DEBUG(logger, "[ds]=" << convert(ds.adjoint()));
+                f4(dx, dy, dz, ds); 
+            }
             catch(arithmetic_exception &) {
                 if (iters == 0)
                     BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
@@ -1601,7 +1636,7 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
                 r.dual_slack = -max_step(z, dims);
                 std::cerr << "Terminated (singular KKT matrix)." << std::endl;
                 status = "unknown";
-                return r;
+                return;
                 
             }
             
@@ -1646,7 +1681,11 @@ void coneqp(const Matrix &P, Eigen::VectorXd &q,
             }
         }
 
-            
+
+        KQP_LOG_DEBUG(logger, " STEP " << convert(step));
+        KQP_LOG_DEBUG(logger, "   dx=" << convert(dx.adjoint()));
+        KQP_LOG_DEBUG(logger, "   dy=" << convert(dx.adjoint()));
+        
         x += step * dx;
         y += step * dy;
 

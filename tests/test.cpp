@@ -6,8 +6,7 @@
 
 using namespace kqp;
 
-int main(int argc, const char **argv) {
-   
+int main(int argc, const char **argv) {  
     if (argc < 2) {
         std::cerr << "No test name given" << std::endl;
         return 1;   

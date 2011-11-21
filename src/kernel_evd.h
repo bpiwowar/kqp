@@ -276,8 +276,11 @@ namespace kqp {
     
     
     
+    
+    
     /**
      * The KKT pre-solver to solver the QP problem
+     * 
      */
     class KQP_KKTPreSolver : public cvxopt::KKTPreSolver {
         Eigen::LLT<Eigen::MatrixXd> lltOfK;
@@ -288,6 +291,7 @@ namespace kqp {
         
         cvxopt::KKTSolver *get(const cvxopt::ScalingMatrix &w);
     };
+    
 
     
 } // end namespace

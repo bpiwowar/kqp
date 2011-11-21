@@ -21,12 +21,15 @@ bool LoggerInit::check() {
 }
 
 LoggerInit::LoggerInit() {
-    log4cxx::BasicConfigurator::configure();
+//    log4cxx::BasicConfigurator::configure();
+    
+    log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
+    log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
+    appender->setName("kqp-appender");
+    log4cxx::BasicConfigurator::configure(appender);
+    appender->setThreshold(log4cxx::Level::getDebug());
     log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
-//    log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender();
-//    appender->setTarget("system.err");
-//    appender->setLayout(new log4cxx::PatternLayout());
-//    log4cxx::BasicConfigurator::configure(appender);
+    
     KQP_LOG_DEBUG(logger, "Initialised the logging system");
 }
 #endif
