@@ -203,11 +203,11 @@ namespace kqp {
     template <typename scalar, class F> class OperatorBuilder {
         
     public:
-        typedef FeatureMatrix<scalar, F> List;
-        typedef typename List::Matrix Matrix;
+        typedef FeatureMatrix<scalar, F> FMatrix;
+        typedef typename FMatrix::Matrix Matrix;
         
         /** Get the feature vector combination matrix */
-        Matrix getY();
+        Matrix &getY();
         
         /** Get the a diagonal matrix of eigenvalues (or a 0 x 0 matrix if it does not define one) */
         virtual Eigen::Diagonal<double, Eigen::Dynamic> getEigenvalues();
@@ -215,8 +215,8 @@ namespace kqp {
         /**
          * Get the list of feature vectors
          */
-        const List &getX() const { return list; }
-        List &getX() { return list; }
+        const FMatrix &FeatureMatrix() const { return featureMatrix; }
+        FMatrix &getX() { return featureMatrix; }
 
         
         /**
@@ -229,7 +229,7 @@ namespace kqp {
          * @param mX  The feature matrix X
          * @param mA  The 
          */
-        virtual void add(double alpha, const FeatureMatrix<scalar, F> &mX, const Matrix &mA) = 0;
+        virtual void add(double alpha, const FMatrix &mX, const Matrix &mA) = 0;
         
         /**
          * Copy the operator builder
@@ -238,7 +238,10 @@ namespace kqp {
         virtual void copy(bool fullCopy) = 0;       
         
     protected:
-        List list;
+        /**
+         * Our feature matrix
+         */
+        FMatrix featureMatrix;
     };
     
     
@@ -273,14 +276,72 @@ namespace kqp {
     public:
         virtual void add(double alpha, const F &v);
     };
+
     
+    /**
+     * @brief Removes pre-images with the null space method
+     */
+    template <typename scalar, class F> 
+    void removeUnusedPreImages(FeatureMatrix<scalar, F> &mF, Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> &mY) {
+        // Dimension of the problem
+        Index N = mY.rows();
+        assert(N == mF.size());
+        
+        // Removes unused pre-images
+        Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> mYYT(mY * mY.adjoint());       
+        for(Index i = 0; i < N; i++) 
+            while (N > 0 && mYYT.row(i).norm() < EPSILON) {
+                mF.remove(i, true);
+                if (i != N - 1) 
+                    mY.row(i) = mY.row(N-1);
+                N = N - 1;
+            }
+    }
     
+    /**
+     * @brief Removes pre-images with the null space method
+     */
+    template <typename scalar, class F, typename Derived>
+    void removeNullSpacePreImages(FeatureMatrix<scalar, F> &mF, const Eigen::MatrixBase<Derived> &mY) {
+        typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        
+        // Removes unused pre-images
+        removeUnusedPreImages(mF, mY);
+        
+        // Dimension of the problem
+        Index N = mY.rows();
+        assert(N == mF.size());
+
+        // LDL decomposition (stores the L^T matrix)
+        Eigen::LDLT<Eigen::MatrixBase<Derived>, Eigen::Upper> ldlt(mF.getGramMatrix());
+        Eigen::MatrixBase<Derived> &mLDLT = ldlt.matrixLDLT();
+        
+        // Get the rank
+        Index rank = 0;
+        for(Index i = 0; i < N; i++)
+            if (mLDLT.get(i,i) < EPSILON) rank++;
+        
+       
+        Eigen::Block<Matrix> mL1 = mLDLT.block(0,0,rank,rank);
+        Eigen::Block<Matrix> mL2 = mLDLT.block(0,rank+1,rank,N-rank);
+        
+        // Gets the null space vectors in mL2
+        mL1.template triangularView<Derived, Eigen::Upper>().solveInPlace(mL2);
+        mL2 *= ldlt.transpositionsP().adjoint();
+        
+        // TODO: Remove the vectors
+        
+        
+        // Removes unused pre-images
+        removeUnusedPreImages(mF, mY);
+        
+    }
     
     
     
     /**
      * The KKT pre-solver to solver the QP problem
-     * 
+     * @ingroup coneqp
      */
     class KQP_KKTPreSolver : public cvxopt::KKTPreSolver {
         Eigen::LLT<Eigen::MatrixXd> lltOfK;
