@@ -31,10 +31,8 @@ namespace kqp {
      * @date May 2011
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <typename scalar, class F> class KernelOperator {       
+    template <class FVector> class KernelOperator {       
     public:
-        typedef typename FeatureMatrix<scalar,F>::Matrix Matrix;
-        typedef typename FeatureMatrix<scalar,F>::Vector Vector;
 
         /**
          * Creates an object given a Kernel EVD
@@ -42,7 +40,11 @@ namespace kqp {
          * @param evd
          * @param copy If the object should be copied (safer, but slower)
          */
-         KernelOperator(const OperatorBuilder<scalar, F>& evd, bool copy);
+        KernelOperator(const OperatorBuilder<FVector>& evd, bool copy) {
+            mX = copy ? evd.getX() : evd.getX().copy();
+            mY.noalias() = (evd.getY() * evd.getZ()).eval();
+            mS = copy ? evd.getEigenValues() : evd.getEigenValues().copy();
+        }
         
         /**
          * Creates a one dimensional eigen-decomposition representation
@@ -51,7 +53,9 @@ namespace kqp {
          *           
          * @param copy If the object should be copied (safer, but slower)
          */
-        KernelOperator(const FeatureMatrix<scalar, F>& list, bool copy);
+        KernelOperator(const FMatrix& list, bool copy) {
+            
+        }
         
         /**
          * Trim the eigenvalue decomposition to a lower rank
@@ -70,7 +74,7 @@ namespace kqp {
         /**
          * The base vector list
          */
-        FeatureMatrix<scalar, F> mX;
+        FMatrix mX;
         
         /**
          * The combination matrix.
@@ -95,7 +99,7 @@ namespace kqp {
          
     };
     
-    template <typename scalar, class F> class Density;
+    template <class FMatrix> class Density;
     
     /**
      * A document subspace is defined by the basis vectors (matrix {@linkplain #mU}
@@ -105,15 +109,17 @@ namespace kqp {
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      * 
      */
-    template <typename scalar, class F> class Event : public KernelOperator<scalar, F>  {
+    template <class FMatrix> class Event : public KernelOperator<FMatrix>  {
     public:        
         /**
          * Construct a Event from a kernel EVD. See
          * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(OperatorBuilder, bool)}
          */
-        Event(const OperatorBuilder<scalar, F> &evd, bool deepCopy);  
+        Event(const OperatorBuilder<FMatrix> &evd, bool deepCopy) {
+            
+        }
         
-        friend class Density<scalar, F>;
+        friend class Density<FMatrix>;
     };
     
     /**
@@ -121,10 +127,13 @@ namespace kqp {
      * 
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <typename scalar, class F> class Density: public KernelOperator<scalar, F>  {
+    template <class FMatrix> class Density: public KernelOperator<FMatrix>  {
     public: 
-        typedef typename KernelOperator<scalar,F>::Matrix Matrix;
-        typedef typename KernelOperator<scalar,F>::Vector Vector;
+        typedef typename KernelOperator<FMatrix>::Matrix Matrix;
+        typedef typename KernelOperator<FMatrix>::Vector Vector;
+        typedef typename KernelOperator<FMatrix>::FVector FVector;
+        typedef typename KernelOperator<FMatrix>::scalar scalar;
+        typedef typename KernelOperator<FMatrix>::Real real;
         
         /**
          * Creates a new density
@@ -132,7 +141,7 @@ namespace kqp {
          * @param evd
          * @param deepCopy
          */
-        Density(const OperatorBuilder<scalar, F>& evd, bool deepCopy);
+        Density(const OperatorBuilder<FMatrix>& evd, bool deepCopy);
         
         /**
          * Compute the probability of an event
@@ -144,8 +153,14 @@ namespace kqp {
          *            dimension is weighted by the corresponding sigma
          * @return The probability
          */
-        double computeProbability(const Event<scalar, F>& subspace,
-                                  bool fuzzyEvent) const;
+        real computeProbability(const Event<FMatrix>& subspace,
+                                  bool fuzzyEvent) const {
+            Matrix result = getProbabilityMatrix(subspace, fuzzyEvent);
+            
+            if (result.rows() == 0) return 0;
+            
+            return result.squared_norm();
+        }
         
         /**
          * Pre-computation of a probability. This method is shared by others.
@@ -169,8 +184,17 @@ namespace kqp {
          * @return A matrix where each row correspond to one dimension of the density, 
          *         and each column to one dimension of the subspace
          */
-        Matrix getProbabilityMatrix(const Event<scalar, F>& subspace,
-                                                   bool fuzzyEvent) const;        
+        Matrix getProbabilityMatrix(const Event<FMatrix>& subspace,
+                                    bool fuzzyEvent) const {
+            // Compute Y_s^T (P) Y_d S_d
+            Matrix mP = subspace.mY.transpose() * subspace.mX.computeInnerProducts(this->mX) * this->mY * this->mS;
+            
+            // Pre-multiply the result by S_s if using fuzzy subspaces
+            if (fuzzyEvent)
+                mP = subspace.mS * mP;
+            
+            return mP;
+        }
         /**
          * Get the matrix v^T * (U x S) where U is the basis and S is the square
          * root of the eigenvalues. The Froebenius norm of the resulting matrix is
@@ -180,7 +204,7 @@ namespace kqp {
          *            The vector v
          * @return
          */
-        Vector getProbabilityMatrix(const F& vector) const {
+        Vector getProbabilityMatrix(const FVector& vector) const {
             return this->mX.computeInnerProducts(vector) * this->mY * this->mS;
         }
         
@@ -192,7 +216,9 @@ namespace kqp {
          * at page 69. The formula is:
          * \f[ J(\rho || \tau) = tr(\rho \log (\rho) - \rho \log(\tau))) \f]
          */
-        double computeDivergence(const Density<scalar, F> &tau);
+        double computeDivergence(const Density<FMatrix> &tau) {
+            BOOST_THROW_EXCEPTION(not_implemented_exception());
+        }
         
 
     };

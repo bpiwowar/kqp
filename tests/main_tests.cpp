@@ -18,9 +18,11 @@ int main(int argc, const char **argv) {
     try {
         if (name == "evd-update") 
             return evd_update_test(argc - 2, other_argv);
-        else if (name == "kqp-qp-solver") {
+        else if (name == "kqp-qp-solver") 
             return kqp_qp_solver_test(argc - 2, other_argv);            
-        }
+        else if (name == "kevd-tests") 
+            return kevd_tests(argc - 2, other_argv);            
+        
     } catch(const boost::exception &e) {
         std::cerr << boost::diagnostic_information(e) << std::endl;
         throw;

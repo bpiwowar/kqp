@@ -8,6 +8,9 @@ namespace kqp {
     
     //! The kqp QP solver
     int kqp_qp_solver_test(int argc, const char **argv);
+    
+    //! The kernel EVD tests
+    int kevd_tests(int argc, const char **argv);
 }
 
 #endif

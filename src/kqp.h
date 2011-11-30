@@ -5,6 +5,7 @@
 #include <boost/exception/errinfo_at_line.hpp>
 #include <boost/exception/info.hpp>
 #include <boost/exception/exception.hpp>
+#include <boost/format.hpp>
 #include <string>
 #include <complex>
 #include "cxxabi.h"
@@ -87,6 +88,9 @@ namespace kqp {
 
 // --- USEFUL MACROS ---
 
+//! Throw an exception with a message
+#define KQP_THROW_EXCEPTION_F(type, message, arguments) BOOST_THROW_EXCEPTION(type() << errinfo_message((boost::format(message) arguments).str()))
+    
 //! Demangle a pointer
 #define KQP_DEMANGLEP(x) (x ? demangle(typeid(x)) : demangle(typeid(*x)))
 //! Demangle a reference
