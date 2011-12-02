@@ -232,7 +232,7 @@ namespace kqp {
         typedef typename FVector::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
-        typedef typename Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> RealVector;
+        typedef typename Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
         typedef boost::shared_ptr<RealVector> RealVectorPtr;
         typedef boost::shared_ptr<const RealVector> RealVectorCPtr;
         

@@ -63,9 +63,17 @@ namespace kqp {
         
         void compute() const {
             if (!mX.get()) {
-                Eigen::SelfAdjointEigenSolver<typename Ancestor::Matrix> evd(*matrix);
-                mD = typename Ancestor::RealVectorPtr(new typename Ancestor::RealVector(evd.eigenvalues()));
-                mX = typename Ancestor::FMatrixPtr(new ScalarMatrix<Scalar>(evd.eigenvectors()));
+                typedef Eigen::SelfAdjointEigenSolver<typename Ancestor::Matrix> EigenSolver;
+                
+                // Swap vectors for efficiency
+                EigenSolver evd(*matrix);
+                mD = typename Ancestor::RealVectorPtr(new typename Ancestor::RealVector());
+                const_cast<typename Ancestor::RealVector&>(evd.eigenvalues()).swap(*mD);
+                
+                ScalarMatrix<Scalar> *_mX = new ScalarMatrix<Scalar>(matrix->rows());
+                mX = typename Ancestor::FMatrixPtr(_mX);
+                _mX->swap(const_cast<typename Ancestor::Matrix&>(evd.eigenvectors()));
+                
             }
         }
         

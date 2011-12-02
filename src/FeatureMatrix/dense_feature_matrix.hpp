@@ -83,8 +83,6 @@ namespace kqp {
         //! The type of the matrix
         typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Matrix;
 
-        ScalarMatrix(const Matrix &matrix) : matrix(new Matrix(matrix)) {
-        }
 
         ScalarMatrix(Index dimension) {
             matrix = boost::shared_ptr<Matrix>(new Matrix(dimension, 0));
@@ -131,6 +129,12 @@ namespace kqp {
             }
             matrix->resize(matrix->rows(), last);
             
+        }
+        
+        void swap(Matrix &m) {
+            if (m.rows() != matrix->rows())
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Dimension of matrices is different (%d vs %d)", % m.rows() % matrix->rows());
+            matrix->swap(m);
         }
         
         
