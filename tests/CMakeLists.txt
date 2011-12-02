@@ -1,7 +1,7 @@
 
 INCLUDE_DIRECTORIES(${kqp_SOURCE_DIR}/src)
 
-file(GLOB kqp_test_SRC   "*.h"   "*.cpp")
+file(GLOB kqp_test_SRC   "*.hpp"   "*.cpp")
 ADD_EXECUTABLE(kqp_test ${kqp_test_SRC})
 
 TARGET_LINK_LIBRARIES(kqp_test kqp)

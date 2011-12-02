@@ -4,10 +4,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 
-#include "kqp.h"
-#include "probabilities.h"
-#include "coneprog.h"
-#include "test.h"
+#include "kqp.hpp"
+#include "probabilities.hpp"
+#include "coneprog.hpp"
+#include "test.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 

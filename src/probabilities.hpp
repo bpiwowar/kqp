@@ -8,11 +8,11 @@
 #define __KQP_PROBABILITIES_H__
 
 #include "Eigen/Core"
-#include "kernel_evd.h"
+#include "kernel_evd.hpp"
 
 namespace kqp {
     /**
-     * Common class shared by (fuzzy) subspaces and densities
+     * Common class shared by (fuzzy) events and densities
      * 
      * <p>
      * The underlying density/subspace is represented by
@@ -33,6 +33,9 @@ namespace kqp {
      */
     template <class FVector> class KernelOperator {       
     public:
+        typedef typename FVector::Scalar Scalar;
+        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Matrix;
+        
 
         /**
          * Creates an object given a Kernel EVD
@@ -51,9 +54,9 @@ namespace kqp {
          * 
          * @param list The list of vectors
          *           
-         * @param copy If the object should be copied (safer, but slower)
+         * @param copy If the object should be copied
          */
-        KernelOperator(const FMatrix& list, bool copy) {
+        KernelOperator(const boost::shared_ptr<FeatureMatrix<FVector> > & list, bool copy) {
             
         }
         
@@ -74,14 +77,14 @@ namespace kqp {
         /**
          * The base vector list
          */
-        FMatrix mX;
+        boost::shared_ptr<FeatureMatrix<FVector> > mX;
         
         /**
          * The combination matrix.
          * 
          * In case of an EVD decomposition, mX mY is orthonormal
          */
-        Matrix mY;
+        boost::shared_ptr<Matrix> mY;
         
         /**
          * The singular values
@@ -89,7 +92,7 @@ namespace kqp {
          * This matrix is used only if the KernelOperator is in a 
          * EVD decomposed form
          */
-        Eigen::DiagonalMatrix<double, Eigen::Dynamic> mS;
+        boost::shared_ptr<Eigen::DiagonalMatrix<double, Eigen::Dynamic> > mS;
         
         //! Is the decomposition othonormal, i.e. is Y^T X^T X Y the identity?
         bool orthonormal;

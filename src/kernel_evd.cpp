@@ -1,8 +1,8 @@
 #include <Eigen/Cholesky> 
 
-#include "coneprog.h"
+#include "coneprog.hpp"
 
-#include "kernel_evd.h"
+#include "kernel_evd.hpp"
 
 DEFINE_LOGGER(logger, "kqp.kernel-evd");
 

@@ -12,14 +12,18 @@
 #define __KQP_KERNEL_EVD_H__
 
 #include <vector>
+
 #include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
-#include <Eigen/Eigenvalues> 
+#include "Eigen/Eigenvalues"
 
-#include "kqp.h"
-#include "coneprog.h"
+#include "intrusive_ptr_object.hpp"
+
+#include "kqp.hpp"
+#include "coneprog.hpp"
 
 namespace kqp {
     using Eigen::Dynamic;
@@ -61,11 +65,11 @@ namespace kqp {
      * since they might be kept as is.
      * 
      * @ingroup FeatureMatrix
-     * @param Scalar A valid Scalar (float, double, std::complex)
-     * @param F the type of the feature vectors
+     * @param _FVector the type of the feature vectors
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <class _FVector> class FeatureMatrix {
+    template <class _FVector> 
+    class FeatureMatrix : public boost::intrusive_ptr_base {
     public:
         
         //! Own type
@@ -96,23 +100,7 @@ namespace kqp {
         virtual Scalar inner(Index i, const FVector& vector) const {
             return kqp::inner<FVector>(get(i), vector);
         }
-        
-        /**
-         * @brief Computes the inner product between the i<sup>th</sup>
-         * vector of the list and the given vector.
-         *
-         * By default, uses the inner product between any two vectors of this type 
-         * 
-         * @param i
-         *            The index of the vector in the list
-         * @param vector
-         *            The vector provided
-         * @return The inner product between both vectors
-         */
-        virtual Scalar inner(Index i, const Self& other, Index j) const {
-            return inner(i, other.get(j));
-        }
-        
+                
         /**
          * Compute the inner products with each of the vectors. This method might be
          * re-implemented for efficiency reason, and by default calls iteratively
@@ -125,14 +113,14 @@ namespace kqp {
         virtual Vector inner(const FVector& vector) const {
             typename FeatureMatrix::Vector innerProducts(size());
             for (int i = size(); --i >= 0;)
-                innerProducts[i] = inner(i, vector);
+                innerProducts[i] = kqp::inner<FVector>(get(i), vector);
             return innerProducts;
         }
                 
         
         
         /**
-         * Compute the inner product with another kernel matrix.
+         * @brief Compute the inner product with another feature matrix.
          *
          * @warning m will be modified (Eigen const trick)
          */
@@ -152,18 +140,18 @@ namespace kqp {
         
 
         /**
-         * Computes the Gram matrix of the vectors contained in this list
+         * @brief Computes the Gram matrix of this feature matrix
          * 
          * @return A dense symmetric matrix (use only lower part)
          */
         virtual boost::shared_ptr<const InnerMatrix> inner() const {
             // We lose space here, could be used otherwise???
-            InnerMatrix m = Eigen::MatrixXd(size(), size()).selfadjointView<Eigen::Upper>();
+            boost::shared_ptr<InnerMatrix> m(new InnerMatrix(size(), size()));
             
-            for (int i = size(); --i >= 0;)
-                for (int j = i + 1; --j >= 0;) {
-                    double x = inner(i, *this, j);
-                    m(j,i) = x;
+            for (Index i = size(); --i >= 0;)
+                for (Index j = 0; j <= i; j++) {
+                    Scalar x = kqp::inner<FVector>(get(i), get(j));
+                    (*m)(i,j) = x;
                 }
             return m;
         }
@@ -218,150 +206,10 @@ namespace kqp {
     };
     
     
-    /**
-     * @brief A class that supposes that feature vectors know how to compute their inner product, i.e. inner(a,b)
-     *        is defined.
-     * @ingroup FeatureMatrix
-     */
-    template <class FVector> 
-    class FeatureList : public FeatureMatrix<FVector> {
-    public:
-  
-        Index size() const { return this->list.size(); }
-        
-        const FVector& get(Index i) const { return this->list[i]; }
-        
-        virtual void add(const FVector &f) {
-            this->list.push_back(f);
-        }
 
-    private:
-        std::vector<FVector> list;
-    };
     
-    //! A scalar sparse vector
-    template <typename _Scalar>
-    class SparseVector {
-    public:
-        typedef _Scalar Scalar;
-    };
-
-    /**
-     * @brief A class that supports sparse vectors in a (high) dimensional space.
-     * @ingroup FeatureMatrix
-     */
-    template <typename Scalar> 
-    class SparseScalarMatrix : public FeatureList<SparseVector<Scalar> > {
-        //! The dimension of vectors (0 if no limit)
-        Index dimension;
-    public:
-        SparseScalarMatrix(Index dimension) {
-        }
-    };
-    
-    
-    template <typename Scalar> class ScalarMatrix;
-    
-    //! A scalar vector
-    template <typename _Scalar>
-    class DenseVector {
-    public:
-        typedef _Scalar Scalar;
-        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Vector;
-        
-        DenseVector(const ScalarMatrix<Scalar> &m, Index i) : fMatrix(m), index(i) {
-        }
-        
-        template<typename Derived>
-        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector()) {
-            EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived);
-        }
-        
-    private:
-        Index index;
-        ScalarMatrix<Scalar> fMatrix;
-        
-        boost::shared_ptr<Vector> vector; 
-    };
-    
-    /**
-     * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
-     * @ingroup FeatureMatrix
-     */
-    template <typename Scalar> 
-    class ScalarMatrix : public FeatureMatrix<DenseVector<Scalar> > {
-    public:
-        //! Our parent
-        typedef FeatureMatrix<DenseVector<Scalar> > Parent;
-        //! Our feature vector
-        typedef DenseVector<Scalar> FVector;
-        //! The type of the matrix
-        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Matrix;
-        
-        ScalarMatrix(Index dimension) {
-            matrix = new Matrix(dimension, 0);
-        }
-        
-		virtual ~ScalarMatrix() {}
-        long size() const { return this->matrix->cols();  }
-        
-        FVector get(Index i) const { return FVector(this, i); }
-        
-        virtual void add(const FVector &f)  {
-            Index n = matrix->cols();
-            matrix->resize(matrix->rows(), n + 1);
-            matrix->col(n).set(f);
-        }
-        
-        /**
-         * Add a vector (from a template expression)
-         */
-        template<typename Derived>
-        void add(const Eigen::EigenBase<Derived> &vector) {
-            if (vector.rows() != matrix->rows())
-                KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Cannot add a vector of dimension %d (dimension is %d)", % vector.rows() % matrix->rows());
-            if (vector.cols() != 1)
-                KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Expected a vector got a matrix with %d columns", % vector.cols());
-            
-            Index n = matrix->cols();
-            matrix->resize(matrix->rows(), n + 1);
-            matrix->col(n) = vector;
-        }
-        
-        virtual void set(Index i, const FVector &f) {
-            matrix->col(i) = f;
-        }
-        
-        virtual void remove(Index i, bool swap = false) {
-            Index last = matrix->cols() - 1;
-            if (swap) {
-                if (i != last) 
-                    matrix->col(i) = matrix->col(last);
-            } else {
-                for(Index j = i + 1; j <= last; j++)
-                    matrix->col(i-1) = matrix->col(i);
-            }
-            matrix->resize(matrix->rows(), last);
-            
-        }
-        
-        Scalar inner(Index i, const FeatureMatrix<FVector> &mY, Index j) const {
-            if (const ScalarMatrix<Scalar> *p = dynamic_cast<const ScalarMatrix<Scalar> *>(&mY)) 
-                return matrix->col(i).dot(p->matrix->col(j));
-            
-            return Parent::inner(i, mY, j);
-        }
-
-        Scalar inner(Index i, const FVector &f) const {
-            return matrix->col(i).dot(f);
-        }
-        
-    private:
-        //! Our matrix
-        boost::shared_ptr<Matrix> matrix;
-    };
-    
-    
+     
+     
 
     
     
@@ -384,20 +232,37 @@ namespace kqp {
         typedef typename FVector::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
-        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Matrix;
-        typedef boost::shared_ptr<Matrix> MatrixPtr;
-        typedef boost::shared_ptr<const Matrix> CstMatrixPtr;
+        typedef typename Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic> RealVector;
+        typedef boost::shared_ptr<RealVector> RealVectorPtr;
+        typedef boost::shared_ptr<const RealVector> RealVectorCPtr;
         
+        typedef FeatureMatrix<FVector> FMatrix;
+        typedef boost::shared_ptr<FMatrix> FMatrixPtr;
+        typedef boost::shared_ptr<const FMatrix> FMatrixCPtr;
+        
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef boost::shared_ptr<Matrix> MatrixPtr;
+        typedef boost::shared_ptr<const Matrix> MatrixCPtr;
+
+        //! Virtual destructor to build the vtable
+        virtual ~OperatorBuilder() {}
+
         //! Returns the feature matrix
-        const FeatureMatrix<FVector> &getX() const;
+        virtual FMatrixCPtr getX() const = 0;
         
         /** @brief Get the feature pre-image combination matrix.
          * @return a reference to the matrix (a 0x0 matrix is returned instead of identity)
          */
-        virtual const Matrix &getY() const;
+        virtual MatrixCPtr getY() const = 0;
+        
+        //! Returns the diagonal matrix as a vector
+        virtual RealVectorPtr getD() const = 0;
+        
         
         /** Get the diagonal matrix of eigenvalues (or a 0 x 0 matrix if it does not define one) */
-        virtual Eigen::Diagonal<Real, Eigen::Dynamic> getEigenvalues();
+        virtual Eigen::Matrix<Real, Eigen::Dynamic, 1> getEigenvalues() {
+            return Eigen::Matrix<Real, Eigen::Dynamic, 1>();
+        }
        
         /**
          * Add a new vector to the density
@@ -407,15 +272,15 @@ namespace kqp {
          * @param alpha
          *            The coefficient for the update
          * @param mX  The feature matrix X with n feature vectors
-         * @param mA  The mixture coefficient (of dimensions n x k)
+         * @param mA  The mixture matrix (of dimensions n x k)
          */
-        virtual void add(const FeatureMatrix<FVector> &mX, const MatrixPtr &mA) = 0;
+        virtual void add(const FMatrix &mX, const Matrix &mA) = 0;
+
         
-        /**
-         * Copy the operator builder
-         * @param fullCopy is true if the current data should also be copied
-         */
-        virtual void copy(bool fullCopy) = 0;       
+        virtual void add(Real alpha, const FVector &mX) {
+            
+        }
+
     };
     
     
@@ -436,87 +301,41 @@ namespace kqp {
     /**
      * @brief Accumulation based computation of the density.
      *
-     * Stores the vectors and performs an EVD at the end.
+     * Supposes that we can compute a linear combination of the pre-images
      * 
      * @ingroup OperatorBuilder
      */
     template <class FMatrix>
     class AccumulatorBuilder : public OperatorBuilder<typename FMatrix::FVector> {   
     public:
+        typedef OperatorBuilder<typename FMatrix::FVector> Ancestor;
+
         typedef typename FMatrix::Vector FVector;
         typedef typename OperatorBuilder<FVector>::Matrix Matrix;
-        typedef typename OperatorBuilder<FVector>::CstMatrixPtr CstMatrixPtr;
-        typedef boost::shared_ptr<const FMatrix> CstFMatrixPtr;
+        typedef typename OperatorBuilder<FVector>::MatrixCPtr MatrixCPtr;
+        typedef boost::shared_ptr<const FMatrix> FMatrixCPtr;
         
         AccumulatorBuilder() {
         }
         
         
-        virtual void add(const FeatureMatrix<FVector> &mX, const CstMatrixPtr &mA) {
-            // Just add
-            this->coefficients.push_back(mA);
-            this->fMatrices.add(mX);
-            size += mA.cols();
+        virtual void add(const typename Ancestor::FMatrix &_fMatrix, const typename Ancestor::Matrix &coefficients) {
+            // Just add            
+            for(Index j = 0; j < coefficients.cols(); j++) 
+                fMatrix.add(_fMatrix.linearCombination(coefficients.col(j)));
         }
         
         //! Actually performs the computation
         void compute() {
-            // Explicitely computes A^T X^T X A 
-            Matrix m(size, size);
-            
-            Index n = fMatrices.size();
-            Index row = 0;
-            for(Index i = 0; i < n; i++) {
-                Index size_i = coefficients[i]->cols();
-                Index col = 0;
-                for(Index j = 0; j <= i; j++) {
-                    Index size_j = coefficients[j]->cols();
-                    if (i == j) {
-                        m.block(row,col,size_i,size_j).triangularView<Eigen::Lower>() = coefficients[i]->adjoint() * fMatrices[i]->inner() * (*coefficients[i]);
-                    } else {
-                        m.block(row,col,size_i,size_j) = coefficients[j]->adjoint() * fMatrices[j]->inner(fMatrices[i]) * (*coefficients[i]);
-                    }
-                    col += size_j;
-                } // end of a row
-                
-                row += size_i;
-            } // end of rows
-            
-            // --- Computes the EVD
-            Eigen::SelfAdjointEigenSolver<Matrix> eigensolver(m);
         }
         
     private:
-        //! Total number of feature vectors
-        Index size;
+        
         //! concatenation of pre-image matrices
-        std::vector<CstFMatrixPtr> fMatrices;
-        //! Represents a block diagonal matrix
-        std::vector<CstMatrixPtr> coefficients;
+        FMatrix fMatrix;
     };
     
     
-    /**
-     * Direct computation of the density (i.e. matrix representation).
-     *
-     * This supposes that the feature vectors can be linearly combined.
-     * 
-     * @ingroup OperatorBuilder
-     */
-    template <class FMatrix> class DirectBuilder : public OperatorBuilder<FMatrix> {
-    public:
-
-        typedef typename OperatorBuilder<FMatrix>::Scalar Scalar;
-        typedef typename OperatorBuilder<FMatrix>::FVector FVector;
-        typedef typename OperatorBuilder<FMatrix>::Matrix Matrix;
-
-        virtual void add(const boost::shared_ptr<FMatrix> &mX, const boost::shared_ptr<const Matrix> &mA) {
-            // Just add
-            this->coefficients.push_back(mA);
-            this->fMatrices.add(mX);
-        }
-    };
-
     
     /**
      * @brief Removes pre-images with the null space method

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <boost/exception/diagnostic_information.hpp> 
 
-#include "kqp.h"
-#include "test.h"
+#include "kqp.hpp"
+#include "test.hpp"
 
 using namespace kqp;
 

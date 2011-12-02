@@ -7,9 +7,9 @@
 #include <exception>
 #include <complex>
 
-#include "kqp.h"
-#include "kernel_evd.h"
-#include "evd_update.h"
+#include "kqp.hpp"
+#include "kernel_evd.hpp"
+#include "evd_update.hpp"
 
 DEFINE_LOGGER(logger, "kqp.evd-update");
 

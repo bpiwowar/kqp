@@ -6,7 +6,8 @@
 #include "log4cxx/propertyconfigurator.h"
 #include "log4cxx/helpers/exception.h"
 #endif
-#include "kqp.h"
+
+#include "kqp.hpp"
 
 namespace kqp {
 

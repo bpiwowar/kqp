@@ -23,7 +23,7 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Build kqp
 
-file(GLOB kqp_SRC   "src/*.h"  "src/*.cpp")
+file(GLOB kqp_SRC   "src/*.hpp"  "src/*.cpp" "src/FeatureMatrix/*.hpp" "src/OperatorBuilder/*.hpp")
 
 set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
 add_library (kqp ${kqp_SRC})
