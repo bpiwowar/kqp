@@ -33,19 +33,16 @@ namespace kqp {
         }
         
         virtual void add(typename Ancestor::Real alpha, const typename Ancestor::FVector &v) {
-            Matrix &op = *this->matrix;
-            v.rankUpdateOf(op.selfadjointView<Eigen::Lower>(), alpha);
+            v.rankUpdateOf(this->matrix->template selfadjointView<Eigen::Lower>(), alpha);
         }
         
         virtual void add(const typename Ancestor::FMatrix &fMatrix, const typename Ancestor::Matrix &coefficients) {
             // Invalidate the cache
             mX = typename Ancestor::FMatrixPtr();
             mD = typename Ancestor::RealVectorPtr();
-            Matrix &op = *this->matrix;
 
             if (const ScalarMatrix<Scalar> *mf = dynamic_cast<const ScalarMatrix<Scalar> *> (&fMatrix)) {
-                const typename ScalarMatrix<Scalar>::Matrix & m = mf->getMatrix();
-                op.selfadjointView<Eigen::Lower>().rankUpdate(m * coefficients);
+                matrix->template selfadjointView<Eigen::Lower>().rankUpdate(mf->getMatrix() * coefficients);
             } else 
                 BOOST_THROW_EXCEPTION(not_implemented_exception());
         }
