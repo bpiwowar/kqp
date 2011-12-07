@@ -119,7 +119,7 @@ namespace kqp {
         }
         
 		virtual ~ScalarMatrix() {}
-        long size() const { return this->matrix->cols();  }
+        Index size() const { return this->matrix->cols();  }
         
         FVector get(Index i) const { return FVector(*this, i); }
         

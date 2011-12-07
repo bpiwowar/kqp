@@ -17,17 +17,22 @@
 
 %module kqp
 %{
-  #include "kernel_evd.h"
+  #include "feature_matrix/dense.hpp"
 %}
 
 namespace kqp {
+
    template <typename scalar> class ScalarMatrix {
 	public:
-		/** Set the variable i */
-		void set(int i);
+       /** Constructor */
+       ScalarMatrix(unsigned long dimension);
+       
+		/** Get the dimensional of the feature vectors */
+       unsigned long size();
    };
 
 }
 
 %template(DenseDoubleFeatureMatrix) kqp::ScalarMatrix<double>;
+%template(FloatDoubleFeatureMatrix) kqp::ScalarMatrix<float>;
 
