@@ -15,19 +15,25 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-%module kqp
-%{
-  #include "kernel_evd.h"
-%}
+#ifndef __KQP_INCREMENTAL_BUILDER_H__
+#define __KQP_INCREMENTAL_BUILDER_H__
+
+#include "kernel_evd.hpp"
 
 namespace kqp {
-   template <typename scalar> class ScalarMatrix {
-	public:
-		/** Set the variable i */
-		void set(int i);
-   };
-
+    /**
+     * @brief Uses other operator builders and combine them.
+     * @ingroup OperatorBuilder
+     */
+    template <class FMatrix> class IncrementalBuilder : public OperatorBuilder<FMatrix> {
+    public:
+        typedef typename OperatorBuilder<FMatrix>::Scalar Scalar;
+        typedef typename OperatorBuilder<FMatrix>::FVector FVector;
+        
+        virtual void add(double alpha, const FVector &v) {
+            
+        }
+    };
 }
 
-%template(DenseDoubleFeatureMatrix) kqp::ScalarMatrix<double>;
-
+#endif

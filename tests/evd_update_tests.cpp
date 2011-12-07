@@ -16,7 +16,7 @@ namespace kqp {
     using std::cerr;
     using std::endl;
     
-    double tolerance = 1e-10;
+    namespace { double tolerance = 1e-10; }
     
     /**
      * Performs an EVD rank one update and compares to the direct computation of the rank one update

@@ -15,19 +15,33 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-%module kqp
-%{
-  #include "kernel_evd.h"
-%}
+#ifndef __KQP__H__
+#define __KQP__H__
+
+#include "feature_matrix.hpp"
 
 namespace kqp {
-   template <typename scalar> class ScalarMatrix {
-	public:
-		/** Set the variable i */
-		void set(int i);
-   };
+    //! A scalar sparse vector
+    template <typename _Scalar>
+    class SparseVector {
+    public:
+        typedef _Scalar Scalar;
+    };
+    
+    /**
+     * @brief A class that supports sparse vectors in a (high) dimensional space.
+     * @ingroup FeatureMatrix
+     */
+    template <typename Scalar> 
+    class SparseScalarMatrix : public FeatureList<SparseVector<Scalar> > {
+        //! The dimension of vectors (0 if no limit)
+        Index dimension;
+    public:
+        SparseScalarMatrix(Index dimension) {
+        }
+    };
+    
+    
+} // end namespace kqp
 
-}
-
-%template(DenseDoubleFeatureMatrix) kqp::ScalarMatrix<double>;
-
+#endif

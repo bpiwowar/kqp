@@ -1,3 +1,19 @@
+# This file is part of the Kernel Quantum Probability library (KQP).
+# 
+# KQP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+ 
+# KQP is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+ 
+# You should have received a copy of the GNU General Public License
+# along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ 
 cmake_minimum_required (VERSION 2.6)
 project (kqp) 
 
@@ -23,10 +39,17 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Build kqp
 
-file(GLOB kqp_SRC   "src/*.hpp"  "src/*.cpp" "src/FeatureMatrix/*.hpp" "src/OperatorBuilder/*.hpp")
+file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.hpp" "src/feature_matrix.hpp")
+file(GLOB kqp_SRC "src/*.hpp"  "src/*.cpp")
+file(GLOB kqp_operator_builder_SRC "src/kernel_evd/*.hpp" "src/kernel_evd.hpp")
+
+SOURCE_GROUP(FeatureMatrix FILES ${kqp_fmatrix_SRC})
+SOURCE_GROUP(OperatorBuilder FILES ${kqp_operator_builder_SRC})
 
 set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
-add_library (kqp ${kqp_SRC})
+
+add_library (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_SRC})
+
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 
 # --- Tests

@@ -35,12 +35,17 @@
 #ifndef BOOST_INTRUSIVE_PTR_OBJECT
 #define	BOOST_INTRUSIVE_PTR_OBJECT 1
 
+
+
 #include	<boost/assert.hpp>
 #include	<boost/intrusive_ptr.hpp>
 // avoid thread overhead if not required/available
 #if defined(BOOST_HAS_THREADS)
 #include	<boost/thread/mutex.hpp>
 #endif
+
+#undef BOOST_HAS_THREADS
+
 
 // place these in the boost namespace so the intrusive_ptr<> template
 // finds the intrusive_ptr_add_ref() and intrusive_ptr_release() functions

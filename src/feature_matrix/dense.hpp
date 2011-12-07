@@ -1,16 +1,23 @@
-//
-//  generic_feature_matrix.h
-//  kqp
-// 
-//  This file contains all the virtual definitions for the classes needed
-//
-//  Copyright 2011 Benjamin Piwowarski. All rights reserved.
-//
-
+/*
+ This file is part of the Kernel Quantum Probability library (KQP).
+ 
+ KQP is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ KQP is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifndef __KQP__H__
 #define __KQP__H__
 
-#include "kernel_evd.hpp"
+#include "feature_matrix.hpp"
 
 namespace kqp {
     template <typename Scalar> class ScalarMatrix;
@@ -22,7 +29,7 @@ namespace kqp {
     class DenseVector {
     public:       
         typedef _Scalar Scalar;
-        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Vector;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
         
         DenseVector() {
         }
@@ -31,7 +38,7 @@ namespace kqp {
         }
         
         template<typename Derived>
-        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector()) {
+        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector(v)) {
             EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived);
         }
         
@@ -56,7 +63,15 @@ namespace kqp {
             else
                 m.rankUpdate(*vector, alpha);
         }
-
+        
+        friend struct Inner<DenseVector<Scalar> >;
+        
+        void print(std::ostream &os) {
+            if (this->fMatrix.get())
+                 os << this->fMatrix->getMatrix().col(index);
+            else
+                os << (*(this->vector));
+        }
     private:
         boost::intrusive_ptr<const ScalarMatrix<Scalar> > fMatrix;
         Index index;
@@ -64,10 +79,21 @@ namespace kqp {
         boost::shared_ptr<Vector> vector; 
     };
     
+    
+        
+    // Defines a scalar product between two dense vectors
     template <typename Scalar>
-    Scalar inner(const DenseVector<Scalar> &a, const DenseVector<Scalar> &b) {
-        BOOST_THROW_EXCEPTION(not_implemented_exception());
-    }
+    struct Inner<DenseVector<Scalar> > {
+        static Scalar compute(const DenseVector<Scalar> &a, const DenseVector<Scalar> &b) {
+            switch((a.fMatrix.get() ? 2 : 0) + (b.fMatrix.get() ? 1 : 0)) {
+                case 0: return a.vector->dot(*b.vector);
+                case 1: return a.vector->dot(b.fMatrix->getMatrix().col(b.index));
+                case 2: return a.fMatrix->getMatrix().col(a.index).dot(*b.vector);
+                case 3: return a.fMatrix->getMatrix().col(a.index).dot(b.fMatrix->getMatrix().col(b.index));
+            }
+            KQP_THROW_EXCEPTION(assertion_exception, "Unknown vector types");  
+        }
+    };
     
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
@@ -81,11 +107,15 @@ namespace kqp {
         //! Our feature vector
         typedef DenseVector<Scalar> FVector;
         //! The type of the matrix
-        typedef Eigen::Matrix<Scalar, Dynamic, Dynamic> Matrix;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 
 
         ScalarMatrix(Index dimension) {
             matrix = boost::shared_ptr<Matrix>(new Matrix(dimension, 0));
+        }
+        
+        template<class Derived>
+        ScalarMatrix(const Eigen::EigenBase<Derived> &m) : matrix(new Matrix(m)) {
         }
         
 		virtual ~ScalarMatrix() {}

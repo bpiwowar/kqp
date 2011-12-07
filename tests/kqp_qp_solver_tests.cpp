@@ -5,7 +5,7 @@
 #include <boost/format.hpp>
 
 #include "kqp.hpp"
-#include "probabilities.hpp"
+#include "null_space.hpp"
 #include "coneprog.hpp"
 #include "test.hpp"
 

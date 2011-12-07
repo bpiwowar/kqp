@@ -8,7 +8,6 @@
 #include <complex>
 
 #include "kqp.hpp"
-#include "kernel_evd.hpp"
 #include "evd_update.hpp"
 
 DEFINE_LOGGER(logger, "kqp.evd-update");
