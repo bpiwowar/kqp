@@ -38,12 +38,12 @@ namespace kqp {
         typedef typename FVector::Scalar Scalar;
         
         //! Cannot combine by default
-        static const bool canCombine = false; 
+        static const bool can_combine = false; 
         
         /**
          * Computes x <- x + b * y
          */
-        static void axpy(const FVector& x, const Scalar &b, const FVector &y) {
+        static void axpy(FVector& x, const Scalar &b, const FVector &y) {
             BOOST_THROW_EXCEPTION(illegal_operation_exception());
         };
     };
@@ -150,20 +150,23 @@ namespace kqp {
         /**
          * @brief Computes the Gram matrix of this feature matrix
          * @param full if the matrix has to be entirely computed
-         * @return A dense symmetric matrix (use only lower part)
+         * @return A dense self-adjoint matrix
          */
-        virtual boost::shared_ptr<const InnerMatrix> inner(bool full) const {
+        virtual const InnerMatrix& inner() const {
             // We lose space here, could be used otherwise???
-            boost::shared_ptr<InnerMatrix> m(new InnerMatrix(size(), size()));
-            
-            for (Index i = size(); --i >= 0;)
+            Index current = gramMatrix.rows();
+            if (current < size()) 
+                gramMatrix.resize(size(), size());
+            for (Index i = current + 1; i < size(); i++)
                 for (Index j = 0; j <= i; j++) {
                     Scalar x = Inner<FVector>::compute(get(i), get(j));
-                    (*m)(i,j) = x;
-                    if (full && i != j) (*m)(j,i) = Eigen::internal::conj(x);
+                    gramMatrix(i,j) = x;
+                    gramMatrix(j,i) = Eigen::internal::conj(x);
                 }
-            return m;
+            
+            return gramMatrix;
         }
+        
         
         /**
          * Our combiner
@@ -174,7 +177,7 @@ namespace kqp {
          * Returns true if the vectors can be linearly combined
          */
         virtual bool canLinearlyCombine() {
-            return Combiner::canCombine;
+            return Combiner::can_combine;
         }
         
         /** 
@@ -182,7 +185,7 @@ namespace kqp {
          *
          * In this implementation, we just use the pairwise combiner if it exists
          */
-        virtual FVector linearCombination(const Vector & lambdas) {
+        virtual FVector linearCombination(Scalar alpha, const Vector & lambdas) const {
             if (lambdas.size() != this->size()) 
                 BOOST_THROW_EXCEPTION(illegal_argument_exception());
             
@@ -190,7 +193,7 @@ namespace kqp {
             FVector result;
             
             for(Index i = 0; i < lambdas.rows(); i++) 
-                Combiner::axpy(result, lambdas[i], this->get(i));
+                Combiner::axpy(result, alpha * lambdas[i], this->get(i));
             
             return result;
         }
@@ -212,6 +215,14 @@ namespace kqp {
          * @param if swap is true, then the last vector will be swapped with one to remove (faster)
          */
         virtual void remove(Index i, bool swap = false) = 0;
+        
+        
+        template<class T> boost::intrusive_ptr<T> ptr() {
+            return boost::intrusive_ptr<T>(dynamic_cast<T*>(this));
+        }
+        
+    private:        
+        mutable InnerMatrix gramMatrix;
     };
     
     

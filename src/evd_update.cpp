@@ -23,7 +23,7 @@ namespace kqp {
     double real(double f) { return f; } 
     float real(float f) { return f; } 
     template <typename scalar> inline scalar real(const std::complex<scalar>& f) { return std::real(f); }
-
+    
     
     
     EigenList::~EigenList() {}
@@ -238,7 +238,7 @@ namespace kqp {
         // ensures the norm of zi is the same as newz
         scalar new_z = vi.z * (scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
         KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(vi.z));
-//        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
+        //        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
         
         return new_z;
     }
@@ -260,14 +260,13 @@ namespace kqp {
     };
     
     
-    FastRankOneUpdate::FastRankOneUpdate() : gamma(10.) {}
-    
-    
-   
+    template<typename scalar>
+    FastRankOneUpdate<scalar>::FastRankOneUpdate() : gamma(10.) {}
+
     
     
     template <typename scalar>
-    void FastRankOneUpdate::update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
+    void FastRankOneUpdate<scalar>::update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
                                    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
                                    bool computeEigenvectors, const Selector *selector, bool keep,
                                    EvdUpdateResult<scalar> &result,
@@ -623,13 +622,8 @@ namespace kqp {
         
     }
     
-//explicit instantiation of 
-#define RANK_ONE_UPDATE(scalar) \
-template void FastRankOneUpdate::update<scalar>(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D,  \
-    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z, \
-    bool computeEigenvectors, const Selector *selector, bool keep, \
-    EvdUpdateResult<scalar> &result, \
-    Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z = 0);
+    //explicit instantiation of 
+#define RANK_ONE_UPDATE(scalar) template class FastRankOneUpdate<scalar>;
     
     RANK_ONE_UPDATE(double);
     RANK_ONE_UPDATE(float);

@@ -101,7 +101,45 @@ namespace kqp {
         }
     }
     
+
     
+    namespace internal {
+        /**
+         * Reduces the set of images using the quadratic optimisation approach.
+         * 
+         * It is advisable to use the removeUnusefulPreImages technique first.
+         *
+         * @param target The number of pre-images that we should get at the end
+         * @param F
+         */
+        template <class FVector, typename Derived, bool isComplex>
+        struct QPPreImageRemover {};
+
+        template <class FVector, typename Derived>
+        struct QPPreImageRemover<FVector, Derived, true> {
+            void remove(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
+                
+            }        
+        };
+
+        
+        template <class FVector, typename Derived>
+        struct QPPreImageRemover<FVector, Derived, false> {
+            void remove(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
+                
+            }
+        };
+
+    }
+    
+    template <class FVector, typename Derived>
+    void removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
+        internal::QPPreImageRemover<FVector, Derived, Eigen::NumTraits<typename FVector::Scalar>::IsComplex>::remove(target, mF, mY);
+    }
+
+
+    /// Solve a QP system
+    void solve_qp(int r, double lambda, const Eigen::MatrixXd &gramMatrix, const Eigen::MatrixXd &alpha, kqp::cvxopt::ConeQPReturn &result);
     
     /**
      * The KKT pre-solver to solver the QP problem

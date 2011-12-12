@@ -23,7 +23,7 @@ OPTION(JAVA_KQP "Build kqp JNI library" ON)
 
 # --- Add our own modules
 
-set(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Find Boost
@@ -39,14 +39,12 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Build kqp
 
-file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.hpp" "src/feature_matrix.hpp")
+file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")
 file(GLOB kqp_SRC "src/*.hpp"  "src/*.cpp")
-file(GLOB kqp_operator_builder_SRC "src/kernel_evd/*.hpp" "src/kernel_evd.hpp")
+file(GLOB kqp_operator_builder_SRC "src/kernel_evd/*.?pp" "src/kernel_evd.*")
 
-SOURCE_GROUP(FeatureMatrix FILES ${kqp_fmatrix_SRC})
-SOURCE_GROUP(OperatorBuilder FILES ${kqp_operator_builder_SRC})
-
-set(PUBLIC_HEADER src/kernel_evd.h src/probabilities.h)
+SOURCE_GROUP("Feature matrix" FILES ${kqp_fmatrix_SRC})
+SOURCE_GROUP("Kernel EVD" FILES ${kqp_operator_builder_SRC})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
 

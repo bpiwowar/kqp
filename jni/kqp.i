@@ -22,10 +22,10 @@
 
 namespace kqp {
 
-   template <typename scalar> class ScalarMatrix {
+   template <typename scalar> class DenseMatrix {
 	public:
        /** Constructor */
-       ScalarMatrix(unsigned long dimension);
+       DenseMatrix(unsigned long dimension);
        
 		/** Get the dimensional of the feature vectors */
        unsigned long size();
@@ -33,6 +33,6 @@ namespace kqp {
 
 }
 
-%template(DenseDoubleFeatureMatrix) kqp::ScalarMatrix<double>;
-%template(FloatDoubleFeatureMatrix) kqp::ScalarMatrix<float>;
+%template(DenseDoubleFeatureMatrix) kqp::DenseMatrix<double>;
+%template(FloatDoubleFeatureMatrix) kqp::DenseMatrix<float>;
 

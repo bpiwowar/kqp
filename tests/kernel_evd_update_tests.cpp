@@ -4,6 +4,8 @@
 
 #include "kernel_evd.hpp"
 #include "kernel_evd/dense_direct.hpp"
+#include "kernel_evd/accumulator.hpp"
+#include "kernel_evd/incremental.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd")
 
@@ -64,13 +66,13 @@ namespace kqp {
                      const Eigen::Matrix<typename Eigen::NumTraits<typename FVector::Scalar>::Real, Eigen::Dynamic, 1> *mD) {
             
             typedef typename FeatureMatrix<FVector>::InnerMatrix InnerMatrix;
-            boost::shared_ptr<const InnerMatrix> k = mX.inner(true);
+            const InnerMatrix& k = mX.inner();
             
             switch ((mY ? 2 : 0) + (mD ? 1 : 0)) {
-                case 0: return k->squaredNorm();
-                case 1: return (mD->asDiagonal() * *k * mD->asDiagonal()).squaredNorm();
-                case 2: return (mY->adjoint() * *k * *mY).squaredNorm();
-                case 3: return (mD->asDiagonal() * mY->adjoint() * *k * *mY * mD->asDiagonal()).squaredNorm();
+                case 0: return k.squaredNorm();
+                case 1: return (mD->asDiagonal() * k * mD->asDiagonal()).squaredNorm();
+                case 2: return (mY->adjoint() * k * *mY).squaredNorm();
+                case 3: return (mD->asDiagonal() * mY->adjoint() * k * *mY * mD->asDiagonal()).squaredNorm();
             }
             
             KQP_THROW_EXCEPTION(assertion_exception, "Unknown case for inner product computation");
@@ -103,7 +105,7 @@ namespace kqp {
         LDLT ldlt = matrix.template selfadjointView<Eigen::Lower>().ldlt();
         Matrix mL = ldlt.matrixL();
         mL = ldlt.transpositionsP().transpose() * mL;
-        boost::intrusive_ptr<ScalarMatrix<Scalar> > mU(new ScalarMatrix<Scalar>(mL));
+        boost::intrusive_ptr<DenseMatrix<Scalar> > mU(new DenseMatrix<Scalar>(mL));
         Eigen::Matrix<Scalar, Eigen::Dynamic, 1> mU_d = ldlt.vectorD();
                 
         for(Index i = 0; i < mU_d.size(); i++)
@@ -132,12 +134,26 @@ namespace kqp {
         return error < tolerance ? 0 : 1;
     }
     
-    int kevd_tests(int argc, const char **argv) {
-        
+    int kevd_tests(std::vector<std::string> &args) {
+        std::string name = args[0];
         Index n = 10;
-        DenseDirectBuilder<double> builder(n);
-        return direct_evd(n, 5, builder);
         
+        // Constant random seed
+
+        
+        if (name == "direct-builder") {
+            DenseDirectBuilder<double> builder(n);
+            return direct_evd(n, 5, builder);
+        } else if (name == "accumulator") {
+            AccumulatorKernelEVD<DenseMatrix<double> > builder;
+            return direct_evd(n, 5, builder);            
+        } else if (name == "incremental") {
+            IncrementalKernelEVD<DenseMatrix<double> > builder;
+            return direct_evd(n, 5, builder);            
+        }
+        
+        KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown evd_update_test [%s]", %name);
+ 
     }
     
     

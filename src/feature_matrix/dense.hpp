@@ -20,9 +20,7 @@
 #include "feature_matrix.hpp"
 
 namespace kqp {
-    template <typename Scalar> class ScalarMatrix;
-    
-    
+    template <typename Scalar> class DenseMatrix;
     
     //! A scalar vector
     template <typename _Scalar>
@@ -31,14 +29,20 @@ namespace kqp {
         typedef _Scalar Scalar;
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
         
-        DenseVector() {
+        enum Type {
+            UNKNOWN,
+            MATRIX_COL,
+            VECTOR
+        };
+        
+        DenseVector() : type(UNKNOWN) {
         }
         
-        DenseVector(const ScalarMatrix<Scalar> &m, Index i) : fMatrix(&m), index(i) {
+        DenseVector(const DenseMatrix<Scalar> &m, Index i) : fMatrix(&m), index(i), type(MATRIX_COL) {
         }
         
         template<typename Derived>
-        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector(v)) {
+        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector(v)), type(VECTOR) {
             EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived);
         }
         
@@ -46,41 +50,84 @@ namespace kqp {
         template<class Derived>
         void assignTo(const Eigen::DenseBase<Derived> &_v) const {
             Eigen::DenseBase<Derived> &v = const_cast<Eigen::DenseBase<Derived>&>(_v);
-            if (fMatrix.get()) {
-                v = fMatrix->getMatrix().col(index);
-            } else {
-                v = *vector;
+            switch(type) {
+                case MATRIX_COL: v = fMatrix->getMatrix().col(index); break;
+                case VECTOR: v = *vector; break;
+                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);
             }
         }
         
+
         // Update the matrix with a rank-one update based on ourselves
         template<class Derived, unsigned int UpLo>
         void rankUpdateOf(const Eigen::SelfAdjointView<Derived, UpLo> &_m, Scalar alpha) const {
             Eigen::SelfAdjointView<Derived, UpLo> &m = const_cast<Eigen::SelfAdjointView<Derived, UpLo> &>(_m);
-            
-            if (fMatrix.get())
-                m.rankUpdate(fMatrix->getMatrix().col(index), alpha);
-            else
-                m.rankUpdate(*vector, alpha);
+            switch(type) {
+                case MATRIX_COL:  m.rankUpdate(fMatrix->getMatrix().col(index), alpha); break;
+                case VECTOR: m.rankUpdate(*vector, alpha); break;
+                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                
+            }
         }
         
         friend struct Inner<DenseVector<Scalar> >;
         
         void print(std::ostream &os) {
-            if (this->fMatrix.get())
-                 os << this->fMatrix->getMatrix().col(index);
-            else
-                os << (*(this->vector));
+            switch(type) {
+                case MATRIX_COL:  os << this->fMatrix->getMatrix().col(index); break;
+                case VECTOR: os << (*(this->vector)); break;
+                default: os << "Unknown dense vector of type " << type;                
+            }
         }
-    private:
-        boost::intrusive_ptr<const ScalarMatrix<Scalar> > fMatrix;
+        
+        Index rows() const {
+            switch(type) {
+                case MATRIX_COL: return this->fMatrix->getMatrix().rows();
+                case VECTOR: return this->vector->rows();
+                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                
+            }   
+        }
+        
+        void axpy(const Scalar &b, const DenseVector<Scalar> &y) {
+            switch(type) {
+                case MATRIX_COL:
+                    KQP_THROW_EXCEPTION(illegal_operation_exception, "Unknown dense vector type ");
+
+                case VECTOR: 
+                    switch(y.type) {
+                        case MATRIX_COL:  *vector += b * y.fMatrix->getMatrix().col(index); break;
+                        case VECTOR: *vector += b * *y.vector; break;
+                        default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
+                    }
+                    break;
+                    
+                case UNKNOWN:
+                    type = VECTOR;
+                    vector.reset(new Vector(y.rows()));
+                    switch(y.type) {
+                        case MATRIX_COL:  *vector = b * y.fMatrix->getMatrix().col(index); break;
+                        case VECTOR: *vector = b * *y.vector; break;
+                        default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
+                    }
+                    break;
+                    
+                default: 
+                    KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
+            }
+            
+        }
+        
+
+        
+        boost::intrusive_ptr<const DenseMatrix<Scalar> > fMatrix;
         Index index;
         
         boost::shared_ptr<Vector> vector; 
+        
+        Type type;
     };
     
     
-        
+    
     // Defines a scalar product between two dense vectors
     template <typename Scalar>
     struct Inner<DenseVector<Scalar> > {
@@ -95,12 +142,27 @@ namespace kqp {
         }
     };
     
+    /** By default, vectors cannot be combined */
+    template<typename Scalar> 
+    struct linear_combination<DenseVector<Scalar> > {         
+        //! Cannot combine by default
+        static const bool can_combine = true; 
+        
+        /**
+         * Computes x <- x + b * y
+         */
+        static void axpy(DenseVector<Scalar> & x, const Scalar &b, const DenseVector<Scalar>  &y) {
+            x.axpy(b, y);
+        };
+    };
+    
+    
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
      * @ingroup FeatureMatrix
      */
     template <typename Scalar> 
-    class ScalarMatrix : public FeatureMatrix<DenseVector<Scalar> > {
+    class DenseMatrix : public FeatureMatrix<DenseVector<Scalar> > {
     public:
         //! Our parent
         typedef FeatureMatrix<DenseVector<Scalar> > Parent;
@@ -108,25 +170,36 @@ namespace kqp {
         typedef DenseVector<Scalar> FVector;
         //! The type of the matrix
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-
-
-        ScalarMatrix(Index dimension) {
+        //! The type of inner product matrices
+        typedef typename Parent::InnerMatrix InnerMatrix;
+        
+        //! Null constructor: will set the dimension with the first feature vector
+        DenseMatrix() {}
+        
+        DenseMatrix(Index dimension) {
             matrix = boost::shared_ptr<Matrix>(new Matrix(dimension, 0));
         }
         
         template<class Derived>
-        ScalarMatrix(const Eigen::EigenBase<Derived> &m) : matrix(new Matrix(m)) {
+        DenseMatrix(const Eigen::EigenBase<Derived> &m) : matrix(new Matrix(m)) {
         }
         
-		virtual ~ScalarMatrix() {}
-        Index size() const { return this->matrix->cols();  }
+		virtual ~DenseMatrix() {}
         
-        FVector get(Index i) const { return FVector(*this, i); }
+        Index size() const { 
+            return this->matrix->cols();  
+        }
+        
+        FVector get(Index i) const { 
+            return FVector(*this, i); 
+        }
         
         virtual void add(const FVector &f)  {
+            if (!matrix.get()) 
+                matrix.reset(new Matrix(f.rows(), 0));
             Index n = matrix->cols();
             matrix->resize(matrix->rows(), n + 1);
-           f.assignTo(matrix->col(n));
+            f.assignTo(matrix->col(n));
         }
         
         /**
@@ -178,7 +251,17 @@ namespace kqp {
     };
     
     
-    
+    // Extern templates
+    extern template class DenseVector<double>;
+    extern template class DenseVector<float>;
+    extern template class DenseVector<std::complex<double> >;
+    extern template class DenseVector<std::complex<float> >;
+
+    extern template class DenseMatrix<double>;
+    extern template class DenseMatrix<float>;
+    extern template class DenseMatrix<std::complex<double> >;
+    extern template class DenseMatrix<std::complex<float> >;
+
 } // end namespace kqp
 
 #endif

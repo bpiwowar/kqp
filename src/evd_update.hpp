@@ -88,8 +88,34 @@ namespace kqp {
     };
     
     /**
+     * Chain selection
+     */
+    class ChainSelector : public Selector {
+    public:
+        ChainSelector();
+        void add(const ChainSelector &);
+        virtual void selection(EigenList& eigenValues) const;
+    };
+
+    /**
+     * Minimum relative eigenvalue
+     */
+    template<typename Scalar>
+    class MinimumSelector {
+    public:
+        MinimumSelector();
+        virtual void selection(EigenList& eigenValues) const;
+    };
+    
+    /**
+     * Maximum rank
+     */
+    
+    
+    /**
      * Fast rank one update of an EVD
      */
+    template <typename scalar>
     class FastRankOneUpdate {
         /**
          * Used for deflation
@@ -109,14 +135,13 @@ namespace kqp {
          * \f$ Z(D + \rho z z^\dagger) \f$ where 
          * \f$D\f$ is a diagonal matrix with real values and \f$z\f$ is a vector (complex or real field).
          *
-         * @param Z If given, instead of returning the eigenvectors matrix Q, returns \f$ Z Q \f$
-         *        This allows to compute the eigenvalue decomposition of \f$ Z (D + \alpha z * z^\top \f$ 
+         * @param Z If given, instead of returning the eigenvectors matrix Q, update \f$Z\f$ as \f$ Z Q \f$
+         *        This allows to compute the eigenvalue decomposition of \f$ Z (D + \alpha z * z^\dagger) Z^\dagger \f$ 
          * @param D the diagonal matrix (all the values must be real)
          * @param rho the coefficient
          * @param keep Keep all the eigenvectors (even those of the not selected eigenvalues)
          *
          */
-        template <typename scalar>
         void update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
                     double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
                     bool computeEigenvectors, const Selector *selector, bool keep,

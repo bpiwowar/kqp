@@ -51,7 +51,7 @@ namespace kqp {
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef boost::shared_ptr<Matrix> MatrixPtr;
         typedef boost::shared_ptr<const Matrix> MatrixCPtr;
-        
+               
         //! Virtual destructor to build the vtable
         virtual ~OperatorBuilder() {}
         
@@ -67,18 +67,26 @@ namespace kqp {
         virtual RealVectorPtr getD() const = 0;
         
         /**
-         * Add a new vector to the density
+         * @brief Rank-n update.
          *
-         * Computes \f$A^\prime \approx A + \alpha   X A A^T  X^\top\f$
+         * Updates the current decomposition to \f$A^\prime \approx A + \alpha   X A A^T  X^\top\f$
          * 
          * @param alpha
          *            The coefficient for the update
-         * @param mX  The feature matrix X with n feature vectors
-         * @param mA  The mixture matrix (of dimensions n x k)
+         * @param mX  The feature matrix X with n feature vectors.
+         * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(const FMatrix &mX, const Matrix &mA) = 0;
+        virtual void add(Real alpha, const FMatrix &mX, const Matrix &mA) = 0;
         
         
+        /**
+         * @brief Rank-one update.
+         *
+         * Updates the current decomposition to \f$A^\prime \approx A + \alpha   X A A^T  X^\top\f$
+         *
+         * @param alpha The coefficient of the rank-1 update
+         * @param mX The vector for the rank-1 update
+         */
         virtual void add(Real alpha, const FVector &mX) = 0;
         
     };

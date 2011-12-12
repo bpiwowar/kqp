@@ -39,7 +39,7 @@ namespace kqp {
         
         int i = 0;
         while (rhos[i++] != 0) {
-            FastRankOneUpdate updater;
+            FastRankOneUpdate<scalar> updater;
 
             double rho = rhos[i];
             Vector z(dim);    
@@ -71,11 +71,11 @@ namespace kqp {
     }
     
        
-int evd_update_test(int argc, const char **argv) {
-    if (argc != 1) 
+int evd_update_test(std::vector<std::string> &args) {
+    if (args.size() != 1) 
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("evd_update_test needs one argument"));
     
-    std::string name = argv[0];
+    const std::string &name = args[0];
     
     double rhos[] = { 1. };
     

@@ -20,6 +20,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <Eigen/Eigenvalues>
+
 #include <Eigen/Core>
 
 #include "kernel_evd.hpp"
@@ -34,7 +36,7 @@ namespace kqp {
     template <class Scalar> class DenseDirectBuilder : public OperatorBuilder<DenseVector<Scalar> > {
     public:
         typedef OperatorBuilder<DenseVector<Scalar> > Ancestor;
-        typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef DenseVector<Scalar> FVector;
         typedef typename Ancestor::Real Real;
         
@@ -46,13 +48,13 @@ namespace kqp {
             v.rankUpdateOf(this->matrix->template selfadjointView<Eigen::Lower>(), alpha);
         }
         
-        virtual void add(const typename Ancestor::FMatrix &fMatrix, const typename Ancestor::Matrix &coefficients) {
+        virtual void add(Real alpha, const typename Ancestor::FMatrix &fMatrix, const typename Ancestor::Matrix &coefficients) {
             // Invalidate the cache
             mX = typename Ancestor::FMatrixPtr();
             mD = typename Ancestor::RealVectorPtr();
 
-            if (const ScalarMatrix<Scalar> *mf = dynamic_cast<const ScalarMatrix<Scalar> *> (&fMatrix)) {
-                matrix->template selfadjointView<Eigen::Lower>().rankUpdate(mf->getMatrix() * coefficients);
+            if (const DenseMatrix<Scalar> *mf = dynamic_cast<const DenseMatrix<Scalar> *> (&fMatrix)) {
+                matrix->template selfadjointView<Eigen::Lower>().rankUpdate(mf->getMatrix() * coefficients, alpha);
             } else 
                 BOOST_THROW_EXCEPTION(not_implemented_exception());
         }
@@ -88,7 +90,7 @@ namespace kqp {
                     if ((*mD)[i] < 0) (*mD)[i] = 0;
                     else (*mD)[i] = Eigen::internal::sqrt((*mD)[i]);
                 
-                ScalarMatrix<Scalar> *_mX = new ScalarMatrix<Scalar>(matrix->rows());
+                DenseMatrix<Scalar> *_mX = new DenseMatrix<Scalar>(matrix->rows());
                 mX = typename Ancestor::FMatrixPtr(_mX);
                 _mX->swap(const_cast<typename Ancestor::Matrix&>(evd.eigenvectors()));
                 
@@ -103,6 +105,12 @@ namespace kqp {
         
         boost::shared_ptr<Matrix> matrix;
     };
+    
+    extern template class DenseDirectBuilder<double>;
+    extern template class DenseDirectBuilder<float>;
+    extern template class DenseDirectBuilder<std::complex<double> >;
+    extern template class DenseDirectBuilder<std::complex<float> >;
+
     
 } // end namespace kqp
 
