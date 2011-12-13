@@ -15,8 +15,8 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __KQP__H__
-#define __KQP__H__
+#ifndef __KQP_GENERIC_FEATURE_MATRIX_H__
+#define __KQP_GENERIC_FEATURE_MATRIX_H__
 
 #include "feature_matrix.hpp"
 

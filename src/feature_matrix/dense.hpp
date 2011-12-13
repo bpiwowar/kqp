@@ -14,192 +14,108 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __KQP__H__
-#define __KQP__H__
+#ifndef __KQP_DENSE_FEATURE_MATRIX_H__
+#define __KQP_DENSE_FEATURE_MATRIX_H__
 
 #include "feature_matrix.hpp"
 
 namespace kqp {
     template <typename Scalar> class DenseMatrix;
     
-    //! A scalar vector
-    template <typename _Scalar>
-    class DenseVector {
-    public:       
-        typedef _Scalar Scalar;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+   
+    template<typename Scalar>
+    class DenseVector : public FeatureMatrixView<DenseMatrix<Scalar> > {
+    public:
+        typedef typename DenseMatrix<Scalar>::FTraits FTraits;
         
-        enum Type {
-            UNKNOWN,
-            MATRIX_COL,
-            VECTOR
-        };
+        DenseVector(const DenseMatrix<Scalar> &matrix, Index column) : matrix(matrix), column(column) {}
         
-        DenseVector() : type(UNKNOWN) {
+        Scalar inner(const DenseVector &other) const {
+            return get().dot(other.get());
         }
         
-        DenseVector(const DenseMatrix<Scalar> &m, Index i) : fMatrix(&m), index(i), type(MATRIX_COL) {
+        typename Eigen::DenseBase<typename FTraits::Matrix>::ConstColXpr get() const { 
+            return matrix.get_matrix().col(column); 
         }
         
-        template<typename Derived>
-        DenseVector(const Eigen::DenseBase<Derived> &v) : vector(new Vector(v)), type(VECTOR) {
-            EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived);
+        void _linear_combination(const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
+            typename FTraits::Matrix m = this->get() * mA;
+            result.swap(m);
         }
-        
-        /// Copy our value into vector v
-        template<class Derived>
-        void assignTo(const Eigen::DenseBase<Derived> &_v) const {
-            Eigen::DenseBase<Derived> &v = const_cast<Eigen::DenseBase<Derived>&>(_v);
-            switch(type) {
-                case MATRIX_COL: v = fMatrix->getMatrix().col(index); break;
-                case VECTOR: v = *vector; break;
-                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);
-            }
-        }
-        
 
-        // Update the matrix with a rank-one update based on ourselves
-        template<class Derived, unsigned int UpLo>
-        void rankUpdateOf(const Eigen::SelfAdjointView<Derived, UpLo> &_m, Scalar alpha) const {
-            Eigen::SelfAdjointView<Derived, UpLo> &m = const_cast<Eigen::SelfAdjointView<Derived, UpLo> &>(_m);
-            switch(type) {
-                case MATRIX_COL:  m.rankUpdate(fMatrix->getMatrix().col(index), alpha); break;
-                case VECTOR: m.rankUpdate(*vector, alpha); break;
-                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                
+        template<class DerivedMatrix>
+        Scalar inner(const DenseVector<Scalar> &mB) {
+            return get().dot(mB.get());
+        }
+        
+        virtual const typename FTraits::FVector get(Index i) const {
+            if (i == 0) return *this;
+            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "A feature matrix composed of a vector has only one element (index %d asked)", %index);
+        }
+        
+        const typename FTraits::Matrix & inner() const {
+            if (is_empty(gram_matrix)) {
+                gram_matrix.resize(1,1);
+                gram_matrix(0,0) = this->get().dot(this->get());
             }
+            return gram_matrix;
         }
         
-        friend struct Inner<DenseVector<Scalar> >;
-        
-        void print(std::ostream &os) {
-            switch(type) {
-                case MATRIX_COL:  os << this->fMatrix->getMatrix().col(index); break;
-                case VECTOR: os << (*(this->vector)); break;
-                default: os << "Unknown dense vector of type " << type;                
-            }
+        virtual Index size() const {
+            return 1;
         }
-        
-        Index rows() const {
-            switch(type) {
-                case MATRIX_COL: return this->fMatrix->getMatrix().rows();
-                case VECTOR: return this->vector->rows();
-                default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                
-            }   
-        }
-        
-        void axpy(const Scalar &b, const DenseVector<Scalar> &y) {
-            switch(type) {
-                case MATRIX_COL:
-                    KQP_THROW_EXCEPTION(illegal_operation_exception, "Unknown dense vector type ");
 
-                case VECTOR: 
-                    switch(y.type) {
-                        case MATRIX_COL:  *vector += b * y.fMatrix->getMatrix().col(index); break;
-                        case VECTOR: *vector += b * *y.vector; break;
-                        default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
-                    }
-                    break;
-                    
-                case UNKNOWN:
-                    type = VECTOR;
-                    vector.reset(new Vector(y.rows()));
-                    switch(y.type) {
-                        case MATRIX_COL:  *vector = b * y.fMatrix->getMatrix().col(index); break;
-                        case VECTOR: *vector = b * *y.vector; break;
-                        default: KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
-                    }
-                    break;
-                    
-                default: 
-                    KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Unknown dense vector type %d", %type);                 
-            }
-            
-        }
-        
-
-        
-        boost::intrusive_ptr<const DenseMatrix<Scalar> > fMatrix;
-        Index index;
-        
-        boost::shared_ptr<Vector> vector; 
-        
-        Type type;
+    private:
+        mutable typename FTraits::Matrix gram_matrix;
+        const DenseMatrix<Scalar> &matrix;
+        Index column;
     };
-    
-    
-    
-    // Defines a scalar product between two dense vectors
-    template <typename Scalar>
-    struct Inner<DenseVector<Scalar> > {
-        static Scalar compute(const DenseVector<Scalar> &a, const DenseVector<Scalar> &b) {
-            switch((a.fMatrix.get() ? 2 : 0) + (b.fMatrix.get() ? 1 : 0)) {
-                case 0: return a.vector->dot(*b.vector);
-                case 1: return a.vector->dot(b.fMatrix->getMatrix().col(b.index));
-                case 2: return a.fMatrix->getMatrix().col(a.index).dot(*b.vector);
-                case 3: return a.fMatrix->getMatrix().col(a.index).dot(b.fMatrix->getMatrix().col(b.index));
-            }
-            KQP_THROW_EXCEPTION(assertion_exception, "Unknown vector types");  
-        }
-    };
-    
-    /** By default, vectors cannot be combined */
-    template<typename Scalar> 
-    struct linear_combination<DenseVector<Scalar> > {         
-        //! Cannot combine by default
-        static const bool can_combine = true; 
-        
-        /**
-         * Computes x <- x + b * y
-         */
-        static void axpy(DenseVector<Scalar> & x, const Scalar &b, const DenseVector<Scalar>  &y) {
-            x.axpy(b, y);
-        };
-    };
-    
     
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
      * @ingroup FeatureMatrix
      */
-    template <typename Scalar> 
-    class DenseMatrix : public FeatureMatrix<DenseVector<Scalar> > {
+    template <typename _Scalar> 
+    class DenseMatrix : public FeatureMatrix< DenseMatrix<_Scalar> > {
     public:
-        //! Our parent
-        typedef FeatureMatrix<DenseVector<Scalar> > Parent;
+        //! Scalar
+        typedef _Scalar Scalar;
+        
         //! Our feature vector
         typedef DenseVector<Scalar> FVector;
-        //! The type of the matrix
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+
+        //! Ourselves
+        typedef DenseMatrix<Scalar> Self;
+
+        //! Our traits
+        typedef ftraits<DenseMatrix<Scalar> > FTraits;
+         
         //! The type of inner product matrices
-        typedef typename Parent::InnerMatrix InnerMatrix;
+        typedef typename FTraits::Matrix Matrix;
         
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() {}
         
-        DenseMatrix(Index dimension) {
-            matrix = boost::shared_ptr<Matrix>(new Matrix(dimension, 0));
+        DenseMatrix(Index dimension) : matrix(dimension, 0) {
         }
         
         template<class Derived>
-        DenseMatrix(const Eigen::EigenBase<Derived> &m) : matrix(new Matrix(m)) {
+        DenseMatrix(const Eigen::EigenBase<Derived> &m) : matrix(m) {
         }
-        
-		virtual ~DenseMatrix() {}
-        
+                
         Index size() const { 
-            return this->matrix->cols();  
+            return this->matrix.cols();  
         }
         
-        FVector get(Index i) const { 
-            return FVector(*this, i); 
+        const FVector get(Index i) const { 
+            return FVector(*this, i);
         }
-        
-        virtual void add(const FVector &f)  {
-            if (!matrix.get()) 
-                matrix.reset(new Matrix(f.rows(), 0));
-            Index n = matrix->cols();
-            matrix->resize(matrix->rows(), n + 1);
-            f.assignTo(matrix->col(n));
+
+
+        virtual void add(const typename FTraits::FVector &f)  {
+            Index n = matrix.cols();
+            matrix.resize(matrix.rows(), n + 1);
+            matrix.col(n) = f.get();
         }
         
         /**
@@ -207,60 +123,104 @@ namespace kqp {
          */
         template<typename Derived>
         void add(const Eigen::DenseBase<Derived> &vector) {
-            if (vector.rows() != matrix->rows())
-                KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Cannot add a vector of dimension %d (dimension is %d)", % vector.rows() % matrix->rows());
+            if (vector.rows() != matrix.rows())
+                KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Cannot add a vector of dimension %d (dimension is %d)", % vector.rows() % matrix.rows());
             if (vector.cols() != 1)
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Expected a vector got a matrix with %d columns", % vector.cols());
             
-            Index n = matrix->cols();
-            matrix->resize(matrix->rows(), n + 1);
-            matrix->col(n) = vector;
+            Index n = matrix.cols();
+            matrix.resize(matrix.rows(), n + 1);
+            matrix.col(n) = vector;
         }
         
         virtual void set(Index i, const FVector &f) {
-            f.assignTo(matrix->col(i));
+            matrix.col(i) = f.get();
+            // FIXME: Recompute just the needed inner vectors
+            this->gramMatrix.resize(0,0);
         }
         
         virtual void remove(Index i, bool swap = false) {
-            Index last = matrix->cols() - 1;
+            Index last = matrix.cols() - 1;
             if (swap) {
                 if (i != last) 
-                    matrix->col(i) = matrix->col(last);
+                    matrix.col(i) = matrix.col(last);
             } else {
                 for(Index j = i + 1; j <= last; j++)
-                    matrix->col(i-1) = matrix->col(i);
+                    matrix.col(i-1) = matrix.col(i);
             }
-            matrix->resize(matrix->rows(), last);
+            matrix.resize(matrix.rows(), last);
             
         }
         
         void swap(Matrix &m) {
-            if (m.rows() != matrix->rows())
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Dimension of matrices is different (%d vs %d)", % m.rows() % matrix->rows());
-            matrix->swap(m);
+            if (m.rows() != matrix.rows())
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Dimension of matrices is different (%d vs %d)", % m.rows() % matrix.rows());
+            
+            matrix.swap(m);
+            this->gramMatrix.resize(0,0);
         }
         
-        
-        const Matrix& getMatrix() const {
-            return *matrix;
+        //! Get a reference to our matrix
+        const Matrix& get_matrix() const {
+            return matrix;
         }
         
-    private:
-        //! Our matrix
-        boost::shared_ptr<Matrix> matrix;
-    };
-    
-    
-    // Extern templates
-    extern template class DenseVector<double>;
-    extern template class DenseVector<float>;
-    extern template class DenseVector<std::complex<double> >;
-    extern template class DenseVector<std::complex<float> >;
+        const Matrix & inner() const {
+            // We lose space here, could be used otherwise???
+            Index current = gramMatrix.rows();
+            if (current < size()) 
+                gramMatrix.resize(size(), size());
+            
+            Index tofill = size() - current;
+            
+            // Compute the remaining inner products
+            gramMatrix.bottomRightCorner(tofill, tofill).noalias() = matrix.rightCols(tofill).adjoint() * matrix.rightCols(tofill);
+            gramMatrix.topRightCorner(current, tofill).noalias() = matrix.leftCols(current).adjoint() * matrix.rightCols(tofill);
+            gramMatrix.bottomLeftCorner(tofill, current).noalias() = gramMatrix.topRightCorner(current, tofill).adjoint();
 
-    extern template class DenseMatrix<double>;
-    extern template class DenseMatrix<float>;
-    extern template class DenseMatrix<std::complex<double> >;
-    extern template class DenseMatrix<std::complex<float> >;
+            return gramMatrix;
+        }
+        
+
+        template<class DerivedMatrix>
+        void inner(const Self &other, const Eigen::EigenBase<DerivedMatrix> &result) const {
+            const_cast<Eigen::EigenBase<DerivedMatrix>&>(result)= matrix.adjoint() * other.matrix;
+        }
+        
+        template<class DerivedMatrix>
+        void inner(const FVector &x, const Eigen::EigenBase<DerivedMatrix> &result) const {
+            
+            const_cast<Eigen::EigenBase<DerivedMatrix>&>(result) = matrix.adjoint() * x.get();
+        }
+        
+    protected:
+        friend class FeatureMatrixView<typename FTraits::FMatrix>;
+        
+        void _linear_combination(const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
+            if (&result != this)
+                result.matrix.noalias() = get_matrix() * mA;
+            else
+                result.matrix = get_matrix() * mA;
+        }
+
+    private:
+        //! Our inner product
+        mutable Matrix gramMatrix;
+        
+        //! Our matrix
+        Matrix matrix;
+    };
+
+    // The scalar for dense feature matrices
+    template <typename _Scalar> struct FeatureMatrixTypes<DenseMatrix<_Scalar> > {
+        typedef _Scalar Scalar;
+        typedef DenseVector<Scalar> FVector;
+    };
+
+        
+    // Extern templates
+    KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseVector<, >;);
+    KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseMatrix<, >;);
 
 } // end namespace kqp
 

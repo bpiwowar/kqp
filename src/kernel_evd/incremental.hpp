@@ -30,17 +30,17 @@ namespace kqp {
     
     /**
      * @brief Uses other operator builders and combine them.
-     * @ingroup OperatorBuilder
+     * @ingroup KernelEVD
      */
-    template <class FMatrix> class IncrementalKernelEVD : public OperatorBuilder<typename FMatrix::FVector> {
+    template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix> {
     public:
-        typedef OperatorBuilder<typename FMatrix::FVector> Ancestor;
-        typedef typename Ancestor::Matrix Matrix;
-        typedef typename Ancestor::Scalar Scalar;
-        typedef typename Ancestor::FVector FVector;
-        typedef typename Ancestor::Real Real;
-        typedef typename Ancestor::RealVector RealVector;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Vector;
+        typedef ftraits<FMatrix> FTraits;
+        typedef typename FTraits::FVector FVector;
+        typedef typename FTraits::Matrix Matrix;
+        typedef typename FTraits::Scalar Scalar;
+        typedef typename FTraits::Real Real;
+        
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
         
         // Indirect comparator (decreasing order)
         struct Comparator {
@@ -56,45 +56,28 @@ namespace kqp {
         }
         
         IncrementalKernelEVD(double minimumRelativeError, Index maxRank, float preImagesPerRank) :
-            preImagesPerRank(preImagesPerRank) {
+        preImagesPerRank(preImagesPerRank) {
             
         }
         
-        virtual void add(Real alpha, const FVector &v) {
-            // Just transform the data to add it with the generic method
-            FMatrix _fMatrix;
-            _fMatrix.add(v);
-            Matrix m(1,1); 
-            m(0,0) = alpha;
-            this->add(1, _fMatrix, m);
-        }
         
-        
-        virtual void add(Real alpha, const typename Ancestor::FMatrix &mU, const typename Ancestor::Matrix &mA) {          
-            // (0) Initialisations
-            if (!mX.get()) {
-                mX.reset(new FMatrix());
-                mY.reset(new Matrix());
-                mD.reset(new RealVector());
-            }            
-            
-            // (1) Pre-computations
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mU, const typename FTraits::Matrix &mA) {
+            // --- Pre-computations
             
             // Compute W = Y^T X^T
-            mX->inner(mU, k);
+            inner(mX, mU, k);
             Matrix mW;
-            mW.noalias() = mY->adjoint() * k * mA;
+            mW.noalias() = mY.adjoint() * k * mA;
             
             // Compute V^T V
             Matrix vtv = mA.adjoint() * mU.inner() * mA - mW.adjoint() * mW;
             
-            // (2) Choose the rank
-                       
+            
             // Eigen-value decomposition of V^T V
             Eigen::SelfAdjointEigenSolver<Matrix> evd(vtv);
-
-            // (3) Update
-            Vector z(mD->rows());
+            
+            // --- Update
+            Vector z(mD.rows());
             
             Matrix mZtW(mZ.cols() + vtv.rows(), mW.cols());
             mZtW.topRows(mZ.cols()) = mZ.adjoint() * mW;
@@ -103,25 +86,25 @@ namespace kqp {
             for(Index i = 0; i < mW.cols(); i++) {
                 EvdUpdateResult<Scalar> result;
                 // Update
-                evdRankOneUpdate.update(*mD, alpha, z, false, selector.get(), false, result, &mZ);
+                evdRankOneUpdate.update(mD, alpha, z, false, selector.get(), false, result, &mZ);
                 
                 // Take the new diagonal
-                *mD.resize(result.mD.rows());
-                *mD = result.mD.diagonal();
+                mD = result.mD.diagonal();
             }
             
             
             // (4) Clean-up
             
             // Remove unused images
-            removeUnusedPreImages(*mX, *mY);
-
+            removeUnusedPreImages(mX, mY);
+            
             // Ensure we have a small enough number of pre-images
-            if (mX->size() > (preImagesPerRank * mD->rows())) {
-                if (mX->canLinearlyCombine()) {
+            if (mX.size() > (preImagesPerRank * mD.rows())) {
+                if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
-                    mX->linearCombinationUpdate(*mY);
-                    mY = 0;
+                    FMatrix mX2;
+                    mX.linear_combination(mY, mX);
+                    mY.resize(0,0);
                 } else {
                     // Optimise
                     
@@ -130,41 +113,39 @@ namespace kqp {
             }
         }
         
-        virtual typename Ancestor::FMatrixCPtr getX() const {
-            return mX;
-        }
         
-        virtual typename Ancestor::MatrixCPtr getY() const {
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+            mX = this->mX;
             if (mZ.rows() > 0) {
-                *mY = *mY * mZ;
+                mY = mY * mZ;
                 mZ.resize(0,0);
             }
-            return mY;
+            mY = this->mY;
+            mD = this->mD;
         }
         
-        virtual typename Ancestor::RealVectorPtr getD() const {
-            return mD;
-        }
         
     private:
-        typename FMatrix::Ptr mX;
-        typename Ancestor::MatrixPtr mY;
+        FMatrix mX;
+        Matrix mY;
         Matrix mZ;
-        typename Ancestor::RealVectorPtr mD;
-
+        typename FTraits::RealVector mD;
+        
         // Rank-one EVD update
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
         
         // Used in computation
         mutable Matrix k;
-
+        
         // Rank selector
         boost::shared_ptr<Selector> selector;
- 
+        
         //! Ratio of the number of pre-images to the rank (must be >= 1)
         float preImagesPerRank;
         
     };
+    
+    KQP_KERNEL_EVD_INSTANCIATION(extern, IncrementalKernelEVD);
     
 }
 

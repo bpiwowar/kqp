@@ -15,57 +15,38 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __KQP_OPERATOR_BUILDER_H__
-#define __KQP_OPERATOR_BUILDER_H__
+#ifndef __KQP_KERNEL_EVD_H__
+#define __KQP_KERNEL_EVD_H__
 
 #include "feature_matrix.hpp"
 
 namespace kqp {
+    
+
+    
     /**
      * @brief Builds a compact representation of an hermitian operator. 
      *
      * Computes \f$ \mathfrak{U} = \sum_{i} \alpha_i \mathcal U A A^\top \mathcal U ^ \top   \f$
-     * 
+     * as \f$ {\mathcal X}^\dagger Y^\dagger D Y \mathcal X \f$ where \f$D\f$ is a diagonal matrix
+     * and \f$ \mathcal X Y \f$ is an orthonormal matrix, i.e. \f$  \mathcal Y^\dagger {\mathcal X}^\dagger \mathcal X Y \f$
+     * is the identity.
+     *
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      *
-     * @param <Scalar>
-     *            The Scalar type
-     * @param <F>
+     * @param <FMatrix>
      *            The type of the base vectors in the original space
      * @ingroup OperatorBuilder
      */
-    template <class _FVector> class OperatorBuilder  {        
+    template <class FMatrix> class KernelEVD  {        
     public:
-        typedef _FVector FVector;        
-        typedef typename FVector::Scalar Scalar;
-        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        typedef ftraits<FMatrix> FTraits;
         
-        typedef typename Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
-        typedef boost::shared_ptr<RealVector> RealVectorPtr;
-        typedef boost::shared_ptr<const RealVector> RealVectorCPtr;
-        
-        typedef FeatureMatrix<FVector> FMatrix;
-        typedef typename FMatrix::Ptr FMatrixPtr;
-        typedef typename FMatrix::CPtr FMatrixCPtr;
-        
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef boost::shared_ptr<Matrix> MatrixPtr;
-        typedef boost::shared_ptr<const Matrix> MatrixCPtr;
-               
+        static typename FTraits::Matrix ID_MATRIX;
+            
         //! Virtual destructor to build the vtable
-        virtual ~OperatorBuilder() {}
-        
-        //! Returns the feature matrix
-        virtual FMatrixCPtr getX() const = 0;
-        
-        /** @brief Get the feature pre-image combination matrix.
-         * @return a reference to the matrix (a null matrix pointer is returned instead of identity)
-         */
-        virtual MatrixCPtr getY() const = 0;
-        
-        //! Returns the diagonal matrix as a vector
-        virtual RealVectorPtr getD() const = 0;
-        
+        ~KernelEVD() {}
+               
         /**
          * @brief Rank-n update.
          *
@@ -76,21 +57,21 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(Real alpha, const FMatrix &mX, const Matrix &mA) = 0;
-        
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mU, const typename FTraits::Matrix &mA) = 0;
         
         /**
-         * @brief Rank-one update.
-         *
-         * Updates the current decomposition to \f$A^\prime \approx A + \alpha   X A A^T  X^\top\f$
-         *
-         * @param alpha The coefficient of the rank-1 update
-         * @param mX The vector for the rank-1 update
+         * Get the current decomposition
          */
-        virtual void add(Real alpha, const FVector &mX) = 0;
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) = 0;
         
     };
+
     
+    
+#define KQP_KERNEL_EVD_INSTANCIATION(qualifier, type)\
+    KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
+
+        
 }
 
 #endif

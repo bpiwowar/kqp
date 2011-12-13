@@ -21,6 +21,8 @@
 #include <vector>
 #include <Eigen/Core>
 
+#include "kqp.hpp"
+
 namespace kqp {
     namespace cvxopt {
         /** Problem dimensions */
@@ -35,7 +37,9 @@ namespace kqp {
             inline Dimensions() : l(-1) {}
         };
         
+        
         /// Options to be used for the coneq 
+        template<typename Scalar>
         struct ConeQPOptions {
             /** Use corrections or not */
             bool useCorrection;
@@ -52,34 +56,34 @@ namespace kqp {
             /** Maximum number of iterations */
             int maxiters;
             
-            double abstol;
-            double reltol;
-            double feastol;
+            Scalar abstol;
+            Scalar reltol;
+            Scalar feastol;
             
             int refinement;
             
             ConeQPOptions();
         };
         
-        
+        template<typename Scalar>
         struct ConeQPReturn {
-            Eigen::VectorXd x;
-            Eigen::VectorXd y;
-            Eigen::VectorXd s;
-            Eigen::VectorXd z;
+            KQP_VECTOR(Scalar) x;
+            KQP_VECTOR(Scalar) y;
+            KQP_VECTOR(Scalar) s;
+            KQP_VECTOR(Scalar) z;
             
             std::string status;
             
-            double gap;
-            double relative_gap;
-            double primal_objective;
-            double dual_objective;
+            Scalar gap;
+            Scalar relative_gap;
+            Scalar primal_objective;
+            Scalar dual_objective;
             
-            double primal_infeasibility;
-            double dual_infeasibility;
+            Scalar primal_infeasibility;
+            Scalar dual_infeasibility;
             
-            double primal_slack;
-            double dual_slack;
+            Scalar primal_slack;
+            Scalar dual_slack;
             
             int iterations;
             
@@ -88,10 +92,11 @@ namespace kqp {
         };
         
         
-        class Matrix {
+        template<typename Scalar>
+        class QPMatrix {
         public:    
             //! Computes Q * x and stores the result in y (y might be the same as x)
-            virtual void mult(const Eigen::VectorXd &x, Eigen::VectorXd &y, bool transpose = false) const = 0;
+            virtual void mult(const KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, bool transpose = false) const = 0;
             virtual  Eigen::MatrixXd::Index rows() const = 0;
             virtual  Eigen::MatrixXd::Index cols() const = 0;
         };
@@ -109,25 +114,28 @@ namespace kqp {
          - W['rti']: list of square matrices.  rti[k] is the inverse transpose
          of r[k].
          */
+        template<typename Scalar>
         struct ScalingMatrix {
-            Eigen::DiagonalMatrix<double, Eigen::Dynamic, Eigen::Dynamic> d, di, dnl, dnli;
+            KQP_VECTOR(Scalar) d, di, dnl, dnli;
             
-            std::vector<double> beta;
+            std::vector<Scalar> beta;
             std::vector<Eigen::MatrixXd> r, rti;
             std::vector<Eigen::MatrixXd> v;
         };
         
         
         // The KKTSolver
+        template<typename Scalar>
         class KKTSolver {
         public:
-            virtual void solve(Eigen::VectorXd &x, Eigen::VectorXd &y, Eigen::VectorXd & z) const = 0;  
+            virtual void solve(KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, KQP_VECTOR(Scalar) & z) const = 0;  
         };
         
         /// The KKT solver
+        template<typename Scalar>
         class KKTPreSolver {
         public:
-            virtual KKTSolver *get(const ScalingMatrix &w) = 0;
+            virtual KKTSolver<Scalar> *get(const ScalingMatrix<Scalar> &w) = 0;
         };
         
         
@@ -137,7 +145,7 @@ namespace kqp {
          
          minimize    \f$ \frac{1}{2} x^\top P x + q^\top*x \f$
          subject to  \f$ Gx + s = h\f$
-        \f$ A*x = b\f$
+         \f$ A*x = b\f$
          \f$s >= 0\f$
          
          maximize    -(1/2)*(q + G'*z + A'*y)' * pinv(P) * (q + G'*z + A'*y)
@@ -434,15 +442,16 @@ namespace kqp {
          argument kktsolver is required.
          
          */
-         void coneqp(const Matrix &P, Eigen::VectorXd &q,
-                     ConeQPReturn &result,
-                     bool initVals = false,
-                     Dimensions dims = Dimensions(), 
-                     const Matrix *G = NULL, Eigen::VectorXd* h = NULL, 
-                     Eigen::MatrixXd *A = NULL, Eigen::VectorXd *b = NULL,
-                     KKTPreSolver* kktpresolver = NULL, 
-                     ConeQPOptions options = ConeQPOptions());
-
+        template<typename Scalar>
+        void coneqp(const QPMatrix<Scalar> &P, KQP_VECTOR(Scalar) &q,
+                    ConeQPReturn<Scalar> &result,
+                    bool initVals = false,
+                    Dimensions dims = Dimensions(), 
+                    const QPMatrix<Scalar> *G = NULL, KQP_VECTOR(Scalar)* h = NULL, 
+                    KQP_MATRIX(Scalar) *A = NULL, KQP_VECTOR(Scalar) *b = NULL,
+                    KKTPreSolver<Scalar>* kktpresolver = NULL, 
+                    ConeQPOptions<Scalar> options = ConeQPOptions<Scalar>());
+        
     }
     
 }

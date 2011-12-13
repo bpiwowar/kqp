@@ -102,10 +102,39 @@ namespace kqp {
     }
     
 
+#define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix) \
+    prefix double suffix; \
+    prefix float suffix; \
+    prefix std::complex<double> suffix; \
+    prefix std::complex<float> suffix;
+
+    //! Returns an empty matrix (useful as a constant)
+    template<typename Scalar>
+    struct EMPTY {
+        static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> matrix;
+        static Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vector;
+    };
     
+    template<typename Scalar>
+    bool is_empty(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &m) { 
+        return m.rows() == 0 && m.cols() == 0;
+    }
+    
+    template<typename Scalar>
+    bool is_empty(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &m) { 
+        return m.rows() == 0;
+    }
+
+    
+    
+    KQP_FOR_ALL_SCALAR_TYPES(extern template struct EMPTY<, >);
     
     // --- USEFUL MACROS ---
+    
 
+#define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
+#define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
+    
     //! Throw an exception with a message
 #define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
     

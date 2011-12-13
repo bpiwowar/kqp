@@ -23,13 +23,12 @@
 namespace kqp {
     /**
      * @brief Uses other operator builders and combine them.
-     * @ingroup OperatorBuilder
+     * @ingroup KernelEVD
      */
-    template <class FMatrix> class DivideAndConquerBuilder : public OperatorBuilder<FMatrix> {
+    template <class FMatrix> class DivideAndConquerBuilder : public KernelEVD<FMatrix> {
     public:
-        typedef typename OperatorBuilder<FMatrix>::Scalar Scalar;
-        typedef typename OperatorBuilder<FMatrix>::FVector FVector;
-        
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {
+        }
     };
 }
 

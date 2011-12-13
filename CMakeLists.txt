@@ -36,7 +36,6 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 FIND_PACKAGE(log4cxx)
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
-
 # --- Build kqp
 
 file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")

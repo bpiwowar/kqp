@@ -13,6 +13,7 @@ namespace kqp {
 
 double EPSILON = 1e-15;
 
+KQP_FOR_ALL_SCALAR_TYPES(template struct EMPTY<, >);
 
 #ifndef NOLOGGING
 const LoggerInit __LOGGER_INIT;
@@ -59,7 +60,7 @@ LoggerInit::LoggerInit() {
  
  There are three main modules:
  - \ref FeatureMatrix "Feature matrices" are used to represent a set of feature vector. In a finite vectorial space, this is typically a matrix. 
- - \ref OperatorBuilder "Operator builders" are the classes that compute a thin representations of (kernel) linear operators, based on a single type of feature matrix;
+ - \ref KernelEVD "Operator builders" are the classes that compute a thin representations of (kernel) linear operators, based on a single type of feature matrix;
  - \ref Probabilities "Probabilities" can then be computed from built operators (they both define events and quantum probability densities).
  
 */
@@ -74,7 +75,7 @@ LoggerInit::LoggerInit() {
 */
 
 /**
- @defgroup OperatorBuilder Building kernel linear operators
+ @defgroup KernelEVD Building kernel linear operators
 
 */
 

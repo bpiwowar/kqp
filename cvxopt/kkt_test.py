@@ -13,16 +13,19 @@ def doit(name, n,r, g,W, x,z):
     print
     print
     print "// ------- Generated from kkt_test.py ---"
-    print "int kkt_test_%s() {" % name
+    print "template <typename Scalar> int kkt_test_%s() {" % name
+    print
+    print "typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;"
+    print "typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;"
     print
     print "// Problem"
     print "int n = %d;" % n
     print "int r = %d;" % r
-    print "Eigen::MatrixXd g(n,n);"
+    print "Matrix g(n,n);"
 
-    print "cvxopt::ScalingMatrix w;"
+    print "cvxopt::ScalingMatrix<Scalar> w;"
     print "w.d.resize(2*r*n);"
-    print "Eigen::VectorXd x(n*(r+1)), y, z(2*n*r);"
+    print "Vector x(n*(r+1)), y, z(2*n*r);"
 
     print_cxx("x", x)
     print_cxx("z", z)
@@ -32,8 +35,8 @@ def doit(name, n,r, g,W, x,z):
 
     print
     print "// Solve"
-    print "KQP_KKTPreSolver kkt_presolver(g);"
-    print "boost::shared_ptr<cvxopt::KKTSolver> kktSolver(kkt_presolver.get(w));"
+    print "KQP_KKTPreSolver<Scalar> kkt_presolver(g);"
+    print "boost::shared_ptr<cvxopt::KKTSolver<Scalar> > kktSolver(kkt_presolver.get(w));"
     print "kktSolver->solve(x,y,z);"
     print
     
@@ -49,8 +52,8 @@ def doit(name, n,r, g,W, x,z):
     print_cxx("s_z", z)
 
     print """
-            double error_x = (x - s_x).norm() / (double)x.rows();
-            double error_z = (z - s_z).norm() / (double)z.rows();
+            Scalar error_x = (x - s_x).norm() / (Scalar)x.rows();
+            Scalar error_z = (z - s_z).norm() / (Scalar)z.rows();
 
             KQP_LOG_INFO(logger, "Average error (x): " << convert(error_x));
             KQP_LOG_INFO(logger, "Average error (z): " << convert(error_z));

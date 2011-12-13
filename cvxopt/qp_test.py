@@ -26,15 +26,18 @@ def doit(name, n,r, g, a, Lambda):
     print
     print
     print "// ------- Generated from kkt_test.py ---"
-    print "int qp_test_%s() {" % name
+    print "template<typename Scalar> int qp_test_%s() {" % name
+    print
+    print "typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;"
+    print "typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;"
     print
     print "// Problem"
     print "int n = %d;" % n
     print "int r = %d;" % r
-    print "Eigen::MatrixXd g(n,n);"
+    print "Matrix g(n,n);"
 
-    print "Eigen::MatrixXd a(r, n);"
-    print "double lambda = %15e;" % Lambda
+    print "Matrix a(r, n);"
+    print "Scalar lambda = %15e;" % Lambda
 
     print_cxx("a", a)
     print "a.adjointInPlace();"
@@ -43,8 +46,8 @@ def doit(name, n,r, g, a, Lambda):
     print
     print "// Solve"
 
-    print "kqp::cvxopt::ConeQPReturn result;"
-    print "solve_qp(n, r, lambda, g, a, result);"
+    print "kqp::cvxopt::ConeQPReturn<Scalar> result;"
+    print "solve_qp(r, lambda, g, a, result);"
     print
 
     # Construct P

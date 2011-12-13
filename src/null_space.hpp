@@ -15,11 +15,13 @@ You should have received a copy of the GNU General Public License
 along with KQP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __KQP_KERNEL_EVD_H__
-#define __KQP_KERNEL_EVD_H__
+#ifndef __KQP_NULL_SPACE_H__
+#define __KQP_NULL_SPACE_H__
 
 #include <Eigen/Dense>
+
 #include "feature_matrix.hpp"
+#include "coneprog.hpp"
 
 namespace kqp {
     
@@ -101,58 +103,53 @@ namespace kqp {
         }
     }
     
-
     
-    namespace internal {
-        /**
-         * Reduces the set of images using the quadratic optimisation approach.
-         * 
-         * It is advisable to use the removeUnusefulPreImages technique first.
-         *
-         * @param target The number of pre-images that we should get at the end
-         * @param F
-         */
-        template <class FVector, typename Derived, bool isComplex>
-        struct QPPreImageRemover {};
-
-        template <class FVector, typename Derived>
-        struct QPPreImageRemover<FVector, Derived, true> {
-            void remove(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
-                
-            }        
-        };
-
-        
-        template <class FVector, typename Derived>
-        struct QPPreImageRemover<FVector, Derived, false> {
-            void remove(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
-                
-            }
-        };
-
-    }
     
+    /**
+     * Reduces the set of images using the quadratic optimisation approach.
+     * 
+     * It is advisable to use the removeUnusefulPreImages technique first.
+     *
+     * @param target The number of pre-images that we should get at the end
+     * @param F
+     */
     template <class FVector, typename Derived>
-    void removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
-        internal::QPPreImageRemover<FVector, Derived, Eigen::NumTraits<typename FVector::Scalar>::IsComplex>::remove(target, mF, mY);
+    typename boost::enable_if_c<!Eigen::NumTraits<FVector>::IsComplex, void>::type
+    removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
     }
 
+    
+    /**
+     * Reduces the set of images using the quadratic optimisation approach.
+     * 
+     * It is advisable to use the removeUnusefulPreImages technique first.
+     *
+     * @param target The number of pre-images that we should get at the end
+     * @param F
+     */    
+    template <class FVector, typename Derived>
+    typename boost::enable_if_c<Eigen::NumTraits<FVector>::IsComplex, void>::type
+    removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
+    }
 
+    
     /// Solve a QP system
-    void solve_qp(int r, double lambda, const Eigen::MatrixXd &gramMatrix, const Eigen::MatrixXd &alpha, kqp::cvxopt::ConeQPReturn &result);
+    template<typename Scalar>
+    void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
     
     /**
      * The KKT pre-solver to solver the QP problem
      * @ingroup coneqp
      */
-    class KQP_KKTPreSolver : public cvxopt::KKTPreSolver {
-        Eigen::LLT<Eigen::MatrixXd> lltOfK;
-        Eigen::MatrixXd B, BBT;
+    template<typename Scalar>
+    class KQP_KKTPreSolver : public cvxopt::KKTPreSolver<Scalar> {
+        Eigen::LLT<KQP_MATRIX(Scalar)> lltOfK;
+        KQP_MATRIX(Scalar) B, BBT;
         
     public:
-        KQP_KKTPreSolver(const Eigen::MatrixXd& gramMatrix);
+        KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix);
         
-        cvxopt::KKTSolver *get(const cvxopt::ScalingMatrix &w);
+        cvxopt::KKTSolver<Scalar> *get(const cvxopt::ScalingMatrix<Scalar> &w);
     };
     
 

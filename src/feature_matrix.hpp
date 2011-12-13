@@ -19,46 +19,49 @@
 #define __KQP_FEATURE_MATRIX_H__
 
 
-#include <boost/shared_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
-
-#include "Eigen/Core"
-
-#include "intrusive_ptr_object.hpp"
-
 #include "kqp.hpp"
-#include "coneprog.hpp"
 
 namespace kqp {
+
+    // Forward declaration of feature matrix traits
+    template<class T> struct ftraits;
     
-    /** By default, vectors cannot be combined */
-    template<typename FVector> 
-    struct linear_combination { 
-        //! Scalar
-        typedef typename FVector::Scalar Scalar;
+    template<class Derived>
+    class FeatureMatrixView {
+    public:
+        typedef ftraits<Derived> FTraits;
+        typedef typename FTraits::FMatrix FMatrix;
+        typedef typename FTraits::FVector FVector;
         
-        //! Cannot combine by default
-        static const bool can_combine = false; 
+        virtual ~FeatureMatrixView() {}
+        
+        /** 
+         * @brief Linear combination of the feature vectors.
+         * 
+         * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
+         */
+        inline void linear_combination(const typename FTraits::Matrix & mA, Derived &result) const {
+            if (const FMatrix * _this = dynamic_cast<const FMatrix *>(this)) {
+                _this->_linear_combination(mA, result);
+            } else if (const FMatrix * _this = dynamic_cast<const FMatrix *>(this)) {
+                _this->_linear_combination(mA, result);
+            } else 
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot handle a type which is neither feature-vector nor feature-matrix", % KQP_DEMANGLE(*this));
+        }
+        
+        /** Get a const reference to the i<sup>th</sup> feature vector */
+        virtual const typename FTraits::FVector get(Index i) const = 0;
+
+        /** Get the number of feature vectors */
+        virtual Index size() const = 0;
+        
         
         /**
-         * Computes x <- x + b * y
+         * @brief Computes the Gram matrix of this feature matrix
+         * @return A dense self-adjoint matrix
          */
-        static void axpy(FVector& x, const Scalar &b, const FVector &y) {
-            BOOST_THROW_EXCEPTION(illegal_operation_exception());
-        };
+        virtual const typename FTraits::Matrix & inner() const = 0;
     };
-    
-    
-    /**
-     * Defines a generic inner product that has to be implemented
-     * as a last resort
-     */
-    template <class FVector>
-    struct Inner {
-        static typename FVector::Scalar compute(const FVector &a, const FVector &b) {
-            BOOST_THROW_EXCEPTION(not_implemented_exception());
-        }
-    };    
     
     /**
      * @brief Base for all feature matrix classes
@@ -72,160 +75,146 @@ namespace kqp {
      * @param _FVector the type of the feature vectors
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <class _FVector> 
-    class FeatureMatrix : public boost::intrusive_ptr_base, public boost::intrusive_ptr_object {
-    public:
-        
-        //! Own type
-        typedef FeatureMatrix<_FVector> Self;
-        
-        //! Pointers
-        typedef boost::intrusive_ptr<Self> Ptr;
-        typedef boost::intrusive_ptr<const Self> CPtr;
-        
-        //! Feature vector type
-        typedef _FVector FVector;
-        
-        //! Scalar type
-        typedef typename FVector::Scalar Scalar;
-        
-        //! Matrix type for inner products
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> InnerMatrix;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
-        
-        /**
-         * @brief Computes the inner product between the i<sup>th</sup>
-         * vector of the list and the given vector.
-         *
-         * By default, uses the inner product between any two vectors of this type 
-         * 
-         * @param i
-         *            The index of the vector in the list
-         * @param vector
-         *            The vector provided
-         * @return The inner product between both vectors
-         */
-        virtual Scalar inner(Index i, const FVector& vector) const {
-            return Inner<FVector>::compute(get(i), vector);
-        }
-        
-        /**
-         * Compute the inner products with each of the vectors. This method might be
-         * re-implemented for efficiency reason, and by default calls iteratively
-         * {@linkplain #computeInnerProduct(int, Object)}.
-         * 
-         * @param vector
-         *            The vector with which the inner product is computed each time
-         * @return A series of inner products, one for each of the base vectors
-         */
-        virtual Vector inner(const FVector& vector) const {
-            typename FeatureMatrix::Vector innerProducts(size());
-            for (int i = size(); --i >= 0;)
-                innerProducts[i] = Inner<FVector>::compute(get(i), vector);
-            return innerProducts;
-        }
-        
-        
-        
-        /**
-         * @brief Compute the inner product with another feature matrix.
-         *
-         * @warning m will be modified (Eigen const trick)
-         */
-        template <typename DerivedMatrix>
-        void inner(const FeatureMatrix<FVector>& other, const Eigen::MatrixBase<DerivedMatrix> &m) const {
-            // Eigen-const-cast-trick
-            Eigen::MatrixBase<DerivedMatrix> &r = const_cast< Eigen::MatrixBase<DerivedMatrix> &>(m);
-            
-            // Resize if this is possible
-            r.derived().resize(size(), other.size());
-            
-            for (int i = 0; i < size(); i++)
-                for (int j = 0; j < other.size(); j++)
-                    r(i, j) = Inner<FVector>::compute(get(i), other.get(j));
-            
-        }
-        
-        
-        /**
-         * @brief Computes the Gram matrix of this feature matrix
-         * @param full if the matrix has to be entirely computed
-         * @return A dense self-adjoint matrix
-         */
-        virtual const InnerMatrix& inner() const {
-            // We lose space here, could be used otherwise???
-            Index current = gramMatrix.rows();
-            if (current < size()) 
-                gramMatrix.resize(size(), size());
-            for (Index i = current + 1; i < size(); i++)
-                for (Index j = 0; j <= i; j++) {
-                    Scalar x = Inner<FVector>::compute(get(i), get(j));
-                    gramMatrix(i,j) = x;
-                    gramMatrix(j,i) = Eigen::internal::conj(x);
-                }
-            
-            return gramMatrix;
-        }
-        
-        
-        /**
-         * Our combiner
-         */
-        typedef linear_combination<FVector> Combiner;
-        
+    template <class _Derived> 
+    class FeatureMatrix : public FeatureMatrixView<_Derived> {
+    public:       
+
+        typedef _Derived Derived;
+        typedef ftraits<Derived> FTraits;
+
+
         /**
          * Returns true if the vectors can be linearly combined
          */
-        virtual bool canLinearlyCombine() {
-            return Combiner::can_combine;
+        bool can_linearly_combine() {
+            return Derived::can_linearly_combine();
+        }
+
+        /** Add a feature vector */
+        virtual void add(const typename FTraits::FVector &f) = 0;
+
+        /** Add a list of feature vectors from a feature matrix */
+        virtual void addAll(const Derived &f) {
+            for(Index i = 0; i < f.size(); i++)
+                this->add(f.get(i));
         }
         
-        /** 
-         * @brief Linear combination of vectors
-         *
-         * In this implementation, we just use the pairwise combiner if it exists
-         */
-        virtual FVector linearCombination(Scalar alpha, const Vector & lambdas) const {
-            if (lambdas.size() != this->size()) 
-                BOOST_THROW_EXCEPTION(illegal_argument_exception());
-            
-            // A null vector
-            FVector result;
-            
-            for(Index i = 0; i < lambdas.rows(); i++) 
-                Combiner::axpy(result, alpha * lambdas[i], this->get(i));
-            
-            return result;
+
+        /** Get the i<sup>th</sup> feature vector */
+        inline void set(Index i, const Derived &f) {
+            Derived::set(i, f);
         }
-        
-        /** Get the number of feature vectors */
-        virtual Index size() const = 0;
-        
-        /** Get the i<sup>th</sup> feature vector */
-        virtual FVector get(Index i) const = 0;
-        
-        /** Get the i<sup>th</sup> feature vector */
-        virtual void add(const FVector &f) = 0;
-        
-        /** Get the i<sup>th</sup> feature vector */
-        virtual void set(Index i, const FVector &f) = 0;
         
         /** 
          * Remove the i<sup>th</sup> feature vector 
          * @param if swap is true, then the last vector will be swapped with one to remove (faster)
          */
-        virtual void remove(Index i, bool swap = false) = 0;
-        
-        
-        template<class T> boost::intrusive_ptr<T> ptr() {
-            return boost::intrusive_ptr<T>(dynamic_cast<T*>(this));
+        inline void remove(Index i, bool swap = false) {
+            Derived::remove(i, swap);
         }
         
-    private:        
-        mutable InnerMatrix gramMatrix;
     };
     
     
+    //! Compute an inner product of two feature matrices
+    template<typename Derived, class DerivedMatrix>
+    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::Derived &mB, const typename Eigen::EigenBase<DerivedMatrix> &result) {
+        static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::EigenBase<DerivedMatrix>&>(result));
+    }
+
+    //! Compute an inner product one inner matrix and one feature vector
+    template<typename Derived, class DerivedMatrix>
+    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::FVector &x, const typename Eigen::EigenBase<DerivedMatrix> &result) {
+        mA.inner(x, result);
+    }
+
+    //! Compute an inner product between a feature vector and a feature matrix
+    template<typename Derived, class DerivedMatrix>
+    void inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::Derived &mA, const typename Eigen::EigenBase<DerivedMatrix> &result) {
+        mA.inner(x, result.adjoint());
+    }
+    
+    //! Inner product of two feature vectors
+    template<typename Derived>
+    typename ftraits<Derived>::Scalar
+    inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::FVector &y) {
+        typedef typename FeatureMatrix<Derived>::FVector FVector;
+        return static_cast<FVector&>(x).inner(static_cast<const FVector&>(y));
+    }
+    
+    //! inner product of two views: use dynamic typing to determine which is our case
+    template<typename Derived, class DerivedMatrix>
+    void inner(const FeatureMatrixView<Derived> &mA, const FeatureMatrixView<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {    
+        typedef typename FeatureMatrixView<Derived>::FTraits FTraits;
+        typedef typename FTraits::FMatrix FMatrix;
+        typedef typename FTraits::FVector FVector;
+        typedef typename FTraits::Scalar Scalar;
+
+        if (const FMatrix * _mA = dynamic_cast<const FMatrix *>(&mA)) {
+            if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
+                inner(*_mA, *_mB, result);
+                return;
+            } 
+            
+            if (const FVector * _mB = dynamic_cast<const FVector *>(&mB)) {
+                inner(*_mA, *_mB, result);                
+                return;
+            }
+            
+        } 
+        
+        if (const FVector * _mA = dynamic_cast<const FVector *>(&mA)) {
+            if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
+                inner(*_mA, *_mB, result);
+                return;
+            } 
+            
+            if (const FVector * _mB = dynamic_cast<const FVector *>(&mB)) {
+                // both vectors: returns a scalar
+                typename Eigen::MatrixBase<DerivedMatrix> & _result = const_cast<typename Eigen::MatrixBase<DerivedMatrix> &>(result);
+                Scalar z = _mA->inner<DerivedMatrix>(*_mB);
+                _result.derived().resize(1,1);
+                _result(0,0) = z;
+                return;
+            }
+        }
+        
+        KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot do an inner product between %s and %s", % KQP_DEMANGLE(mA) % KQP_DEMANGLE(mB));
+
+    }
+    
+    //! Type informatino for feature matrices (feeds the ftraits structure)
+    template <class _FMatrix> struct FeatureMatrixTypes {};
+    
+    /**
+     * Feature Vector traits
+     */
+    template <class _FMatrix>
+    struct ftraits {
+        //! Ourselves
+        typedef _FMatrix FMatrix;
+
+        //! Scalar value
+        typedef typename FeatureMatrixTypes<FMatrix>::Scalar Scalar;
+        
+        //! Vector view on this type
+        typedef typename FeatureMatrixTypes<FMatrix>::FVector FVector;
+
+        //! View on this type
+        typedef FeatureMatrixView<FMatrix> FMatrixView;
+                
+        //! Vector of scalars
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> ScalarVector;
+        
+        //! Real value associated to the scalar one
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        
+        //! Vector with reals
+        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
+        
+        //! Inner product matrix
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    }; 
     
 }
 

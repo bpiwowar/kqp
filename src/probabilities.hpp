@@ -55,7 +55,7 @@ namespace kqp {
          * @param evd
          * @param copy If the object should be copied (safer, but slower)
          */
-        KernelOperator(const OperatorBuilder<FVector>& evd, bool copy) {
+        KernelOperator(const KernelEVD<FVector>& evd, bool copy) {
             mX = copy ? evd.getX() : evd.getX().copy();
             mY.noalias() = (evd.getY() * evd.getZ()).eval();
             mS = copy ? evd.getEigenValues() : evd.getEigenValues().copy();
@@ -128,9 +128,9 @@ namespace kqp {
     public:        
         /**
          * Construct a Event from a kernel EVD. See
-         * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(OperatorBuilder, bool)}
+         * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(KernelEVD, bool)}
          */
-        Event(const OperatorBuilder<FMatrix> &evd, bool deepCopy) {
+        Event(const KernelEVD<FMatrix> &evd, bool deepCopy) {
             
         }
         
@@ -156,7 +156,7 @@ namespace kqp {
          * @param evd
          * @param deepCopy
          */
-        Density(const OperatorBuilder<FMatrix>& evd, bool deepCopy);
+        Density(const KernelEVD<FMatrix>& evd, bool deepCopy);
         
         /**
          * Compute the probability of an event

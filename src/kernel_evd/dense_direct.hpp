@@ -26,91 +26,45 @@
 
 #include "kernel_evd.hpp"
 #include "feature_matrix/dense.hpp"
+#include "kernel_evd/utils.hpp"
 
 namespace kqp {
     /**
      * @brief Direct computation of the density (i.e. matrix representation) for dense vectors.
      * 
-     * @ingroup OperatorBuilder
+     * @ingroup KernelEVD
      */
-    template <class Scalar> class DenseDirectBuilder : public OperatorBuilder<DenseVector<Scalar> > {
+    template <class Scalar> class DenseDirectBuilder : public KernelEVD<DenseMatrix<Scalar> > {
     public:
-        typedef OperatorBuilder<DenseVector<Scalar> > Ancestor;
+        typedef ftraits<DenseMatrix<Scalar> > FTraits;
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef DenseVector<Scalar> FVector;
-        typedef typename Ancestor::Real Real;
+        typedef typename FTraits::Real Real;
         
-        DenseDirectBuilder(int dimension) : matrix(new typename Ancestor::Matrix(dimension, dimension)) {
-            matrix->setConstant(0);
+        DenseDirectBuilder(int dimension) : matrix(dimension, dimension) {
+            matrix.setConstant(0);
         }
         
-        virtual void add(typename Ancestor::Real alpha, const typename Ancestor::FVector &v) {
-            v.rankUpdateOf(this->matrix->template selfadjointView<Eigen::Lower>(), alpha);
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {
+            typename FTraits::FMatrix mX_mA;
+            mX.linear_combination(mA, mX_mA);
+            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX_mA.get_matrix(), alpha);
         }
         
-        virtual void add(Real alpha, const typename Ancestor::FMatrix &fMatrix, const typename Ancestor::Matrix &coefficients) {
-            // Invalidate the cache
-            mX = typename Ancestor::FMatrixPtr();
-            mD = typename Ancestor::RealVectorPtr();
-
-            if (const DenseMatrix<Scalar> *mf = dynamic_cast<const DenseMatrix<Scalar> *> (&fMatrix)) {
-                matrix->template selfadjointView<Eigen::Lower>().rankUpdate(mf->getMatrix() * coefficients, alpha);
-            } else 
-                BOOST_THROW_EXCEPTION(not_implemented_exception());
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(matrix.template selfadjointView<Eigen::Lower>());
+            kqp::thinEVD(evd, mY, mD);  
+            mX.swap(mY);
+            mY.resize(0,0);
         }
-
-
-        
-        virtual typename Ancestor::FMatrixCPtr getX() const {
-            compute();
-            return mX;
-        }
-        
-        virtual typename Ancestor::MatrixCPtr getY() const {
-            return typename Ancestor::MatrixCPtr();
-        }
-        
-        virtual typename Ancestor::RealVectorPtr getD() const {
-            compute();
-            return mD;
-        }
-        
-        void compute() const {
-            if (!mX.get()) {
-                typedef Eigen::SelfAdjointEigenSolver<typename Ancestor::Matrix> EigenSolver;
-                
-                // Swap vectors for efficiency
-                EigenSolver evd(matrix->template selfadjointView<Eigen::Lower>());
-                
-                mD = typename Ancestor::RealVectorPtr(new typename Ancestor::RealVector());
-                const_cast<typename Ancestor::RealVector&>(evd.eigenvalues()).swap(*mD);
-                // Take the square root, and set to zero eigenvalues which are negative (should 
-                // be very small negatives)
-                for(Index i = 0; i < mD->rows(); i++)
-                    if ((*mD)[i] < 0) (*mD)[i] = 0;
-                    else (*mD)[i] = Eigen::internal::sqrt((*mD)[i]);
-                
-                DenseMatrix<Scalar> *_mX = new DenseMatrix<Scalar>(matrix->rows());
-                mX = typename Ancestor::FMatrixPtr(_mX);
-                _mX->swap(const_cast<typename Ancestor::Matrix&>(evd.eigenvectors()));
-                
-            }
-        }
-        
-        
         
     public:
-        mutable typename Ancestor::RealVectorPtr mD;
-        mutable typename Ancestor::FMatrixPtr mX;
         
-        boost::shared_ptr<Matrix> matrix;
+        Matrix matrix;
     };
     
-    extern template class DenseDirectBuilder<double>;
-    extern template class DenseDirectBuilder<float>;
-    extern template class DenseDirectBuilder<std::complex<double> >;
-    extern template class DenseDirectBuilder<std::complex<float> >;
-
+    KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseDirectBuilder<, >;);
+    
     
 } // end namespace kqp
 
