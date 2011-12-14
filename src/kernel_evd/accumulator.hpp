@@ -47,10 +47,12 @@ namespace kqp{
         }
         
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {           
+            Index n = mA.cols() > 0 ? mA.cols() : mX.size();
+            
             Index offset = factors.rows();
-            factors.resize(offset + mA.cols());
+            factors.resize(offset + n);
             // FIXME: won't work if scalar is real and alpha is negative
-            factors.segment(offset, mA.cols()).setConstant(Eigen::internal::sqrt(alpha));
+            factors.segment(offset, n).setConstant(Eigen::internal::sqrt(alpha));
             
             // Just add the vectors using linear combination
             FMatrix fm;

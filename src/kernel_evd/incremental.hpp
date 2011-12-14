@@ -39,13 +39,15 @@ namespace kqp {
         typedef typename FTraits::Matrix Matrix;
         typedef typename FTraits::Scalar Scalar;
         typedef typename FTraits::Real Real;
+        typedef typename FTraits::RealVector RealVector;
+        typedef typename FTraits::ScalarVector ScalarVector;
         
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
         
         // Indirect comparator (decreasing order)
         struct Comparator {
-            const Vector &v;
-            Comparator(const Vector &v) : v(v) {}
+            const RealVector &v;
+            Comparator(const RealVector &v) : v(v) {}
             bool operator()(Index i, Index j) {
                 return this->v(i) > this->v(j);
             }
@@ -65,7 +67,7 @@ namespace kqp {
             // --- Pre-computations
             
             // Compute W = Y^T X^T
-            inner(mX, mU, k);
+            inner_views(mX, mU, k);
             Matrix mW;
             mW.noalias() = mY.adjoint() * k * mA;
             
@@ -81,7 +83,7 @@ namespace kqp {
             
             Matrix mZtW(mZ.cols() + vtv.rows(), mW.cols());
             mZtW.topRows(mZ.cols()) = mZ.adjoint() * mW;
-            mZtW.bottomRows(vtv.rows()) = evd.eigenvalues().asDiagonal();
+            mZtW.bottomRows(vtv.rows()) = evd.eigenvalues().template cast<Scalar>().asDiagonal();
             
             for(Index i = 0; i < mW.cols(); i++) {
                 EvdUpdateResult<Scalar> result;

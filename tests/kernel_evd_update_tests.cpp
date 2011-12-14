@@ -2,11 +2,11 @@
 
 #include "kqp.hpp"
 
+#include "feature_matrix/dense.hpp"
 #include "kernel_evd.hpp"
 #include "kernel_evd/dense_direct.hpp"
 #include "kernel_evd/accumulator.hpp"
 #include "kernel_evd/incremental.hpp"
-#include "feature_matrix/dense.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd")
 
@@ -18,19 +18,19 @@ namespace kqp {
      *
      * If one of the matrix is the zero matrix.
      */
-    template<class FMatrix>
-    double inner(const FMatrix &mX1, 
-                 const typename ftraits<FMatrix>::Matrix  &mY1,
-                 const typename ftraits<FMatrix>::RealVector &mD1,
+    template<class Derived>
+    double inner(const FeatureMatrix<Derived> &mX1, 
+                 const typename ftraits<Derived>::Matrix  &mY1,
+                 const typename ftraits<Derived>::RealVector &mD1,
                  
-                 const FMatrix &mX2, 
-                 const typename ftraits<FMatrix>::Matrix  &mY2,
-                 const typename ftraits<FMatrix>::RealVector &mD2) {
+                 const FeatureMatrix<Derived> &mX2, 
+                 const typename ftraits<Derived>::Matrix  &mY2,
+                 const typename ftraits<Derived>::RealVector &mD2) {
         
-        const typename ftraits<FMatrix>::Matrix k;
-        inner(mX1, mX2,k);
+        const typename ftraits<Derived>::Matrix k;
+        inner<Derived>(mX1.derived(), mX2.derived(),k);
         
-        switch ((is_empty(mD1) ? 8 : 0) + (is_empty(mY1) ? 4 : 0) + (is_empty(mY2) ? 2 : 0) + (is_empty(mD2) ? 1 : 0)) {
+        switch ((!is_empty(mD1) ? 8 : 0) + (!is_empty(mY1) ? 4 : 0) + (!is_empty(mY2) ? 2 : 0) + (!is_empty(mD2) ? 1 : 0)) {
             case 0: return k.squaredNorm();
             case 1: return (k * mD2.asDiagonal()).squaredNorm();
             case 2: return (k * mY2).squaredNorm();
@@ -61,14 +61,14 @@ namespace kqp {
      *
      * If one of the matrix pointer is null, it assumes identity.
      */
-    template<class FMatrix>
-    double inner(const FMatrix &mX, 
-                 const typename ftraits<FMatrix>::Matrix  &mY,
-                 const typename ftraits<FMatrix>::RealVector &mD) {
+    template<class Derived>
+    double inner(const FeatureMatrix<Derived> &mX, 
+                 const typename ftraits<Derived>::Matrix  &mY,
+                 const typename ftraits<Derived>::RealVector &mD) {
         
-        const typename ftraits<FMatrix>::Matrix& k = mX.inner();
+        const typename ftraits<Derived>::Matrix& k = mX.inner();
         
-        switch ((is_empty(mY) ? 2 : 0) + (is_empty(mD) ? 1 : 0)) {
+        switch ((!is_empty(mY) ? 2 : 0) + (!is_empty(mD) ? 1 : 0)) {
             case 0: return k.squaredNorm();
             case 1: return (mD.asDiagonal() * k * mD.asDiagonal()).squaredNorm();
             case 2: return (mY.adjoint() * k * mY).squaredNorm();
@@ -96,7 +96,7 @@ namespace kqp {
             
             Scalar alpha = Eigen::internal::abs(Eigen::internal::random_impl<Scalar>::run()) + 1e-3;
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(v, alpha);
-            builder.add(alpha, DenseMatrix<Scalar>(v), EMPTY<Scalar>::matrix);
+            builder.add(alpha, DenseMatrix<Scalar>(v), EMPTY<Scalar>::matrix());
         }
         
         // Computing via EVD
@@ -124,13 +124,14 @@ namespace kqp {
         
         builder.get_decomposition(mX, mY, mD);
         
+        mD = mD.cwiseAbs().cwiseSqrt();
         
         // || XX^T - UU^T||^2 = ||X^T X||^2 + ||U^T U||^2 - 2 ||U^T X||^2
         
-        double error = inner(mX, mY, mD);
+        double error = inner<typename FTraits::FMatrix>(mX, mY, mD);
         
-        error += inner<typename FTraits::FMatrix>(mU, EMPTY<Scalar>::matrix, mU_d);
-        error -= 2. * inner<typename FTraits::FMatrix>(mX, mY, mD, mU, EMPTY<Scalar>::matrix, mU_d);
+        error += inner<typename FTraits::FMatrix>(mU, EMPTY<Scalar>::matrix(), mU_d);
+        error -= 2. * inner<typename FTraits::FMatrix>(mX, mY, mD, mU, EMPTY<Scalar>::matrix(), mU_d);
         
         KQP_LOG_INFO(logger, "Squared error is " << error);
         

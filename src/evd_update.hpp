@@ -30,10 +30,12 @@ namespace kqp {
 	 */
 	template <typename scalar> class EvdUpdateResult {
     public:
+        typedef typename Eigen::NumTraits<scalar>::Real Real;
+
         /**
          * The eigenvalues
          */
-        Eigen::DiagonalMatrix<scalar, Eigen::Dynamic> mD;
+        Eigen::Matrix<Real, Eigen::Dynamic, 1> mD;
         
         /**
          * The eigenvectors
@@ -123,6 +125,11 @@ namespace kqp {
         double gamma;
         
     public:
+        typedef typename Eigen::NumTraits<scalar>::Real Real;
+        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
+        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> ScalarVector;
+        typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        
         /**
          * Default constructor
          */
@@ -142,11 +149,11 @@ namespace kqp {
          * @param keep Keep all the eigenvectors (even those of the not selected eigenvalues)
          *
          */
-        void update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
+        void update(const RealVector & D, 
                     double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
                     bool computeEigenvectors, const Selector *selector, bool keep,
                     EvdUpdateResult<scalar> &result,
-                    Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z = 0);
+                    ScalarMatrix * Z = 0);
         
         
     };

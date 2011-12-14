@@ -87,7 +87,7 @@ namespace kqp {
          * Returns true if the vectors can be linearly combined
          */
         bool can_linearly_combine() {
-            return Derived::can_linearly_combine();
+            return static_cast<Derived*>(this)->Derived::can_linearly_combine();
         }
 
         /** Add a feature vector */
@@ -99,10 +99,20 @@ namespace kqp {
                 this->add(f.get(i));
         }
         
+        
+        inline Derived &derived() {
+            return static_cast<Derived&>(*this);
+        }
+        
+        inline const Derived &derived() const {
+            return static_cast<const Derived&>(*this);
+        }
+
+        
 
         /** Get the i<sup>th</sup> feature vector */
         inline void set(Index i, const Derived &f) {
-            Derived::set(i, f);
+            static_cast<Derived*>(this)->Derived::set(i, f);
         }
         
         /** 
@@ -110,7 +120,7 @@ namespace kqp {
          * @param if swap is true, then the last vector will be swapped with one to remove (faster)
          */
         inline void remove(Index i, bool swap = false) {
-            Derived::remove(i, swap);
+            static_cast<Derived*>(this)->Derived::remove(i, swap);
         }
         
     };
@@ -118,20 +128,21 @@ namespace kqp {
     
     //! Compute an inner product of two feature matrices
     template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::Derived &mB, const typename Eigen::EigenBase<DerivedMatrix> &result) {
-        static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::EigenBase<DerivedMatrix>&>(result));
+    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::Derived &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
+        static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::MatrixBase<DerivedMatrix>&>(result));
     }
 
     //! Compute an inner product one inner matrix and one feature vector
     template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::FVector &x, const typename Eigen::EigenBase<DerivedMatrix> &result) {
+    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::FVector &x, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
         mA.inner(x, result);
     }
 
     //! Compute an inner product between a feature vector and a feature matrix
     template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::Derived &mA, const typename Eigen::EigenBase<DerivedMatrix> &result) {
-        mA.inner(x, result.adjoint());
+    void inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::Derived &mA, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
+        mA.inner(x, result);
+        const_cast<typename Eigen::MatrixBase<DerivedMatrix> &>(result).adjointInPlace();
     }
     
     //! Inner product of two feature vectors
@@ -144,20 +155,20 @@ namespace kqp {
     
     //! inner product of two views: use dynamic typing to determine which is our case
     template<typename Derived, class DerivedMatrix>
-    void inner(const FeatureMatrixView<Derived> &mA, const FeatureMatrixView<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {    
-        typedef typename FeatureMatrixView<Derived>::FTraits FTraits;
+    void inner_views(const FeatureMatrixView<Derived> &mA, const FeatureMatrixView<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {    
+        typedef ftraits<Derived> FTraits;
         typedef typename FTraits::FMatrix FMatrix;
         typedef typename FTraits::FVector FVector;
         typedef typename FTraits::Scalar Scalar;
 
         if (const FMatrix * _mA = dynamic_cast<const FMatrix *>(&mA)) {
             if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
-                inner(*_mA, *_mB, result);
+                inner<Derived, DerivedMatrix>(_mA->derived(), _mB->derived(), result);
                 return;
             } 
             
             if (const FVector * _mB = dynamic_cast<const FVector *>(&mB)) {
-                inner(*_mA, *_mB, result);                
+                inner<Derived, DerivedMatrix>(*_mA, *_mB, result);                
                 return;
             }
             
@@ -165,7 +176,7 @@ namespace kqp {
         
         if (const FVector * _mA = dynamic_cast<const FVector *>(&mA)) {
             if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
-                inner(*_mA, *_mB, result);
+                inner<Derived, DerivedMatrix>(*_mA, *_mB, result);
                 return;
             } 
             
@@ -184,7 +195,8 @@ namespace kqp {
     }
     
     //! Type informatino for feature matrices (feeds the ftraits structure)
-    template <class _FMatrix> struct FeatureMatrixTypes {};
+    template <class _FMatrix> struct FeatureMatrixTypes {
+    };
     
     /**
      * Feature Vector traits
@@ -212,8 +224,13 @@ namespace kqp {
         //! Vector with reals
         typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
         
-        //! Inner product matrix
+        /** Inner product matrix.
+         * @deprecated
+         */
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        
+        //! Inner product matrix
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
     }; 
     
 }

@@ -266,7 +266,7 @@ namespace kqp {
     
     
     template <typename scalar>
-    void FastRankOneUpdate<scalar>::update(const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & D, 
+    void FastRankOneUpdate<scalar>::update(const Eigen::Matrix<Real, Eigen::Dynamic, 1> & D, 
                                    double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
                                    bool computeEigenvectors, const Selector *selector, bool keep,
                                    EvdUpdateResult<scalar> &result,
@@ -545,10 +545,10 @@ namespace kqp {
         // then store them,
         int nbSelected = 0;
         int nbNaN = 0;
-        result.mD = Eigen::DiagonalMatrix<scalar, Eigen::Dynamic>(rank);
+        result.mD = RealVector(rank);
         for (size_t i = 0; i < rank; i++) {
             v[i]->newPosition = i;
-            result.mD.diagonal()(i) = v[i]->lambda;
+            result.mD(i) = v[i]->lambda;
             if (v[i]->isSelected())
                 nbSelected++;
             if (isNaN(v[i]->lambda))

@@ -31,7 +31,7 @@ def doit(name, n,r, g,W, x,z):
     print_cxx("z", z)
 
     print_cxx("g", g)
-    print_cxx("w.d.diagonal()", W['d'])
+    print_cxx("w.d", W['d'])
 
     print
     print "// Solve"

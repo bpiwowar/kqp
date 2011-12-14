@@ -18,6 +18,8 @@
 #ifndef __KQP_KERNEL_EVD_UTILS_H__
 #define __KQP_KERNEL_EVD_UTILS_H__
 
+#include <cassert>
+
 #include <Eigen/Eigenvalues>
 
 #include <Eigen/Core>
@@ -40,6 +42,7 @@ namespace kqp {
         Index negatives = 0, zeros = 0;
         
         for(Index i = 0; i < d.rows(); i++) {
+            assert(i==0 || d[i-1] <= d[i]);
             if (d[i] < 0 && -d[i] < threshold) negatives++;
             else if (d[i] < threshold) zeros++; 
             else break;
@@ -52,8 +55,8 @@ namespace kqp {
         eigenvalues.tail(positives) = d.tail(positives);
         
         eigenvectors.resize(evd.eigenvectors().rows(), positives + negatives);
-        eigenvectors.leftCols(positives) = evd.eigenvectors().leftCols(positives);
-        eigenvectors.rightCols(negatives) = evd.eigenvectors().rightCols(negatives);
+        eigenvectors.leftCols(negatives) = evd.eigenvectors().leftCols(negatives);
+        eigenvectors.rightCols(positives) = evd.eigenvectors().rightCols(positives);
     }
     
 }

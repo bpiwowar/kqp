@@ -111,8 +111,7 @@ namespace kqp {
     //! Returns an empty matrix (useful as a constant)
     template<typename Scalar>
     struct EMPTY {
-        static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> matrix;
-        static Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vector;
+        static const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& matrix();
     };
     
     template<typename Scalar>
@@ -126,9 +125,8 @@ namespace kqp {
     }
 
     
-    
-    KQP_FOR_ALL_SCALAR_TYPES(extern template struct EMPTY<, >);
-    
+    KQP_FOR_ALL_SCALAR_TYPES(extern template struct kqp::EMPTY<, >);
+
     // --- USEFUL MACROS ---
     
 

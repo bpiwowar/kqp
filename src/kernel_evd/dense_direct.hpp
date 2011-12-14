@@ -46,9 +46,18 @@ namespace kqp {
         }
         
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {
-            typename FTraits::FMatrix mX_mA;
-            mX.linear_combination(mA, mX_mA);
-            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX_mA.get_matrix(), alpha);
+            if (is_empty(mA))
+                if (const DenseMatrix<Scalar> * _mX = dynamic_cast<const DenseMatrix<Scalar>*>(&mX))
+                    matrix.template selfadjointView<Eigen::Lower>().rankUpdate(_mX->get_matrix(), alpha);
+                else if (const DenseVector<Scalar> * _mX = dynamic_cast<const DenseVector<Scalar>*>(&mX))
+                    matrix.template selfadjointView<Eigen::Lower>().rankUpdate(_mX->get(), alpha);
+                else 
+                    KQP_THROW_EXCEPTION_F(assertion_exception, "Expected a DenseMatrix or DenseVector, got %s", %KQP_DEMANGLE(mX));
+            else  {
+                typename FTraits::FMatrix mX_mA;
+                mX.linear_combination(mA, mX_mA);
+                matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX_mA.get_matrix(), alpha);
+            }
         }
         
         virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {

@@ -119,8 +119,8 @@ namespace kqp {
             KQP_VECTOR(Scalar) d, di, dnl, dnli;
             
             std::vector<Scalar> beta;
-            std::vector<Eigen::MatrixXd> r, rti;
-            std::vector<Eigen::MatrixXd> v;
+            std::vector<KQP_MATRIX(Scalar)> r, rti;
+            std::vector<KQP_MATRIX(Scalar)> v;
         };
         
         

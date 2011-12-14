@@ -509,8 +509,8 @@ namespace kqp { namespace cvxopt {
         if (mnl < 0) {
             mnl = 0;
         } else {
-            W.dnl.diagonal() = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
-            W.dnli = W.dnl.inverse();
+            W.dnl = (s.segment(0, mnl).array() / z.segment(0, mnl).array()).sqrt();
+            W.dnli = W.dnl.cwiseInverse();
             lmbda.segment(0,mnl) = (s.segment(0, mnl).array() * z.segment(0, mnl).array()).sqrt();
         }
         
@@ -524,8 +524,8 @@ namespace kqp { namespace cvxopt {
         // lambda_k is stored in the firstdims.l positions of lmbda.
         
         long m = dims.l;
-        W.d.diagonal() = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
-        W.di = W.d.inverse();
+        W.d = (s.segment(mnl, m).array() / z.segment(mnl, m).array()).sqrt();
+        W.di = W.d.cwiseInverse();
         
         lmbda.segment(mnl, m) = (s.segment(mnl, m).array() * z.segment(mnl, m).array()).sqrt();
         
@@ -695,12 +695,12 @@ namespace kqp { namespace cvxopt {
         
         // d := d .* s .* z 
         if (mnl > 0) {
-            W.dnl.diagonal() = W.dnl.diagonal().segment(0,mnl).array() * s.segment(0, mnl).array() / z.segment(0, mnl).array();
-            W.dnli = W.dnl.inverse();
+            W.dnl = W.dnl.segment(0,mnl).array() * s.segment(0, mnl).array() / z.segment(0, mnl).array();
+            W.dnli = W.dnl.cwiseInverse();
         }
         
-        W.d.diagonal() = W.d.diagonal().array() * s.segment(mnl, ml).array() / z.segment(0, ml).array();
-        W.di = W.d.inverse();
+        W.d = W.d.array() * s.segment(mnl, ml).array() / z.segment(0, ml).array();
+        W.di = W.d.cwiseInverse();
         
         // lmbda := s .* z
         
@@ -1070,11 +1070,14 @@ namespace kqp { namespace cvxopt {
     void coneqp(const QPMatrix<Scalar> &P, KQP_VECTOR(Scalar) &q,
                 ConeQPReturn<Scalar> &result,
                 bool initVals,
-                Dimensions dims,
+                Dimensions dims, 
                 const QPMatrix<Scalar> *_G, KQP_VECTOR(Scalar)* _h, 
                 KQP_MATRIX(Scalar) *_A, KQP_VECTOR(Scalar) *_b,
                 KKTPreSolver<Scalar>* kktpresolver, 
                 ConeQPOptions<Scalar> options) {
+        
+        typedef KQP_VECTOR(Scalar) Vector;
+        typedef KQP_MATRIX(Scalar) Matrix;
         
         const Scalar STEP = 0.99;
         const Scalar EXPON = 3;
@@ -1189,10 +1192,10 @@ namespace kqp { namespace cvxopt {
         // HERE was res (moved to cvxopt_res)
         
         
-        Scalar resx0 = std::max(1.0, q.norm());
-        Scalar resy0 = std::max(1.0, b.norm());
+        Scalar resx0 = std::max((Scalar)1, q.norm());
+        Scalar resy0 = std::max((Scalar)1, b.norm());
         
-        Scalar resz0 = std::max(1.0, snrm2(h, dims));
+        Scalar resz0 = std::max((Scalar)1, snrm2(h, dims));
         
         ConeQPReturn<Scalar> &r = result;
         KQP_VECTOR(Scalar) &x = r.x, &y = r.y, &z = r.z, &s = r.s;
@@ -1261,7 +1264,7 @@ namespace kqp { namespace cvxopt {
             //     [ G   0  -I  ]
             
             ScalingMatrix<Scalar> W; 
-            W.d.setIdentity(dims.l);
+            W.d = Vector::Ones(dims.l);
             W.di = W.d;
             
             for(IntIterator m = dims.q.begin(); m != dims.q.end(); m++) 
@@ -1314,7 +1317,7 @@ namespace kqp { namespace cvxopt {
             // Ensures s is positive
             Scalar nrms = snrm2(s, dims);
             Scalar ts = max_step(s, dims);
-            if (ts >= -1e-8 * std::max(nrms, 1.0)) {  
+            if (ts >= -1e-8 * std::max(nrms, (Scalar)1)) {  
                 Scalar a = 1.0 + ts;
                 s.segment(0, dims.l).array() += a;
                 
@@ -1333,7 +1336,7 @@ namespace kqp { namespace cvxopt {
             // ensures z is positive
             Scalar nrmz = snrm2(z, dims);
             Scalar tz = max_step(z, dims);
-            if (tz >= -1e-8 * std::max(nrmz, 1.0)) {
+            if (tz >= -1e-8 * std::max(nrmz, (Scalar)1)) {
                 Scalar a = 1.0 + tz;
                 z.segment(0, dims.l).array() += a;
                 
@@ -1513,7 +1516,7 @@ namespace kqp { namespace cvxopt {
                 KQP_LOG_DEBUG(logger, "lmbda=" << convert(lmbda.adjoint()));
             }
             
-            KQP_LOG_DEBUG(logger, "scaling(d)=" << convert(W.d.diagonal().adjoint()));
+            KQP_LOG_DEBUG(logger, "scaling(d)=" << convert(W.d));
             
             ssqr(lmbdasq, lmbda, dims);
             KQP_LOG_DEBUG(logger, "lmbdasq=" << convert(lmbdasq.adjoint()));
@@ -1673,17 +1676,17 @@ namespace kqp { namespace cvxopt {
                 }
                 
                 
-                Scalar t = std::max(std::max(0.0, ts), tz);
+                Scalar t = std::max(std::max((Scalar)0, ts), tz);
                 if (t == 0)
                     step = 1.0;
                 else
                     if (i == 0)
                         step = std::min(1.0, 1.0 / t);
                     else
-                        step = std::min(1.0, STEP / t);
+                        step = std::min((Scalar)1, STEP / t);
                 if (i == 0) {
-                    sigma = std::pow(std::min(1.0, std::max(0.0, 
-                                                            1.0 - step + dsdz/gap * step*step)), EXPON);
+                    sigma = std::pow(std::min((Scalar)1, std::max((Scalar)0, 
+                                                            (Scalar)1 - step + dsdz/gap * step*step)), EXPON);
                     eta = 0.0;
                 }
             }
@@ -2650,15 +2653,18 @@ namespace kqp { namespace cvxopt {
      }
      */
 
-#define IMPL_CONEQP(Scalar) template<> \
-void coneqp<Scalar>(const QPMatrix<Scalar> &P, KQP_VECTOR(Scalar) &q,\
-    ConeQPReturn<Scalar> &result,\
-    bool initVals,\
-    Dimensions dims,\
-    const QPMatrix<Scalar> *_G, KQP_VECTOR(Scalar)* _h, \
-    KQP_MATRIX(Scalar) *_A, KQP_VECTOR(Scalar) *_b,\
-    KKTPreSolver<Scalar>* kktpresolver, \
-    ConeQPOptions<Scalar> options)    
+#define IMPL_CONEQP(Scalar) template \
+void coneqp<Scalar>(const QPMatrix<Scalar> &P, KQP_VECTOR(Scalar) &q, \
+    ConeQPReturn<Scalar> &result, \
+    bool initVals, \
+    Dimensions dims, \
+    const QPMatrix<Scalar> *_G, KQP_VECTOR(Scalar)* _h,  \
+    KQP_MATRIX(Scalar) *_A, KQP_VECTOR(Scalar) *_b, \
+    KKTPreSolver<Scalar>* kktpresolver,  \
+    ConeQPOptions<Scalar> options); \
+    \
+    template struct ConeQPOptions<Scalar>;\
+    template struct ConeQPReturn<Scalar>;
     
     IMPL_CONEQP(double);
     IMPL_CONEQP(float);

@@ -28,16 +28,16 @@ namespace kqp {
         Eigen::LLT<KQP_MATRIX(Scalar)> L44;
     public:
         KQP_KKTSolver(const Eigen::LLT<KQP_MATRIX(Scalar)> &cholK, const KQP_MATRIX(Scalar) &B, const KQP_MATRIX(Scalar) &BBT, const cvxopt::ScalingMatrix<Scalar> &w) 
-        : cholK(cholK), B(B), BBT(BBT), n(B.cols()), r(w.d.diagonal().size() / n / 2) , Wd(w.d)
+        : cholK(cholK), B(B), BBT(BBT), n(B.cols()), r(w.d.size() / n / 2) , Wd(w.d)
         {
             // The scaling matrix has dimension r * n * 2
             KQP_LOG_DEBUG(logger, "Preparing the KKT solver of dimension r=" << convert(r) << " and n=" << convert(n));
             
             // Gets U and V
-            KQP_VECTOR(Scalar) U = w.d.diagonal().topRows(r*n);
+            KQP_VECTOR(Scalar) U = w.d.topRows(r*n);
             U.array() = U.array() * U.array();
             
-            KQP_VECTOR(Scalar) V = w.d.diagonal().bottomRows(r*n);
+            KQP_VECTOR(Scalar) V = w.d.bottomRows(r*n);
             V.array() = V.array() * V.array();
             
             // Computes L22[i]
@@ -167,7 +167,7 @@ namespace kqp {
             
             
             // Scale z
-            z.array() *= Wd.diagonal().array();
+            z.array() *= Wd.array();
         }
         
         

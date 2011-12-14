@@ -57,7 +57,7 @@ int main(int argc, const char **argv) {
     } catch(exception &e) {
 
         std::cerr << e.what() << std::endl;
-        return 1;
+        throw;
     }    
     return 1;
 }

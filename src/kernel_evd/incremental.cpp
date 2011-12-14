@@ -3,5 +3,5 @@
 #include "incremental.hpp"
 
 namespace kqp {
-    KQP_KERNEL_EVD_INSTANCIATION(extern, IncrementalKernelEVD);
+    KQP_KERNEL_EVD_INSTANCIATION(, IncrementalKernelEVD);
 }

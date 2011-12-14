@@ -29,11 +29,13 @@ namespace kqp {
      */
     template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int nzeroD, int nzeroZ) {
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> Vector;
+        typedef typename Eigen::NumTraits<scalar>::Real Real;
+        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
+        typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> ScalarVector;
         
         std::srand(seed);
 
-        Vector D(dim);
+        RealVector D(dim);
         for(int i = 0; i < dim; i++)
             D(i) = std::rand();
         
@@ -42,7 +44,7 @@ namespace kqp {
             FastRankOneUpdate<scalar> updater;
 
             double rho = rhos[i];
-            Vector z(dim);    
+            ScalarVector z(dim);    
             for(int i = 0; i < dim; i++)
                 z(i) = rand();
             
@@ -51,12 +53,11 @@ namespace kqp {
             
             
             Matrix zzt = z*z.adjoint();
-            Matrix mD = D.asDiagonal();
-            Matrix delta = result.mQ * result.mD * result.mQ.adjoint() - (mD + rho * z * z.adjoint());
+            Matrix delta = result.mQ * result.mD.asDiagonal() * result.mQ.adjoint() - (Matrix(D.template cast<scalar>().asDiagonal()) + rho * z * z.adjoint());
             
             double error = delta.norm();
             
-            KQP_LOG_INFO(logger, "Error is ");
+            KQP_LOG_INFO(logger, boost::format("Error is %g") % error);
             if (error < tolerance) return 0;
 
             return 1;

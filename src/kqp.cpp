@@ -13,8 +13,14 @@ namespace kqp {
 
 double EPSILON = 1e-15;
 
-KQP_FOR_ALL_SCALAR_TYPES(template struct EMPTY<, >);
-
+    
+    template<typename Scalar> const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& EMPTY<Scalar>::matrix() { 
+        const static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> matrix;
+        return matrix; 
+    }
+    
+  KQP_FOR_ALL_SCALAR_TYPES(template struct kqp::EMPTY<, >);
+    
 #ifndef NOLOGGING
 const LoggerInit __LOGGER_INIT;
 
@@ -23,6 +29,7 @@ bool LoggerInit::check() {
 }
 
 LoggerInit::LoggerInit() {
+   
 //    log4cxx::BasicConfigurator::configure();
     
     log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
@@ -37,6 +44,7 @@ LoggerInit::LoggerInit() {
 #endif
 
 }
+
 
 /** 
  
