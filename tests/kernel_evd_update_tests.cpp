@@ -14,6 +14,57 @@ namespace kqp {
     namespace { double tolerance = 1e-10; }
     
     /**
+     * Computes tr( X1 Y1 D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T)
+     *
+     * If one of the matrix is the zero matrix.
+     */
+    template<class Derived>
+    double trace_function(const FeatureMatrix<Derived> &mX1, 
+                          const typename ftraits<Derived>::Matrix  &mY1,
+                          const typename ftraits<Derived>::RealVector &mD1,
+                          
+                          const FeatureMatrix<Derived> &mX2, 
+                          const typename ftraits<Derived>::Matrix  &mY2,
+                          const typename ftraits<Derived>::RealVector &mD2) {
+        typedef typename ftraits<Derived>::ScalarVector Vector;
+        typename ftraits<Derived>::Matrix m;
+        inner<Derived>(mX1.derived(), mX2.derived(),m);
+        
+        if (!is_empty(mY1)) 
+            m = mY1.adjoint() * m;
+        
+        if (!is_empty(mY2))
+            m = m * mY2;
+        
+        // Computes trace ( D1 * m * D2 * m^T ) 
+        double trace = 0;
+        switch( (!is_empty(mD1) ? 2 : 0) + (!is_empty(mD2) ? 1 : 0)) {
+            case 0: return m.squaredNorm();
+                
+            case 1:
+                for(Index i = 0; i < m.rows(); i++)
+                    trace +=  mD1(i) * m.row(i).adjoint().dot(m.row(i).adjoint());
+                break;
+                
+            case 2:
+                for(Index i = 0; i < m.rows(); i++)
+                    trace += m.row(i).adjoint().cwiseProduct(mD2).dot(m.row(i).adjoint());
+                break;
+                
+            case 3:
+                for(Index i = 0; i < m.rows(); i++) {
+                    Vector x = m.row(i).adjoint().cwiseProduct(mD2);
+                    Vector y = m.row(i).adjoint();
+                    
+                    trace += mD1[i] * x.dot(y);
+                }
+                break;
+        }
+        
+        
+        return trace;
+    }
+    /**
      * Computes || D1^T Y1^T X1^T X2 Y2 D2 ||^2.
      *
      * If one of the matrix is the zero matrix.
@@ -109,32 +160,25 @@ namespace kqp {
         DenseMatrix<Scalar>  mU(mL);
         Eigen::Matrix<Scalar, Eigen::Dynamic, 1> mU_d = ldlt.vectorD();
         
-        for(Index i = 0; i < mU_d.size(); i++)
-            if (mU_d[i] < 0) mU_d[i] = 0;
-        mU_d = mU_d.cwiseSqrt();
         
         
         
         // Comparing the results
-        KQP_LOG_INFO(logger, "Comparing the decompositions");
         
+        KQP_LOG_INFO(logger, "Retrieving the decomposition");
         typename FTraits::FMatrix mX;
         typename FTraits::Matrix mY;
         typename FTraits::RealVector mD;
         
         builder.get_decomposition(mX, mY, mD);
         
-        mD = mD.cwiseAbs().cwiseSqrt();
+        // Computing the difference between operators || U1 - U2 ||^2
         
-        // || XX^T - UU^T||^2 = ||X^T X||^2 + ||U^T U||^2 - 2 ||U^T X||^2
-        
-        double error = inner<typename FTraits::FMatrix>(mX, mY, mD);
-        
-        error += inner<typename FTraits::FMatrix>(mU, EMPTY<Scalar>::matrix(), mU_d);
-        error -= 2. * inner<typename FTraits::FMatrix>(mX, mY, mD, mU, EMPTY<Scalar>::matrix(), mU_d);
-        
+        KQP_LOG_INFO(logger, "Comparing the decompositions");
+        double error = trace_function(mX, mY, mD, mX, mY, mD);       
+        error += trace_function(mU, EMPTY<Scalar>::matrix(), mU_d, mU, EMPTY<Scalar>::matrix(), mU_d);
+        error -= 2. * trace_function(mX, mY, mD, mU, EMPTY<Scalar>::matrix(), mU_d);
         KQP_LOG_INFO(logger, "Squared error is " << error);
-        
         return error < tolerance ? 0 : 1;
     }
     

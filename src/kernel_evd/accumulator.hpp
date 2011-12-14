@@ -47,16 +47,9 @@ namespace kqp{
         }
         
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {           
-            Index n = mA.cols() > 0 ? mA.cols() : mX.size();
-            
-            Index offset = factors.rows();
-            factors.resize(offset + n);
-            // FIXME: won't work if scalar is real and alpha is negative
-            factors.segment(offset, n).setConstant(Eigen::internal::sqrt(alpha));
-            
             // Just add the vectors using linear combination
             FMatrix fm;
-            mX.linear_combination(mA, fm);
+            mX.linear_combination(mA, fm, Eigen::internal::sqrt(alpha));
             fMatrix.addAll(fm);
         }
         
@@ -64,20 +57,18 @@ namespace kqp{
         
         //! Actually performs the computation
         virtual void get_decomposition(FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
-            const typename FMatrix::Matrix gram = factors.asDiagonal() * fMatrix.inner() * factors.asDiagonal();
+            const typename FMatrix::Matrix& gram = fMatrix.inner();
             
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
             kqp::thinEVD(evd, mY, mD);
             
+            mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
             mX = fMatrix;
         }
         
     private:
         //! concatenation of pre-image matrices
-        FMatrix fMatrix;
-        
-        //! Factors
-        typename FTraits::ScalarVector factors;
+        FMatrix fMatrix;        
     };
     
     

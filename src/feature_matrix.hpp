@@ -32,7 +32,8 @@ namespace kqp {
         typedef ftraits<Derived> FTraits;
         typedef typename FTraits::FMatrix FMatrix;
         typedef typename FTraits::FVector FVector;
-        
+        typedef typename FTraits::Scalar Scalar;
+
         virtual ~FeatureMatrixView() {}
         
         /** 
@@ -40,11 +41,11 @@ namespace kqp {
          * 
          * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
          */
-        inline void linear_combination(const typename FTraits::Matrix & mA, Derived &result) const {
+        inline void linear_combination(const typename FTraits::Matrix & mA, Derived &result, Scalar alpha = (Scalar)1) const {
             if (const FMatrix * _this = dynamic_cast<const FMatrix *>(this)) {
-                _this->_linear_combination(mA, result);
-            } else if (const FMatrix * _this = dynamic_cast<const FMatrix *>(this)) {
-                _this->_linear_combination(mA, result);
+                _this->_linear_combination(alpha, mA, result);
+            } else if (const FVector * _this = dynamic_cast<const FVector *>(this)) {
+                _this->_linear_combination(alpha, mA, result);
             } else 
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot handle a type which is neither feature-vector nor feature-matrix", % KQP_DEMANGLE(*this));
         }

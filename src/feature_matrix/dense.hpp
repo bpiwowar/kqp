@@ -38,8 +38,8 @@ namespace kqp {
             return matrix.get_matrix().col(column); 
         }
         
-        void _linear_combination(const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
-            typename FTraits::Matrix m = this->get() * mA;
+        void _linear_combination(Scalar alpha, const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
+            typename FTraits::Matrix m = alpha * this->get() * mA;
             result.swap(m);
         }
         
@@ -115,7 +115,7 @@ namespace kqp {
         
         virtual void add(const typename FTraits::FVector &f)  {
             Index n = matrix.cols();
-            matrix.resize(matrix.rows() != 0 ? matrix.rows() : f.matrix.matrix.rows(), n + 1);
+            matrix.conservativeResize(matrix.rows() != 0 ? matrix.rows() : f.matrix.matrix.rows(), n + 1);
             matrix.col(n) = f.get();
         }
         
@@ -130,7 +130,7 @@ namespace kqp {
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Expected a vector got a matrix with %d columns", % vector.cols());
             
             Index n = matrix.cols();
-            matrix.resize(matrix.rows(), n + 1);
+            matrix.conservativeResize(matrix.rows(), n + 1);
             matrix.col(n) = vector;
         }
         
@@ -149,7 +149,7 @@ namespace kqp {
                 for(Index j = i + 1; j <= last; j++)
                     matrix.col(i-1) = matrix.col(i);
             }
-            matrix.resize(matrix.rows(), last);
+            matrix.conservativeResize(matrix.rows(), last);
             
         }
         
@@ -167,7 +167,7 @@ namespace kqp {
             // We lose space here, could be used otherwise???
             Index current = gramMatrix.rows();
             if (current < size()) 
-                gramMatrix.resize(size(), size());
+                gramMatrix.conservativeResize(size(), size());
             
             Index tofill = size() - current;
             
@@ -194,15 +194,18 @@ namespace kqp {
     protected:
         friend class FeatureMatrixView<typename FTraits::FMatrix>;
         
-        void _linear_combination(const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
+        void _linear_combination(Scalar alpha, const typename FTraits::Matrix & mA, typename FTraits::FMatrix &result) const {
             if (&result != this) {
                 if (!is_empty(mA))
-                    result.matrix.noalias() = get_matrix() * mA;
+                    result.matrix.noalias() = alpha * get_matrix() * mA;
                 else 
-                    result.matrix = get_matrix();
+                    result.matrix = alpha * get_matrix();
             } else
                 if (!is_empty(mA))
-                    result.matrix = get_matrix() * mA;
+                    result.matrix = alpha * get_matrix() * mA;
+                else if (alpha != (Scalar)1)
+                    result.matrix *= alpha;
+            
         }
         
     private:
