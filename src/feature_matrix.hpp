@@ -82,7 +82,9 @@ namespace kqp {
 
         typedef _Derived Derived;
         typedef ftraits<Derived> FTraits;
-
+        typedef typename FTraits::FMatrix FMatrix;
+        typedef typename FTraits::FVector FVector;
+        
 
         /**
          * Returns true if the vectors can be linearly combined
@@ -94,10 +96,19 @@ namespace kqp {
         /** Add a feature vector */
         virtual void add(const typename FTraits::FVector &f) = 0;
 
-        /** Add a list of feature vectors from a feature matrix */
-        virtual void addAll(const Derived &f) {
+        virtual void add(const Derived &f) {
             for(Index i = 0; i < f.size(); i++)
                 this->add(f.get(i));
+        }
+        
+        /** Add a list of feature vectors from a feature matrix */
+        virtual void addAll(const FeatureMatrixView<Derived> &f) {
+            if (const FMatrix * _f = dynamic_cast<const FMatrix *>(&f)) {
+                this->add(*_f);
+            } else if (const FVector * _f = dynamic_cast<const FVector *>(&f)) {
+                this->add(*_f);
+            } else 
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot handle a type which is neither feature-vector nor feature-matrix", % KQP_DEMANGLE(f));
         }
         
         
@@ -206,7 +217,12 @@ namespace kqp {
     struct ftraits {
         //! Ourselves
         typedef _FMatrix FMatrix;
-
+        
+        //! Definitions
+        enum {
+            can_linearly_combine = FeatureMatrixTypes<FMatrix>::can_linearly_combine  
+        };
+        
         //! Scalar value
         typedef typename FeatureMatrixTypes<FMatrix>::Scalar Scalar;
         

@@ -30,3 +30,6 @@ do_test(kqp-qp-random "kqp-qp-solver" "random")
 
 do_test(kernel-evd-direct kernel-evd direct-builder)
 do_test(kernel-evd-accumulator kernel-evd accumulator)
+do_test(kernel-evd-accumulator-no-lc kernel-evd accumulator-no-lc)
+do_test(kernel-evd-incremental kernel-evd incremental)
+

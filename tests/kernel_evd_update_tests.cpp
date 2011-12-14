@@ -194,6 +194,11 @@ namespace kqp {
             return direct_evd(n, 5, builder);
         } else if (name == "accumulator") {
             AccumulatorKernelEVD<DenseMatrix<double> > builder;
+            assert(AccumulatorKernelEVD<DenseMatrix<double> >::use_linear_combination);
+            return direct_evd(n, 5, builder);            
+        }  else if (name == "accumulator-no-lc") {
+            // No linear combination allowed
+            AccumulatorKernelEVD<DenseMatrix<double>, false > builder;
             return direct_evd(n, 5, builder);            
         } else if (name == "incremental") {
             IncrementalKernelEVD<DenseMatrix<double> > builder;

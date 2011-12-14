@@ -220,6 +220,9 @@ namespace kqp {
     template <typename _Scalar> struct FeatureMatrixTypes<DenseMatrix<_Scalar> > {
         typedef _Scalar Scalar;
         typedef DenseVector<Scalar> FVector;
+        enum {
+            can_linearly_combine = 1
+        };
     };
     
     
