@@ -47,7 +47,7 @@ SOURCE_GROUP("Kernel EVD" FILES ${kqp_operator_builder_SRC})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
 
-add_library (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_SRC})
+add_library (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_SRC} "src/Eigen")
 
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 

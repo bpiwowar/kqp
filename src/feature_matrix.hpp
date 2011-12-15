@@ -22,48 +22,6 @@
 #include "kqp.hpp"
 
 namespace kqp {
-
-    // Forward declaration of feature matrix traits
-    template<class T> struct ftraits;
-    
-    template<class Derived>
-    class FeatureMatrixView {
-    public:
-        typedef ftraits<Derived> FTraits;
-        typedef typename FTraits::FMatrix FMatrix;
-        typedef typename FTraits::FVector FVector;
-        typedef typename FTraits::Scalar Scalar;
-
-        virtual ~FeatureMatrixView() {}
-        
-        /** 
-         * @brief Linear combination of the feature vectors.
-         * 
-         * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
-         */
-        inline void linear_combination(const typename FTraits::Matrix & mA, Derived &result, Scalar alpha = (Scalar)1) const {
-            if (const FMatrix * _this = dynamic_cast<const FMatrix *>(this)) {
-                _this->_linear_combination(alpha, mA, result);
-            } else if (const FVector * _this = dynamic_cast<const FVector *>(this)) {
-                _this->_linear_combination(alpha, mA, result);
-            } else 
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot handle a type which is neither feature-vector nor feature-matrix", % KQP_DEMANGLE(*this));
-        }
-        
-        /** Get a const reference to the i<sup>th</sup> feature vector */
-        virtual const typename FTraits::FVector get(Index i) const = 0;
-
-        /** Get the number of feature vectors */
-        virtual Index size() const = 0;
-        
-        
-        /**
-         * @brief Computes the Gram matrix of this feature matrix
-         * @return A dense self-adjoint matrix
-         */
-        virtual const typename FTraits::Matrix & inner() const = 0;
-    };
-    
     /**
      * @brief Base for all feature matrix classes
      * 
@@ -77,13 +35,12 @@ namespace kqp {
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
     template <class _Derived> 
-    class FeatureMatrix : public FeatureMatrixView<_Derived> {
+    class FeatureMatrix {
     public:       
 
         typedef _Derived Derived;
         typedef ftraits<Derived> FTraits;
         typedef typename FTraits::FMatrix FMatrix;
-        typedef typename FTraits::FVector FVector;
         
 
         /**
@@ -93,24 +50,11 @@ namespace kqp {
             return static_cast<Derived*>(this)->Derived::can_linearly_combine();
         }
 
-        /** Add a feature vector */
-        virtual void add(const typename FTraits::FVector &f) = 0;
-
+        /** Add all vectors */
         virtual void add(const Derived &f) {
             for(Index i = 0; i < f.size(); i++)
                 this->add(f.get(i));
         }
-        
-        /** Add a list of feature vectors from a feature matrix */
-        virtual void addAll(const FeatureMatrixView<Derived> &f) {
-            if (const FMatrix * _f = dynamic_cast<const FMatrix *>(&f)) {
-                this->add(*_f);
-            } else if (const FVector * _f = dynamic_cast<const FVector *>(&f)) {
-                this->add(*_f);
-            } else 
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot handle a type which is neither feature-vector nor feature-matrix", % KQP_DEMANGLE(f));
-        }
-        
         
         inline Derived &derived() {
             return static_cast<Derived&>(*this);
@@ -120,11 +64,66 @@ namespace kqp {
             return static_cast<const Derived&>(*this);
         }
 
+        /**
+         * Set the feature matrix to another one
+         */
+        inline void set(Index i, const Derived &f) {
+            this->view(i)._set(f);
+        }
         
+        //! View on the i<sup>th</sup> feature vector
+        const Self view(Index i) const { 
+            return this->view(i,1);
+        }
+
+
 
         /** Get the i<sup>th</sup> feature vector */
-        inline void set(Index i, const Derived &f) {
-            static_cast<Derived*>(this)->Derived::set(i, f);
+        inline void set(const Derived &f) {
+            if (f.size() != size())
+                KQP_THROW_EXCEPTION(out_of_bounds, "Can only assign feature matrices of same size (%d vs %d)", size(), f.size());
+            static_cast<Derived*>(this)->Derived::_set(f);
+        }
+        
+        
+        /** 
+         * @brief Linear combination of the feature vectors.
+         * 
+         * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
+         */
+        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA) const {
+            // Check for correctedness
+            if (mA.rows() != this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bounds, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
+
+            // If we have no columns in A, then return an empty feature matrix
+            if (mA.cols() == 0)
+                return Derived();
+                    
+            // Call the derived
+            static_cast<Derived*>(this)->Derived::_linear_combination(mA, result);
+        }
+                
+        /** Get a view of a range of pre-images */
+        inline const typename Derived view(Index start, Index size) const {
+            if (start + size >= this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
+
+            return static_cast<Derived*>(this)->Derived::view(start, size);
+        }
+        
+        /** Get the number of feature vectors */
+        inline Index size() const {
+            return static_cast<Derived*>(this)->Derived::size();            
+        }
+        
+        
+        /**
+         * @brief Computes the Gram matrix of this feature matrix
+         * @return A dense self-adjoint matrix
+         */
+        const typename FTraits::Matrix & inner() const {
+            return static_cast<Derived*>(this)->Derived::inner();
         }
         
         /** 
@@ -144,67 +143,6 @@ namespace kqp {
         static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::MatrixBase<DerivedMatrix>&>(result));
     }
 
-    //! Compute an inner product one inner matrix and one feature vector
-    template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::FVector &x, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
-        mA.inner(x, result);
-    }
-
-    //! Compute an inner product between a feature vector and a feature matrix
-    template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::Derived &mA, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
-        mA.inner(x, result);
-        const_cast<typename Eigen::MatrixBase<DerivedMatrix> &>(result).adjointInPlace();
-    }
-    
-    //! Inner product of two feature vectors
-    template<typename Derived>
-    typename ftraits<Derived>::Scalar
-    inner(const typename FeatureMatrix<Derived>::FVector &x, const typename FeatureMatrix<Derived>::FVector &y) {
-        typedef typename FeatureMatrix<Derived>::FVector FVector;
-        return static_cast<FVector&>(x).inner(static_cast<const FVector&>(y));
-    }
-    
-    //! inner product of two views: use dynamic typing to determine which is our case
-    template<typename Derived, class DerivedMatrix>
-    void inner_views(const FeatureMatrixView<Derived> &mA, const FeatureMatrixView<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {    
-        typedef ftraits<Derived> FTraits;
-        typedef typename FTraits::FMatrix FMatrix;
-        typedef typename FTraits::FVector FVector;
-        typedef typename FTraits::Scalar Scalar;
-
-        if (const FMatrix * _mA = dynamic_cast<const FMatrix *>(&mA)) {
-            if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
-                inner<Derived, DerivedMatrix>(_mA->derived(), _mB->derived(), result);
-                return;
-            } 
-            
-            if (const FVector * _mB = dynamic_cast<const FVector *>(&mB)) {
-                inner<Derived, DerivedMatrix>(*_mA, *_mB, result);                
-                return;
-            }
-            
-        } 
-        
-        if (const FVector * _mA = dynamic_cast<const FVector *>(&mA)) {
-            if (const FMatrix * _mB = dynamic_cast<const FMatrix *>(&mB)) {
-                inner<Derived, DerivedMatrix>(*_mA, *_mB, result);
-                return;
-            } 
-            
-            if (const FVector * _mB = dynamic_cast<const FVector *>(&mB)) {
-                // both vectors: returns a scalar
-                typename Eigen::MatrixBase<DerivedMatrix> & _result = const_cast<typename Eigen::MatrixBase<DerivedMatrix> &>(result);
-                Scalar z = _mA->inner<DerivedMatrix>(*_mB);
-                _result.derived().resize(1,1);
-                _result(0,0) = z;
-                return;
-            }
-        }
-        
-        KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot do an inner product between %s and %s", % KQP_DEMANGLE(mA) % KQP_DEMANGLE(mB));
-
-    }
     
     //! Type informatino for feature matrices (feeds the ftraits structure)
     template <class _FMatrix> struct FeatureMatrixTypes {
@@ -225,13 +163,7 @@ namespace kqp {
         
         //! Scalar value
         typedef typename FeatureMatrixTypes<FMatrix>::Scalar Scalar;
-        
-        //! Vector view on this type
-        typedef typename FeatureMatrixTypes<FMatrix>::FVector FVector;
-
-        //! View on this type
-        typedef FeatureMatrixView<FMatrix> FMatrixView;
-                
+                        
         //! Vector of scalars
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> ScalarVector;
         
