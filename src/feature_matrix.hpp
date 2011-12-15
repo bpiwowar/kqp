@@ -20,6 +20,7 @@
 
 
 #include "kqp.hpp"
+#include "alt_matrix.hpp"
 
 namespace kqp {
     /**
@@ -39,7 +40,7 @@ namespace kqp {
     public:       
 
         typedef _Derived Derived;
-        typedef ftraits<Derived> FTraits;
+        typedef kqp::ftraits<Derived> FTraits;
         typedef typename FTraits::FMatrix FMatrix;
         
 
@@ -72,7 +73,7 @@ namespace kqp {
         }
         
         //! View on the i<sup>th</sup> feature vector
-        const Self view(Index i) const { 
+        const Derived view(Index i) const { 
             return this->view(i,1);
         }
 
@@ -81,7 +82,7 @@ namespace kqp {
         /** Get the i<sup>th</sup> feature vector */
         inline void set(const Derived &f) {
             if (f.size() != size())
-                KQP_THROW_EXCEPTION(out_of_bounds, "Can only assign feature matrices of same size (%d vs %d)", size(), f.size());
+                KQP_THROW_EXCEPTION(out_of_bounds, "Can only assign feature matrices of same size (%d vs %d)", %this->size() %f.size());
             static_cast<Derived*>(this)->Derived::_set(f);
         }
         
