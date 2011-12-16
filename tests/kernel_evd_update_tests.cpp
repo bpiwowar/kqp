@@ -147,7 +147,7 @@ namespace kqp {
             
             Scalar alpha = Eigen::internal::abs(Eigen::internal::random_impl<Scalar>::run()) + 1e-3;
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(v, alpha);
-            builder.add(alpha, DenseMatrix<Scalar>(v), EMPTY<Scalar>::matrix());
+            builder.add(alpha, DenseMatrix<Scalar>(v), AltMatrix<Scalar>::Identity(1));
         }
         
         // Computing via EVD

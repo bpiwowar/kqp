@@ -20,6 +20,7 @@ project (kqp)
 # --- Options
 
 OPTION(JAVA_KQP "Build kqp JNI library" ON)
+OPTION(OPEN_MP "Use Open MP (if available)" OFF)
 
 # --- Add our own modules
 
@@ -35,6 +36,15 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
 FIND_PACKAGE(log4cxx)
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
+
+
+# --- Check for openmp
+
+IF(OPEN_MP MATCHES "ON")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+	MESSAGE(STATUS "Using OpenMP")
+ENDIF(OPEN_MP MATCHES "ON")
 
 # --- Build kqp
 

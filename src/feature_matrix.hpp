@@ -23,6 +23,8 @@
 #include "alt_matrix.hpp"
 
 namespace kqp {
+    template <class Derived> struct ftraits;
+    
     /**
      * @brief Base for all feature matrix classes
      * 
@@ -40,8 +42,9 @@ namespace kqp {
     public:       
 
         typedef _Derived Derived;
-        typedef kqp::ftraits<Derived> FTraits;
+        typedef ftraits<Derived> FTraits;
         typedef typename FTraits::FMatrix FMatrix;
+        typedef typename FTraits::Scalar Scalar;
         
 
         /**
@@ -54,7 +57,7 @@ namespace kqp {
         /** Add all vectors */
         virtual void add(const Derived &f) {
             for(Index i = 0; i < f.size(); i++)
-                this->add(f.get(i));
+                this->add(f.view(i));
         }
         
         inline Derived &derived() {
@@ -77,12 +80,31 @@ namespace kqp {
             return this->view(i,1);
         }
 
+        //! View on the i<sup>th</sup> feature vector
+        const Derived view(Index i) { 
+            return this->view(i,1);
+        }
 
-
+        /** Get a view of a range of pre-images */
+        inline const Derived view(Index start, Index size) const {
+            if (start + size >= this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
+            
+            return static_cast<const Derived*>(this)->Derived::view(start, size);
+        }
+        
+        /** Get a view of a range of pre-images */
+        inline Derived view(Index start, Index size) {
+            if (start + size >= this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
+            
+            return static_cast<Derived*>(this)->Derived::view(start, size);
+        }
+        
         /** Get the i<sup>th</sup> feature vector */
         inline void set(const Derived &f) {
-            if (f.size() != size())
-                KQP_THROW_EXCEPTION(out_of_bounds, "Can only assign feature matrices of same size (%d vs %d)", %this->size() %f.size());
+            if (f.size() != this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Can only assign feature matrices of same size (%d vs %d)", %this->size() %f.size());
             static_cast<Derived*>(this)->Derived::_set(f);
         }
         
@@ -92,30 +114,23 @@ namespace kqp {
          * 
          * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
          */
-        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA) const {
+        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA, Scalar alpha = (Scalar)1) const {
             // Check for correctedness
             if (mA.rows() != this->size())
-                KQP_THROW_EXCEPTION_F(out_of_bounds, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
 
             // If we have no columns in A, then return an empty feature matrix
             if (mA.cols() == 0)
                 return Derived();
                     
             // Call the derived
-            static_cast<Derived*>(this)->Derived::_linear_combination(mA, result);
+            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha);
         }
                 
-        /** Get a view of a range of pre-images */
-        inline const typename Derived view(Index start, Index size) const {
-            if (start + size >= this->size())
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
 
-            return static_cast<Derived*>(this)->Derived::view(start, size);
-        }
-        
         /** Get the number of feature vectors */
         inline Index size() const {
-            return static_cast<Derived*>(this)->Derived::size();            
+            return static_cast<const Derived*>(this)->Derived::size();            
         }
         
         
@@ -140,14 +155,14 @@ namespace kqp {
     
     //! Compute an inner product of two feature matrices
     template<typename Derived, class DerivedMatrix>
-    void inner(const typename FeatureMatrix<Derived>::Derived &mA, const typename FeatureMatrix<Derived>::Derived &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
+    void inner(const FeatureMatrix<Derived> &mA, const FeatureMatrix<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
         static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::MatrixBase<DerivedMatrix>&>(result));
     }
 
     
     //! Type informatino for feature matrices (feeds the ftraits structure)
-    template <class _FMatrix> struct FeatureMatrixTypes {
-    };
+    template <class _FMatrix> 
+    struct FeatureMatrixTypes {};
     
     /**
      * Feature Vector traits
@@ -181,6 +196,9 @@ namespace kqp {
         
         //! Inner product matrix
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+
+        //! Matrix used for linear combinations
+        typedef kqp::AltMatrix<Scalar> AltMatrix;
     }; 
     
 }

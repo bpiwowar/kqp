@@ -21,7 +21,7 @@
 
 namespace kqp {
     template <typename Scalar> class DenseMatrix;
-
+    
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
      * @ingroup FeatureMatrix
@@ -31,7 +31,7 @@ namespace kqp {
     public:
         //! Scalar
         typedef _Scalar Scalar;
-                
+        
         //! Ourselves
         typedef DenseMatrix<Scalar> Self;
         
@@ -42,35 +42,32 @@ namespace kqp {
         typedef typename FTraits::Matrix Matrix;
         
         //! Null constructor: will set the dimension with the first feature vector
-        DenseMatrix() {}
+        DenseMatrix() : view_mode(false), column_start(0), _size(0) {}
         
-        DenseMatrix(Index dimension) : view_mode(false), column_start(0), size(0), matrix(new Matrix(dimension, 0)) {
+        DenseMatrix(Index dimension) : view_mode(false), column_start(0), _size(0), matrix(new Matrix(dimension, 0)) {
         }
         
         template<class Derived>
-        explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), matrix(new Matrix(m)) {
+        explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new Matrix(m)) {
         }
         
         Index size() const { 
-            return this->matrix.get() ? this->matrix.cols() : 0;  
+            return _size;
         }
         
         
         const Index dimension() const {
             return matrix.get() ? matrix->rows() : 0;
         }
- 
+        
         //! Adds a list of pre-images
         void add(const Self &other)  {
-            check_can_modify();
+            this->check_can_modify();
             
             if (!matrix.get()) 
                 matrix.reset(new Matrix(other.dimension(), 0));
             
-            Index n = matrix->cols();
-            matrix->conservativeResize(matrix->rows(), n + other.size());
-            this->get_matrix() = 
-            matrix->col(n) = f.get();
+            this->add(other.get_matrix());
         }
         
         /**
@@ -78,46 +75,55 @@ namespace kqp {
          */
         template<typename Derived>
         void add(const Eigen::DenseBase<Derived> &m) {
-            check_can_modify();
-
-            if (vector.rows() != matrix.rows())
-                KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Cannot add a vector of dimension %d (dimension is %d)", % vector.rows() % matrix.rows());
+            this->check_can_modify();
+            
+            if (m.rows() != dimension())
+                KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
+                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % dimension());
             
             Index n = matrix->cols();
-            matrix.conservativeResize(matrix.rows(), n + m.cols());
-            this->get_matrix()
-            matrix.col(n) = vector;
+            matrix->conservativeResize(matrix->rows(), n + m.cols());
+            _size += m.cols();
+            this->matrix->block(0, n+column_start, dimension(), m.cols()) = m; 
         }
         
         
         void remove(Index i, bool swap) {
-            check_can_modify();
+            this->check_can_modify();
             
-            Index last = matrix.cols() - 1;
+            Index last = matrix->cols() - 1;
             if (swap) {
                 if (i != last) 
-                    matrix.col(i) = matrix.col(last);
+                    matrix->col(i) = matrix->col(last);
             } else {
                 for(Index j = i + 1; j <= last; j++)
-                    matrix.col(i-1) = matrix.col(i);
+                    matrix->col(i-1) = matrix->col(i);
             }
-            matrix.conservativeResize(matrix.rows(), last);
-            
+            matrix->conservativeResize(matrix->rows(), last);
+            _size--;
         }
         
         /**
          * Swap with another matrix
          */
-        void swap(Matrix &m) {
+        template<class Derived>
+        void swap(Eigen::MatrixBase<Derived> &m) {
             if (!matrix.get()) 
                 matrix.reset(new Matrix());
             matrix->swap(m);
+            view_mode = false;
+            column_start = 0;
+            _size = matrix->cols();
             this->gramMatrix.resize(0,0);
         }
         
         //! Get a reference to the matrix
         const Eigen::Block<Matrix> get_matrix() const {
-            return matrix.block(0, column_start, matrix->rows(), column_end);
+            return this->matrix->block(0, column_start, matrix->rows(), _size);
+        }
+
+        Eigen::Block<Matrix> get_matrix() {
+            return this->matrix->block(0, column_start, matrix->rows(), _size);
         }
         
         const Matrix & inner() const {
@@ -139,57 +145,55 @@ namespace kqp {
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
         void inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
-            const_cast<Eigen::MatrixBase<DerivedMatrix>&>(result)= matrix.adjoint() * other.matrix;
+            const_cast<Eigen::MatrixBase<DerivedMatrix>&>(result)= this->get_matrix().adjoint() * other.get_matrix();
         }
         
         bool is_view() {
-            return view_mode; 
+            return this->view_mode; 
         }
         
         
         
     protected:
-        void Self _linear_combination(Scalar alpha, const typename FTraits::Matrix & mA) const {
-            Self result;
-            
-            if (!is_empty(mA))
-                result.matrix.noalias() = alpha * get_matrix() * mA;
-            else 
-                result.matrix = alpha * get_matrix();
-            
-            return result;
+        Self _linear_combination(const AltMatrix<Scalar> & mA, Scalar alpha) const {
+            return Self(alpha * (get_matrix() * mA))
+            ;
         }
-
+        
         void _set(const Self &f) {            
             if (f.size() > 0)
-                this->matrix.get_matrix() = f.get_matrix();            
+                this->get_matrix() = f.get_matrix();            
             this->gramMatrix.resize(0,0);
         }
-
         
-    private:        
+        
+    private:   
+        friend class FeatureMatrix<Self>;
+        
         //! Creates a view
-        DenseMatrix(const Self &other, Index i, Index size) : view_mode(true), column_start(other.column_start+i), column_end(other.column_end+i+size), matrix(other.matrix) {
+        DenseMatrix(const Self &other, Index i, Index size) : 
+        view_mode(true), column_start(other.column_start+i), _size(size), matrix(other.matrix) {
             
         }
         
-        const Self _view(Index i, Index size) const { 
-            if (i + size >= this->size() - column_start)
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(i+1) % (i+size+1) %size());
-            return Self(*this, i, size);
+        const Self _view(Index i, Index view_size) const { 
+            if (i + view_size >= this->size() - column_start)
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", 
+                                      % (i+1) % (i+view_size+1) % size());
+            return Self(*this, i, view_size);
         }
-
+        
         
         inline void check_can_modify() const {
             if (view_mode)
-                KQP_THROW_EXCEPTION("Cannot change the dimension of a view: clone it first");
+                KQP_THROW_EXCEPTION(illegal_operation_exception, "Cannot change the dimension of a view: clone it first");
         }
         
         //! Are we a view
         bool view_mode;
         
         //! Our view
-        Index column_start, size;
+        Index column_start, _size;
         
         //! Our inner product
         mutable Matrix gramMatrix;

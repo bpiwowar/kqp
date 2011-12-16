@@ -57,7 +57,7 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mU, const typename FTraits::Matrix &mA) = 0;
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) = 0;
         
         /**
          * Get the current decomposition

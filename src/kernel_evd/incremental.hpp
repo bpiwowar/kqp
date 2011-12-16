@@ -23,6 +23,7 @@
 #include "evd_update.hpp"
 #include "kernel_evd.hpp"
 #include "null_space.hpp"
+#include "alt_matrix.hpp"
 #include "coneprog.hpp"
 
 namespace kqp {
@@ -35,7 +36,6 @@ namespace kqp {
     template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix> {
     public:
         typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::FVector FVector;
         typedef typename FTraits::Matrix Matrix;
         typedef typename FTraits::Scalar Scalar;
         typedef typename FTraits::Real Real;
@@ -63,11 +63,11 @@ namespace kqp {
         }
         
         
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mU, const typename FTraits::Matrix &mA) {
+        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) {
             // --- Pre-computations
             
             // Compute W = Y^T X^T
-            inner_views(mX, mU, k);
+            inner(mX, mU, k);
             Matrix mW;
             mW.noalias() = mY.adjoint() * k * mA;
             
@@ -104,8 +104,7 @@ namespace kqp {
             if (mX.size() > (preImagesPerRank * mD.rows())) {
                 if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
-                    FMatrix mX2;
-                    mX.linear_combination(mY, mX);
+                    mX = mX.linear_combination(AltMatrix<Scalar>::reference_of(mY));
                     mY.resize(0,0);
                 } else {
                     // Optimise

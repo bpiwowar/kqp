@@ -18,14 +18,49 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
-#include "kqp.hpp"
+namespace Eigen {
+    template<typename Lhs, typename Rhs, bool Tr> class AltDenseProduct;
+}
+
 namespace kqp {
     
     struct AltMatrixStorage {};
     
     template<typename Derived> class AltMatrixBase  : public Eigen::EigenBase< Derived > {
+    public:
+        typedef typename Eigen::internal::traits<Derived>::Scalar Scalar;
+        typedef typename Eigen::internal::packet_traits<Scalar>::type PacketScalar;
+        typedef typename Eigen::internal::traits<Derived>::StorageKind StorageKind;
+        typedef typename Eigen::internal::traits<Derived>::Index Index;
+        
+        enum {
+            RowsAtCompileTime = Eigen::internal::traits<Derived>::RowsAtCompileTime,
+            ColsAtCompileTime = Eigen::internal::traits<Derived>::ColsAtCompileTime,
+            SizeAtCompileTime = (Eigen::internal::size_at_compile_time<Eigen::internal::traits<Derived>::RowsAtCompileTime,
+                                 Eigen::internal::traits<Derived>::ColsAtCompileTime>::ret),
+            MaxRowsAtCompileTime = RowsAtCompileTime,
+            MaxColsAtCompileTime = ColsAtCompileTime,
+            MaxSizeAtCompileTime = (Eigen::internal::size_at_compile_time<MaxRowsAtCompileTime,
+                                    MaxColsAtCompileTime>::ret),
+            
+            IsVectorAtCompileTime = RowsAtCompileTime == 1 || ColsAtCompileTime == 1,
+            Flags = Eigen::internal::traits<Derived>::Flags,
+            CoeffReadCost = Eigen::internal::traits<Derived>::CoeffReadCost,
+            IsRowMajor = Flags&Eigen::RowMajorBit ? 1 : 0,
+            
+            _HasDirectAccess = 0,
+            
+        };
+        typedef typename Eigen::internal::conditional<_HasDirectAccess, const Scalar&, Scalar>::type CoeffReturnType;
+        
         
     };
+    
+    enum AltMatrixType {
+        DIAGONAL,
+        DENSE
+    };
+    
     
     /**
      * This matrix can be either the Identity or a dense matrix.
@@ -33,7 +68,7 @@ namespace kqp {
      * As this is known only at execution time, we have to create a new matrix type for Eigen.
      *
      */
-    template<typename _Scalar> class AltMatrix : public AltMatrixBase< AltMatrix<_Scalar> > {
+    template<typename _Scalar, bool Tr = false> class AltMatrix : public AltMatrixBase< AltMatrix<_Scalar, Tr> > {
     public:
         typedef const AltMatrix& Nested;
         enum {
@@ -46,10 +81,6 @@ namespace kqp {
         typedef long Index;
         typedef AltMatrix<Scalar> PlainObject;
         
-        enum Type {
-            DIAGONAL,
-            DENSE
-        };
         
         enum Mode {
             COPY,
@@ -58,17 +89,17 @@ namespace kqp {
         };
         
         template<class Derived>
-        static AltMatrix<Scalar> copy_of(const MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
+        static AltMatrix<Scalar> copy_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
             return AltMatrix<Scalar>(dense_matrix, alpha, COPY);               
         }
         
         template<class Derived>
-        static AltMatrix<Scalar> reference_of(const MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
+        static AltMatrix<Scalar> reference_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
             return AltMatrix<Scalar>(dense_matrix, alpha, REFERENCE);                           
         }
         
         template<class Derived>
-        static AltMatrix<Scalar> swap_of(const MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
+        static AltMatrix<Scalar> swap_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
             return AltMatrix<Scalar>(dense_matrix, alpha, SWAP);               
         }
         
@@ -78,58 +109,132 @@ namespace kqp {
         
         Index rows() const { return _rows; }
         Index cols() const { return _cols; }
-        Type type() const { return _type; }
+        AltMatrixType type() const { return _type; }
         Scalar alpha() const { return _alpha; }
         
+        AltMatrix<Scalar,!Tr> adjoint() const { 
+            return AltMatrix<Scalar, !Tr>(*this);
+        }
+        
+    protected:
+        
+        template<bool Tr2>
+        explicit AltMatrix(const AltMatrix<Scalar, Tr2> &other) :
+        dense_matrix_ptr(other.dense_matrix_ptr), _type(other._type), _rows(Tr == Tr2 ? other._rows : other._cols), 
+        _cols(Tr == Tr2 ? other._cols : other._rows), _alpha(Eigen::internal::conj(other._alpha))
+        {
+        }
+        
     private:
-        template<typename Lhs, typename Rhs, bool Tr> friend class AltDenseProduct;
+        AltMatrix& operator=(const AltMatrix &);
+        template<typename Lhs, typename Rhs, bool Tr2> friend class Eigen::AltDenseProduct;
+        friend class AltMatrix<Scalar, !Tr>;
+        
+        template<typename Scalar> friend const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> & matrix_of(const AltMatrix<Scalar, Tr> &m);
+        template<typename Scalar> friend const typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::AdjointReturnType matrix_of(const AltMatrix<Scalar, Tr> &m);
         
         template<class Derived>
-        AltMatrix(const MatrixBase<Derived> &_dense_matrix, Scalar alpha, Mode mode) 
+        AltMatrix(const Eigen::MatrixBase<Derived> &_dense_matrix, Scalar alpha, Mode mode) 
         : _type(DENSE),  _rows(_dense_matrix.rows()), _cols(_dense_matrix.cols()), _alpha(alpha) {
             switch(mode) {
                 case COPY: dense_matrix = _dense_matrix; dense_matrix_ptr = &dense_matrix; break;
-                case REFERENCE: dense_matrix_ptr = &dense_matrix; break; 
+                case REFERENCE: dense_matrix_ptr = &_dense_matrix.derived(); break; 
                 case SWAP: dense_matrix.swap(_dense_matrix); dense_matrix_ptr = &dense_matrix; break;
             }
         }
         
-        AltMatrix(Type type, Index rows, Index cols, Scalar alpha) :  _type(type), _rows(rows), _cols(cols), _alpha(alpha) {
+        AltMatrix(AltMatrixType type, Index rows, Index cols, Scalar alpha) :  _type(type), _rows(rows), _cols(cols), _alpha(alpha) {
         }
         
         Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> dense_matrix;
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dense_matrix_ptr;
+        const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dense_matrix_ptr;
         
-        Type _type;
+        AltMatrixType _type;
         Index _rows;
         Index _cols;
         
         Scalar _alpha;
-        
-        
     };
     
+    template<typename Scalar>
+    const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>&  matrix_of(const kqp::AltMatrix<Scalar, false> &m) {
+        return *m.dense_matrix_ptr;
+    }
+    
+    template<typename Scalar>
+    const typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::AdjointReturnType matrix_of(const kqp::AltMatrix<Scalar, true> &m) {
+        return m.dense_matrix_ptr->adjoint();
+    }
+    
+}
+
+namespace Eigen {
+    
     template<typename Lhs, typename Rhs, bool Tr>
-    class AltDenseProduct : public Eigen::ProductBase<AltDenseProduct<Lhs,Rhs,Tr>, Lhs, Rhs> {
+    class AltDenseProduct : public Eigen::ProductBase<AltDenseProduct<Lhs,Rhs,Tr>, Lhs, Rhs> {};
+    
+    template<typename Lhs, typename Rhs>
+    class AltDenseProduct<Lhs,Rhs,false> : public Eigen::ProductBase<AltDenseProduct<Lhs,Rhs,false>, Lhs, Rhs> 
+    {
     public:
-        EIGEN_PRODUCT_PUBLIC_INTERFACE(AltDenseProduct)
+        typedef ProductBase<AltDenseProduct, Lhs, Rhs> Base;
+        EIGEN_DENSE_PUBLIC_INTERFACE(AltDenseProduct)
+        typedef internal::traits<AltDenseProduct> Traits;
         
-        AltDenseProduct(const Lhs& lhs, const Rhs& rhs) : Base(lhs,rhs) {}
+    //private:
+        
+        typedef typename Traits::LhsNested LhsNested;
+        typedef typename Traits::RhsNested RhsNested;
+        typedef typename Traits::_LhsNested _LhsNested;
+        typedef typename Traits::_RhsNested _RhsNested;
+        
+    public:
+        
+        AltDenseProduct(const Lhs& lhs, const Rhs& rhs) : Base(lhs,rhs) {
+        }
         
         template<typename Dest> void scaleAndAddTo(Dest& dest, Scalar beta) const {
             Scalar x = (this->lhs().alpha() * beta);
             switch(this->lhs().type()) {
-                case Lhs::DIAGONAL:
+                case kqp::DIAGONAL:
                     dest += x * this->rhs();
                     break;
-                case Lhs::DENSE:
-                    dest += x * *this->lhs().dense_matrix_ptr * this->rhs();
+                case kqp::DENSE:
+                    dest += x * kqp::matrix_of(this->lhs()) * this->rhs();
                     break;
                 default:
                     abort();
             }
             
         }
+    private:
+        AltDenseProduct operator=(const AltDenseProduct &);
+    };
+    
+    template<typename Lhs, typename Rhs>
+    class AltDenseProduct<Lhs,Rhs,true> : public Eigen::ProductBase<AltDenseProduct<Lhs,Rhs,true>, Lhs, Rhs>
+    {
+    public:
+        typedef AltDenseProduct<Lhs,Rhs,true> Self;
+        EIGEN_PRODUCT_PUBLIC_INTERFACE(Self)
+        
+        AltDenseProduct(const Lhs& lhs, const Rhs& rhs) : Base(lhs,rhs) {}
+        
+        template<typename Dest> void scaleAndAddTo(Dest& dest, Scalar beta) const {
+            Scalar x = (this->rhs().alpha() * beta);
+            switch(this->rhs().type()) {
+                case kqp::DIAGONAL:
+                    dest += x * this->lhs();
+                    break;
+                case kqp::DENSE:
+                    dest += x * this->lhs() * kqp::matrix_of(this->rhs());
+                    break;
+                default:
+                    abort();
+            }
+        }
+    private:
+        AltDenseProduct operator=(const AltDenseProduct &);
     };
     
     template<typename Lhs, typename Rhs> struct AltDenseProductReturnType
@@ -137,17 +242,22 @@ namespace kqp {
         typedef AltDenseProduct<Lhs,Rhs,false> Type;
     };
     
+    template<typename Lhs, typename Rhs> struct DenseAltProductReturnType
+    {
+        typedef AltDenseProduct<Lhs,Rhs,true> Type;
+    };
     
     template<class Derived,class OtherDerived>
     inline const typename AltDenseProductReturnType<Derived,OtherDerived>::Type
-    operator*(const AltMatrixBase<Derived> &a, const Eigen::MatrixBase<OtherDerived> &b) {
+    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::MatrixBase<OtherDerived> &b) {
         return typename AltDenseProductReturnType<Derived,OtherDerived>::Type(a.derived(), b.derived());
     }
-}
-
-
-namespace Eigen {
     
+    template<class Derived,class OtherDerived>
+    inline const typename DenseAltProductReturnType<Derived,OtherDerived>::Type
+    operator*(const Eigen::MatrixBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
+        return typename DenseAltProductReturnType<Derived,OtherDerived>::Type(a.derived(), b.derived());
+    }    
     
     namespace internal {
         template<> struct promote_storage_type<Dense,kqp::AltMatrixStorage>
@@ -156,8 +266,8 @@ namespace Eigen {
         { typedef Dense ret; };
         
         template<typename Lhs, typename Rhs, bool Tr>
-        struct traits<kqp::AltDenseProduct<Lhs,Rhs,Tr> >
-        : traits<ProductBase<kqp::AltDenseProduct<Lhs,Rhs,Tr>, Lhs, Rhs> >
+        struct traits<Eigen::AltDenseProduct<Lhs,Rhs,Tr> >
+        : traits<ProductBase<Eigen::AltDenseProduct<Lhs,Rhs,Tr>, Lhs, Rhs> >
         {
             typedef typename scalar_product_traits<typename traits<Lhs>::Scalar, typename traits<Rhs>::Scalar>::ReturnType Scalar;
             
@@ -173,21 +283,24 @@ namespace Eigen {
             typedef typename remove_all<RhsNested>::type _RhsNested;
             
             enum {
-                Flags = Tr ? RowMajorBit : 0,
-                RowsAtCompileTime    = Tr ? int(traits<Rhs>::RowsAtCompileTime)     : int(traits<Lhs>::RowsAtCompileTime),
-                ColsAtCompileTime    = Tr ? int(traits<Lhs>::ColsAtCompileTime)     : int(traits<Rhs>::ColsAtCompileTime),
-                MaxRowsAtCompileTime = Tr ? int(traits<Rhs>::MaxRowsAtCompileTime)  : int(traits<Lhs>::MaxRowsAtCompileTime),
-                MaxColsAtCompileTime = Tr ? int(traits<Lhs>::MaxColsAtCompileTime)  : int(traits<Rhs>::MaxColsAtCompileTime),
+                Flags = EvalBeforeNestingBit,
+                RowsAtCompileTime    = int(traits<Lhs>::RowsAtCompileTime),
+                ColsAtCompileTime    = int(traits<Rhs>::ColsAtCompileTime),
+                MaxRowsAtCompileTime = int(traits<Lhs>::MaxRowsAtCompileTime),
+                MaxColsAtCompileTime = int(traits<Rhs>::MaxColsAtCompileTime),
                 
                 LhsCoeffReadCost = traits<_LhsNested>::CoeffReadCost,
                 RhsCoeffReadCost = traits<_RhsNested>::CoeffReadCost,
                 
+                CoeffReadCost = LhsCoeffReadCost + RhsCoeffReadCost + NumTraits<Scalar>::MulCost,
+                
+                _HasDirectAccess = 0
             };
         };
         
         
-        template<typename _Scalar> 
-        struct traits<kqp::AltMatrix<_Scalar> > {
+        template<typename _Scalar, bool Tr> 
+        struct traits<kqp::AltMatrix<_Scalar, Tr> > {
             typedef _Scalar Scalar;
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::Index Index;
