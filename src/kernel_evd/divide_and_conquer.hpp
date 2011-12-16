@@ -27,8 +27,6 @@ namespace kqp {
      */
     template <class FMatrix> class DivideAndConquerBuilder : public KernelEVD<FMatrix> {
     public:
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrixView &mX, const typename FTraits::Matrix &mA) {
-        }
     };
 }
 

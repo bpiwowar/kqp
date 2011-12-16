@@ -18,6 +18,8 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
+#include "Eigen/Dense"
+
 namespace Eigen {
     template<typename Lhs, typename Rhs, bool Tr> class AltDenseProduct;
 }
@@ -107,6 +109,8 @@ namespace kqp {
             return AltMatrix<Scalar>(DIAGONAL, size, size, alpha);
         }
         
+        AltMatrix() : _type(DIAGONAL), _rows(0), _cols(0), _alpha(1) {}
+        
         Index rows() const { return _rows; }
         Index cols() const { return _cols; }
         AltMatrixType type() const { return _type; }
@@ -116,6 +120,16 @@ namespace kqp {
             return AltMatrix<Scalar, !Tr>(*this);
         }
         
+        //! Deep copy of this matrix
+        AltMatrix(const AltMatrix &other, bool deep) : _type(other._type), _rows(other._rows), _cols(other._cols), _alpha(other._alpha) {
+            if (deep) {
+                if (&other.dense_matrix != other.dense_matrix_ptr) 
+                    this->dense_matrix = *other.dense_matrix_ptr;
+                else 
+                    this->dense_matrix = other.dense_matrix;
+            }
+            this->dense_matrix_ptr = &this->dense_matrix;
+        }
     protected:
         
         template<bool Tr2>
@@ -123,10 +137,10 @@ namespace kqp {
         dense_matrix_ptr(other.dense_matrix_ptr), _type(other._type), _rows(Tr == Tr2 ? other._rows : other._cols), 
         _cols(Tr == Tr2 ? other._cols : other._rows), _alpha(Eigen::internal::conj(other._alpha))
         {
+            // Copy if needed
         }
         
     private:
-        AltMatrix& operator=(const AltMatrix &);
         template<typename Lhs, typename Rhs, bool Tr2> friend class Eigen::AltDenseProduct;
         friend class AltMatrix<Scalar, !Tr>;
         
@@ -181,7 +195,7 @@ namespace Eigen {
         EIGEN_DENSE_PUBLIC_INTERFACE(AltDenseProduct)
         typedef internal::traits<AltDenseProduct> Traits;
         
-    //private:
+        //private:
         
         typedef typename Traits::LhsNested LhsNested;
         typedef typename Traits::RhsNested RhsNested;
@@ -194,6 +208,9 @@ namespace Eigen {
         }
         
         template<typename Dest> void scaleAndAddTo(Dest& dest, Scalar beta) const {
+            // work around if the destination has no dimension
+            if (this->rows() == 0 || this->cols() == 0) return;
+            
             Scalar x = (this->lhs().alpha() * beta);
             switch(this->lhs().type()) {
                 case kqp::DIAGONAL:

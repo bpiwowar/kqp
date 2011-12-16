@@ -1,53 +1,44 @@
+#include <vector>
 #include <iostream>
 #include <boost/exception/diagnostic_information.hpp> 
 
 #include "kqp.hpp"
 #include "test.hpp"
-#include <boost/program_options.hpp>
 #include <cstdlib>
 
 using namespace kqp;
-namespace po = boost::program_options;
 
 int main(int argc, const char **argv) {  
-    po::variables_map vm;
     
-    po::options_description general_options("General options");
-    general_options.add_options()
-    ("help", "produce help message")
-    ("seed", po::value<unsigned int>()->default_value(0), "Random seed value")
-    ("task", po::value<std::string>(), "Task name");
-    
-    
-    po::options_description options;
-    options.add(general_options);
+
+    std::deque<std::string> args;
+    for(int i = 1; i < argc; i++) 
+        args.push_back(argv[i]);
     
     try {
-        po::parsed_options parsed = po::command_line_parser(argc, argv).options(general_options).allow_unregistered().run(); 
-        po::store(parsed, vm);
-        po::notify(vm);   
+        long seed = 0;
         
-        if (vm.count("help")) 
-        { 
-            std::cout << general_options << std::endl; 
-            return 0; 
-        } 
-        
-        std::srand(vm["seed"].as<unsigned int>() );
-        if (vm["task"].empty())
+        while (args.size() > 0) {
+            if (args[0] == "--seed" && args.size() >= 2) {
+                args.pop_front();
+                seed = std::atol(args[0].c_str());
+                args.pop_front();
+            } else break;
+            
+        }
+        if (args.size() < 1)
             KQP_THROW_EXCEPTION(illegal_argument_exception, "No task was given");
-        std::string name = vm["task"].as<std::string>();
         
-        std::vector<std::string> other_argv = po::collect_unrecognized(parsed.options, po::include_positional);
-        
+        std::string name = args[0];
+        args.pop_front();       
         
         try {
             if (name == "evd-update") 
-                return evd_update_test(other_argv);
+                return evd_update_test(args);
             else if (name == "kqp-qp-solver") 
-                return kqp_qp_solver_test(other_argv);            
+                return kqp_qp_solver_test(args);            
             else if (name == "kernel-evd") 
-                return kevd_tests(other_argv);            
+                return do_kevd_tests(args);            
             
         } catch(const boost::exception &e) {
             std::cerr << boost::diagnostic_information(e) << std::endl;

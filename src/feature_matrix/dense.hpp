@@ -127,6 +127,8 @@ namespace kqp {
         }
         
         const Matrix & inner() const {
+            if (_size == 0) return gramMatrix;
+            
             // We lose space here, could be used otherwise???
             Index current = gramMatrix.rows();
             if (current < size()) 

@@ -18,7 +18,7 @@ namespace kqp {
 #include "generated/kkt_solver.cpp"
 #include "generated/qp_solver.cpp"
     
-    int kqp_qp_solver_test(std::vector<std::string> &args) {
+    int kqp_qp_solver_test(std::deque<std::string> &args) {
         KQP_LOG_INFO(logger, "Starting qp solver tests");
         std::string name = args[0];
         

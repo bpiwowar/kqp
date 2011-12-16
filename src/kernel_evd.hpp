@@ -61,8 +61,11 @@ namespace kqp {
         
         /**
          * Get the current decomposition
+         * @param mX the pre-images
+         * @param mY is used to get a basis from pre-images
+         * @param mD is a diagonal matrix
          */
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) = 0;
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) = 0;
         
     };
 

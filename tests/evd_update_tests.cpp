@@ -72,7 +72,7 @@ namespace kqp {
     }
     
        
-int evd_update_test(std::vector<std::string> &args) {
+int evd_update_test(std::deque<std::string> &args) {
     if (args.size() != 1) 
         BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("evd_update_test needs one argument"));
     

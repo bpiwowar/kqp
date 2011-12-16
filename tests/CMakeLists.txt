@@ -1,20 +1,21 @@
 
 
+FILE(GLOB kqp_test_kevd_SRC "kernel-evd/*.hpp" "kernel-evd/*.cpp")
 FILE(GLOB kqp_test_SRC   "*.hpp"   "*.cpp")
+SOURCE_GROUP("Kernel EVD" FILES ${kqp_test_kevd_SRC})
 
 INCLUDE_DIRECTORIES(${kqp_SOURCE_DIR}/src)
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
-ADD_EXECUTABLE(kqp_test ${kqp_test_SRC})
+ADD_EXECUTABLE(kqp_test ${kqp_test_SRC} ${kqp_test_kevd_SRC})
 
 TARGET_LINK_LIBRARIES(kqp_test kqp)
-TARGET_LINK_LIBRARIES(kqp_test boost_program_options)
 
 add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND}
                   DEPENDS kqp_test)
 
 FUNCTION(do_test id taskname)
-   ADD_TEST(${id} ${EXECUTABLE_OUTPUT_PATH}/kqp_test "--task" ${taskname} ${ARGN})
+   ADD_TEST(${id} ${EXECUTABLE_OUTPUT_PATH}/kqp_test "${taskname}" ${ARGN})
 ENDFUNCTION(do_test taskname)
 
 do_test(evd-update evd-update simple)

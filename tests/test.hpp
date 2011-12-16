@@ -5,13 +5,13 @@
 
 namespace kqp {
     //! Test the rank-one EVD update
-    int evd_update_test(std::vector<std::string> &args);
+    int evd_update_test(std::deque<std::string> &args);
     
     //! The kqp QP solver
-    int kqp_qp_solver_test(std::vector<std::string> &args);
+    int kqp_qp_solver_test(std::deque<std::string> &args);
     
     //! The kernel EVD tests
-    int kevd_tests(std::vector<std::string> &args);
+    int do_kevd_tests(std::deque<std::string> &args);
 }
 
 #endif

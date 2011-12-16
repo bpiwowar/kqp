@@ -20,6 +20,7 @@
 
 #include <boost/static_assert.hpp>
 
+#include "alt_matrix.hpp"
 #include "kernel_evd.hpp"
 #include "utils.hpp"
 
@@ -60,13 +61,17 @@ namespace kqp{
         
         
         //! Actually performs the computation
-        virtual void get_decomposition(FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+        virtual void get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             const typename FMatrix::Matrix& gram = fMatrix.inner();
             
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
-            kqp::thinEVD(evd, mY, mD);
             
-            mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+            typename FTraits::Matrix _mY;
+            kqp::thinEVD(evd, _mY, mD);
+            
+            _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+            mY = AltMatrix<Scalar>::swap_of(_mY);
+            
             mX = fMatrix;
         }
         
@@ -98,17 +103,18 @@ namespace kqp{
             if (mA.cols() == 0)
                 return;
             
-            combination_matrices.push_back(boost::shared_ptr<typename FTraits::AltMatrix>(new typename FTraits::AltMatrix(mA)));
+            // Do a deep copy of mA
+            combination_matrices.push_back(boost::shared_ptr<typename FTraits::AltMatrix>(new typename FTraits::AltMatrix(mA, true)));
             
             alphas.push_back(Eigen::internal::sqrt(alpha));
-            
+            fMatrix.add(mX);
             offsets_X.push_back(offsets_X.back() + mX.size());
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
         
         //! Actually performs the computation
-        virtual void get_decomposition(FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+        virtual void get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
@@ -127,17 +133,19 @@ namespace kqp{
             
             
             // Direct EVD
+            typename FTraits::Matrix _mY;
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
-            kqp::thinEVD(evd, mY, mD);
+            kqp::thinEVD(evd, _mY, mD);
             
             // Y <- A * Y * D^-1/2
             
-            mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+            _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
             for(Index i = 0; i < combination_matrices.size(); i++) {
-                const Matrix &mAi = *combination_matrices[i];
-                mY.block(offsets_A[i], 0, offsets_A[i+1]-offsets_A[i], mY.cols()) = alphas[i] * mAi * mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], mY.cols());
+                const AltMatrix &mAi = *combination_matrices[i];
+                _mY.block(offsets_A[i], 0, offsets_A[i+1]-offsets_A[i], _mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
+            mY = FTraits::AltMatrix::swap_of(_mY);
             mX = fMatrix;
         }
         

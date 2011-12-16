@@ -156,7 +156,12 @@ namespace kqp {
     //! Compute an inner product of two feature matrices
     template<typename Derived, class DerivedMatrix>
     void inner(const FeatureMatrix<Derived> &mA, const FeatureMatrix<Derived> &mB, const typename Eigen::MatrixBase<DerivedMatrix> &result) {
-        static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), const_cast<typename Eigen::MatrixBase<DerivedMatrix>&>(result));
+        typename Eigen::MatrixBase<DerivedMatrix>& _result = const_cast<typename Eigen::MatrixBase<DerivedMatrix>&>(result);
+        if (mA.size() == 0 || mB.size() == 0) 
+            // No need to compute anything - we just resize for consistency
+            _result.derived().resize(mA.size(), mB.size());
+        else
+            static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), _result);
     }
 
     

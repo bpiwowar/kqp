@@ -48,11 +48,14 @@ namespace kqp {
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX.get_matrix() * mA, alpha);
         }
         
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(matrix.template selfadjointView<Eigen::Lower>());
-            kqp::thinEVD(evd, mY, mD);  
-            mX.swap(mY);
-            mY.resize(0,0);
+            
+            typename FTraits::Matrix _mX;
+            kqp::thinEVD(evd, _mX, mD);  
+            mX.swap(_mX);
+            
+            mY = AltMatrix<Scalar>::Identity(mX.size());
         }
         
     public:

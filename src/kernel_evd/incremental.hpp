@@ -94,6 +94,8 @@ namespace kqp {
                 mD = result.mD.diagonal();
             }
             
+            // Add the pre-images
+            mX.add(mU);
             
             // (4) Clean-up
             
@@ -115,13 +117,13 @@ namespace kqp {
         }
         
         
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::Matrix &mY, typename FTraits::RealVector& mD) {
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             mX = this->mX;
             if (mZ.rows() > 0) {
-                mY = mY * mZ;
+                this->mY = this->mY * mZ;
                 mZ.resize(0,0);
             }
-            mY = this->mY;
+            mY = AltMatrix<Scalar>::copy_of(this->mY);
             mD = this->mD;
         }
         
