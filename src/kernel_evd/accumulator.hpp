@@ -70,7 +70,7 @@ namespace kqp{
             kqp::thinEVD(evd, _mY, mD);
             
             _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
-            mY = AltMatrix<Scalar>::swap_of(_mY);
+            mY.swap(_mY);
             
             mX = fMatrix;
         }
@@ -104,7 +104,7 @@ namespace kqp{
                 return;
             
             // Do a deep copy of mA
-            combination_matrices.push_back(boost::shared_ptr<typename FTraits::AltMatrix>(new typename FTraits::AltMatrix(mA, true)));
+            combination_matrices.push_back(boost::shared_ptr<typename FTraits::AltMatrix>(new typename FTraits::AltMatrix(mA)));
             
             alphas.push_back(Eigen::internal::sqrt(alpha));
             fMatrix.add(mX);
@@ -145,7 +145,7 @@ namespace kqp{
                 _mY.block(offsets_A[i], 0, offsets_A[i+1]-offsets_A[i], _mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
-            mY = FTraits::AltMatrix::swap_of(_mY);
+            mY.swap(_mY);
             mX = fMatrix;
         }
         

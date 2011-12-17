@@ -106,7 +106,9 @@ namespace kqp {
             if (mX.size() > (preImagesPerRank * mD.rows())) {
                 if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
-                    mX = mX.linear_combination(AltMatrix<Scalar>::reference_of(mY));
+                    AltMatrix<Scalar> m;
+                    m.swap(mY);
+                    mX = mX.linear_combination(m);
                     mY.resize(0,0);
                 } else {
                     // Optimise
@@ -123,7 +125,7 @@ namespace kqp {
                 this->mY = this->mY * mZ;
                 mZ.resize(0,0);
             }
-            mY = AltMatrix<Scalar>::copy_of(this->mY);
+            mY = AltMatrix<Scalar>(this->mY);
             mD = this->mD;
         }
         

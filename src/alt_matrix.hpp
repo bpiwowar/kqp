@@ -19,6 +19,7 @@
 #define _KQP_ALTMATRIX_H_
 
 #include "Eigen/Dense"
+#include <boost/shared_ptr.hpp>
 
 namespace Eigen {
     template<typename Lhs, typename Rhs, bool Tr> class AltDenseProduct;
@@ -82,31 +83,24 @@ namespace kqp {
         typedef _Scalar Scalar;
         typedef long Index;
         typedef AltMatrix<Scalar> PlainObject;
-        
-        
-        enum Mode {
-            COPY,
-            SWAP,
-            REFERENCE
-        };
-        
-        template<class Derived>
-        static AltMatrix<Scalar> copy_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
-            return AltMatrix<Scalar>(dense_matrix, alpha, COPY);               
-        }
-        
-        template<class Derived>
-        static AltMatrix<Scalar> reference_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
-            return AltMatrix<Scalar>(dense_matrix, alpha, REFERENCE);                           
-        }
-        
-        template<class Derived>
-        static AltMatrix<Scalar> swap_of(const Eigen::MatrixBase<Derived> &dense_matrix, Scalar alpha = (Scalar)1) {
-            return AltMatrix<Scalar>(dense_matrix, alpha, SWAP);               
-        }
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         
         static AltMatrix<Scalar> Identity(Index size, Scalar alpha = (Scalar)1)  {
             return AltMatrix<Scalar>(DIAGONAL, size, size, alpha);
+        }
+
+        
+        template<class Derived>
+        AltMatrix(const Eigen::MatrixBase<Derived> &_dense_matrix, Scalar alpha = 1) 
+        : dense_matrix(new Matrix(_dense_matrix)), _type(DENSE), _rows(_dense_matrix.rows()), _cols(_dense_matrix.cols()), _alpha(alpha) {
+        }
+        
+        template<class Derived>
+        void swap(Eigen::MatrixBase<Derived> &other) {
+            dense_matrix.reset(new Matrix());
+            dense_matrix->swap(other);
+            _cols = dense_matrix->cols();
+            _rows = dense_matrix->rows();
         }
         
         AltMatrix() : _type(DIAGONAL), _rows(0), _cols(0), _alpha(1) {}
@@ -121,20 +115,13 @@ namespace kqp {
         }
         
         //! Deep copy of this matrix
-        AltMatrix(const AltMatrix &other, bool deep) : _type(other._type), _rows(other._rows), _cols(other._cols), _alpha(other._alpha) {
-            if (deep) {
-                if (&other.dense_matrix != other.dense_matrix_ptr) 
-                    this->dense_matrix = *other.dense_matrix_ptr;
-                else 
-                    this->dense_matrix = other.dense_matrix;
-            }
-            this->dense_matrix_ptr = &this->dense_matrix;
+        AltMatrix(const AltMatrix &other) : dense_matrix(other.dense_matrix), _type(other._type), _rows(other._rows), _cols(other._cols), _alpha(other._alpha) {
         }
     protected:
         
         template<bool Tr2>
         explicit AltMatrix(const AltMatrix<Scalar, Tr2> &other) :
-        dense_matrix_ptr(other.dense_matrix_ptr), _type(other._type), _rows(Tr == Tr2 ? other._rows : other._cols), 
+        dense_matrix(other.dense_matrix), _type(other._type), _rows(Tr == Tr2 ? other._rows : other._cols), 
         _cols(Tr == Tr2 ? other._cols : other._rows), _alpha(Eigen::internal::conj(other._alpha))
         {
             // Copy if needed
@@ -147,21 +134,11 @@ namespace kqp {
         template<typename Scalar> friend const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> & matrix_of(const AltMatrix<Scalar, Tr> &m);
         template<typename Scalar> friend const typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::AdjointReturnType matrix_of(const AltMatrix<Scalar, Tr> &m);
         
-        template<class Derived>
-        AltMatrix(const Eigen::MatrixBase<Derived> &_dense_matrix, Scalar alpha, Mode mode) 
-        : _type(DENSE),  _rows(_dense_matrix.rows()), _cols(_dense_matrix.cols()), _alpha(alpha) {
-            switch(mode) {
-                case COPY: dense_matrix = _dense_matrix; dense_matrix_ptr = &dense_matrix; break;
-                case REFERENCE: dense_matrix_ptr = &_dense_matrix.derived(); break; 
-                case SWAP: dense_matrix.swap(_dense_matrix); dense_matrix_ptr = &dense_matrix; break;
-            }
-        }
         
         AltMatrix(AltMatrixType type, Index rows, Index cols, Scalar alpha) :  _type(type), _rows(rows), _cols(cols), _alpha(alpha) {
         }
         
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> dense_matrix;
-        const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dense_matrix_ptr;
+        boost::shared_ptr<Matrix> dense_matrix;
         
         AltMatrixType _type;
         Index _rows;
@@ -172,12 +149,12 @@ namespace kqp {
     
     template<typename Scalar>
     const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>&  matrix_of(const kqp::AltMatrix<Scalar, false> &m) {
-        return *m.dense_matrix_ptr;
+        return *m.dense_matrix;
     }
     
     template<typename Scalar>
     const typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::AdjointReturnType matrix_of(const kqp::AltMatrix<Scalar, true> &m) {
-        return m.dense_matrix_ptr->adjoint();
+        return m.dense_matrix->adjoint();
     }
     
 }
