@@ -114,10 +114,7 @@ namespace kqp {
         //! Takes the ownership
         void swap_dense(DenseMatrix &other) {
             _dense_matrix.swap(other);
-            _type = DENSE;
-            _rows = _dense_matrix.rows();
-            _cols = _dense_matrix.cols();
-            _alpha = 1;
+            configure_dense();
         }
         
         //! Swap two matrices
@@ -129,9 +126,25 @@ namespace kqp {
             std::swap(_alpha, other._alpha);            
         }
         
+        template<class Derived>
+        AltMatrix &operator=(const Eigen::MatrixBase<Derived> &m) {
+            _dense_matrix = m;
+            configure_dense();
+            return *this;
+        }
+        
     private:
+        
         template<typename Lhs, typename Rhs, bool Tr> friend class Eigen::AltDenseProduct;
         
+        // Derive class members from the dense matrix
+        void configure_dense() {
+            _type = DENSE;
+            _rows = _dense_matrix.rows();
+            _cols = _dense_matrix.cols();
+            _alpha = 1;
+        }
+
         
         AltMatrix(AltMatrixType type, Index rows, Index cols, Scalar alpha) :  _type(type), _rows(rows), _cols(cols), _alpha(alpha) {
         }

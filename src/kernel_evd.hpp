@@ -72,7 +72,8 @@ namespace kqp {
     
     
 #define KQP_KERNEL_EVD_INSTANCIATION(qualifier, type)\
-    KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
+    qualifier template class type<DenseMatrix<double> >
+//    KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
 
         
 }

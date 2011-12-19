@@ -237,7 +237,7 @@ namespace kqp {
         
         // ensures the norm of zi is the same as newz
         scalar new_z = vi.z * (scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
-        KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(vi.z));
+        KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(new_z) << " / old was " << convert(vi.z));
         //        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
         
         return new_z;
@@ -285,9 +285,9 @@ namespace kqp {
         std::size_t N = z.size();
         std::size_t rankD = D.rows();
         
-        KQP_LOG_DEBUG(logger, "EVD rank-one update in dimension " << convert(rankD));
+        KQP_LOG_DEBUG_F(logger, "EVD rank-one update in dimension %d", %std::max(rankD,N));
         if (rankD > N)
-            BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("D and z are of compatible dimensions"));
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "D and z are of incompatible dimensions (%d and %d)", %rankD %N);
         
         
         // The algorithm assumes that rho > 0, so that we keep track of this
@@ -317,7 +317,7 @@ namespace kqp {
         for (long i = N; --i >= 0;) {
             double di = 0;
             
-            if (!is_real(D(iprime))) 
+            if (iprime >= 0 && !is_real(D(iprime))) 
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("Diagonal value is not real"));
             
             
@@ -499,7 +499,7 @@ namespace kqp {
         
         // First, recompute z to match the singular values we have
         
-        double lambda0 = v[0]->lambda;
+        double lambda0 = v.empty() ? 0 : v[0]->lambda;
         
         for (int i = 0; i < M; i++) {
             IndexedValue<scalar> vi = *v[i];
@@ -545,6 +545,7 @@ namespace kqp {
         // then store them,
         int nbSelected = 0;
         int nbNaN = 0;
+        KQP_LOG_DEBUG_F(logger, "Final rank is %d", %rank);
         result.mD = RealVector(rank);
         for (size_t i = 0; i < rank; i++) {
             v[i]->newPosition = i;
@@ -560,7 +561,7 @@ namespace kqp {
         
         // --- Compute the eigenvectors
         
-        if (computeEigenvectors) {
+        if (computeEigenvectors || Z) {
             // Creates the matrix
             result.mQ.setZero(N, rank);
             Matrix &Q = result.mQ;
@@ -589,7 +590,7 @@ namespace kqp {
                     }
                     
                     // Normalize
-                    Q.col(j).normalize();
+                    Q.col(j) /= std::sqrt(columnNorm);
                 }
             }
             
@@ -613,8 +614,22 @@ namespace kqp {
                 Q = Q.block(0,0,rank,rank);
             
             if (Z) {
+               
                 // TODO: optimise this
-                Q = (*Z) * Q;
+                
+                if (Z->cols() < Q.rows()) {
+                    Index z_cols = Z->cols();
+                    Index z_rows = Z->rows();
+                    
+                    Index diff = Q.rows() - z_cols;
+                    Z->conservativeResize(Z->rows() + diff, Z->cols() + diff);
+                    
+                    Z->bottomLeftCorner(diff, z_cols).setConstant(0);
+                    Z->bottomRightCorner(diff, diff).setIdentity(diff, diff);
+                    Z->topRightCorner(z_rows, diff).setConstant(0);
+                }
+
+                *Z = (*Z) * Q;
             }
             
         }

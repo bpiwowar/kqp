@@ -69,8 +69,7 @@ namespace kqp{
             typename FTraits::Matrix _mY;
             kqp::thinEVD(evd, _mY, mD);
             
-            _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
-            mY.swap_dense(_mY);
+            mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
             
             mX = fMatrix;
         }

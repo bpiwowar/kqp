@@ -25,6 +25,7 @@
 #include "null_space.hpp"
 #include "alt_matrix.hpp"
 #include "coneprog.hpp"
+#include "utils.hpp"
 
 namespace kqp {
     
@@ -75,32 +76,47 @@ namespace kqp {
             Matrix vtv = mA.adjoint() * mU.inner() * mA - mW.adjoint() * mW;
             
             
-            // Eigen-value decomposition of V^T V
+            // (thin) eigen-value decomposition of V^T V
             Eigen::SelfAdjointEigenSolver<Matrix> evd(vtv);
+            Matrix mQ;
+            RealVector mQD;
+            kqp::thinEVD(evd, mQ, mQD);
+            Index rank_Q = mQ.cols();             
+            std::cerr << "Rank of Q is " << rank_Q << std::endl;
             
             // --- Update
-            Vector z(mD.rows());
-            
-            Matrix mZtW(mZ.cols() + vtv.rows(), mW.cols());
+           
+            Matrix mZtW(mZ.cols() + rank_Q, mW.cols());
             mZtW.topRows(mZ.cols()) = mZ.adjoint() * mW;
-            mZtW.bottomRows(vtv.rows()) = evd.eigenvalues().template cast<Scalar>().asDiagonal();
+            mZtW.bottomRightCorner(rank_Q, mW.cols() - rank_Q).setConstant(0);
+            mZtW.bottomLeftCorner(rank_Q, rank_Q) = mQD.template cast<Scalar>().asDiagonal();
             
             for(Index i = 0; i < mW.cols(); i++) {
                 EvdUpdateResult<Scalar> result;
                 // Update
-                evdRankOneUpdate.update(mD, alpha, z, false, selector.get(), false, result, &mZ);
-                
+                std::cerr << "Rank-one update with " << mZtW.col(i).adjoint() << std::endl;
+                evdRankOneUpdate.update(mD, alpha, mZtW.col(i), false, selector.get(), false, result, &mZ);
+                std::cerr << "mZ is now ::: " << mZ << std::endl;
                 // Take the new diagonal
-                mD = result.mD.diagonal();
+                mD = result.mD;
+                std::cerr << "D is now ::: " << mD.adjoint() << std::endl;
             }
             
             // Add the pre-images
             mX.add(mU);
             
+            // Update mY
+            Index old_Y_rows = mY.rows();
+            Index old_Y_cols = mY.cols();
+            mY.conservativeResize(mY.rows() + mQ.rows(), mY.cols() + mQ.cols());
+            
+            mY.bottomLeftCorner(mQ.rows(), old_Y_cols).setConstant(0);
+            mY.bottomRightCorner(mQ.rows(), mQ.cols()) = mQ;
+            mY.topRightCorner(old_Y_rows, mQ.cols()).setConstant(0);
+                              
             // (4) Clean-up
             
             // Remove unused images
-            removeUnusedPreImages(mX, mY);
             
             // Ensure we have a small enough number of pre-images
             if (mX.size() > (preImagesPerRank * mD.rows())) {
@@ -109,10 +125,10 @@ namespace kqp {
                     AltMatrix<Scalar> m;
                     m.swap_dense(mY);
                     mX = mX.linear_combination(m);
-                    mY.resize(0,0);
+                    mY.setIdentity(mX.size(), mX.size());
                 } else {
                     // Optimise
-                    
+                    removeUnusedPreImages(mX, mY);
                 }
                 
             }
