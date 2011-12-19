@@ -103,6 +103,19 @@ namespace kqp {
         }
     }
     
+    /// Solve a QP system
+    template<typename Scalar>
+    void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
+    
+
+    // Estimate the lambda
+    template<typename Scalar>
+    struct LambdaError {
+        Scalar delta;
+        Scalar maxa;
+        Index j;
+        LambdaError(Scalar delta, Scalar maxa, Index j) : delta(delta), maxa(maxa), j(j) {}
+    };
     
     
     /**
@@ -113,9 +126,51 @@ namespace kqp {
      * @param target The number of pre-images that we should get at the end
      * @param F
      */
-    template <class FVector, typename Derived>
-    typename boost::enable_if_c<!Eigen::NumTraits<FVector>::IsComplex, void>::type
-    removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
+    template <class FMatrix, typename Derived>
+    typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
+    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &mY) {
+        // Real case
+        typedef ftraits<FMatrix> FTraits;
+        typedef typename FTraits::Scalar Scalar;
+        typedef typename FTraits::Real Real;
+        typedef typename FTraits::ScalarMatrix ScalarMatrix;
+        typedef typename FTraits::ScalarVector ScalarVector;
+        typedef typename FTraits::RealVector RealVector;
+        
+        Index r = mY.cols();
+        
+        ScalarMatrix gram = mF.inner();
+        Index n = gram.rows();
+        
+    
+        // Estimate lambda
+        std::vector<LambdaError<Real> > errors;
+        for(Index j = 0; j < n; j++) {
+            Scalar maxa = 0;
+            Scalar delta = 0;
+            for(Index i = 0; i < r; i++) {
+                delta += mY(i,j);
+                maxa = std::max(maxa, std::abs(mY(i,j)));
+            }
+            errors.push_back(LambdaError(delta*gram(j,j)), maxa, j));
+
+        }
+        
+        Real lambda = 0;
+        
+        // Compute a
+        RealVector a(n*r+n);
+        for(Index i = 0; i < r; i++)
+            a.segment(i*n, n) = - 2 * g * mY.col(i);
+        a.segment(n*r,n).setConstant(lambda);
+        
+        // Solve
+        kqp::cvxopt::ConeQPReturn<Scalar> result;
+        solve_qp(r, lambda, gram, a, result);
+        
+        // Re-orthogonalise
+        // result.x;
+
     }
 
     
@@ -127,15 +182,10 @@ namespace kqp {
      * @param target The number of pre-images that we should get at the end
      * @param F
      */    
-    template <class FVector, typename Derived>
-    typename boost::enable_if_c<Eigen::NumTraits<FVector>::IsComplex, void>::type
-    removePreImagesWithQP(Index target, FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
-    }
+    template <class FMatrix, typename Derived>
+    typename boost::enable_if_c<Eigen::NumTraits<typename FMatrix::Scalar>::IsComplex, void>::type
+    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &mY);
 
-    
-    /// Solve a QP system
-    template<typename Scalar>
-    void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
     
     /**
      * The KKT pre-solver to solver the QP problem

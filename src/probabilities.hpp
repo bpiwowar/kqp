@@ -43,22 +43,23 @@ namespace kqp {
      * @date May 2011
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <class FVector> class KernelOperator {       
+    template <class FMatrix> class KernelOperator {       
     public:
-        typedef typename FVector::Scalar Scalar;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef ftraits<FMatrix> FTraits;
+        typedef typename FTraits::Scalar Scalar;
+        typedef typename FTraits::Matrix  Matrix;
+        typedef typename FTraits::AltMatrix  AltMatrix;
+        typedef typename FTraits::RealVector RealVector;
         
 
         /**
          * Creates an object given a Kernel EVD
          * 
-         * @param evd
-         * @param copy If the object should be copied (safer, but slower)
+         * @param evd The kernel EVD 
          */
-        KernelOperator(const KernelEVD<FVector>& evd, bool copy) {
-            mX = copy ? evd.getX() : evd.getX().copy();
-            mY.noalias() = (evd.getY() * evd.getZ()).eval();
-            mS = copy ? evd.getEigenValues() : evd.getEigenValues().copy();
+        KernelOperator(const KernelEVD<FMatrix>& evd) : orthonormal(true) {
+            evd.get_decomposition(mX, mY, mS);
+            mS = mS.cwiseSqrt();
         }
         
         /**
@@ -68,8 +69,8 @@ namespace kqp {
          *           
          * @param copy If the object should be copied
          */
-        KernelOperator(const boost::shared_ptr<FeatureMatrix<FVector> > & list, bool copy) {
-            
+        KernelOperator(const FMatrix &mX) : mX(mX), orthonormal(true) {
+            mS = RealVector::Ones(mX.size());
         }
         
         /**
@@ -83,20 +84,22 @@ namespace kqp {
         /**
          * Get the rank of the operator
          */
-        size_t getRank() const;
+        size_t getRank() const {
+            if (orthonormal) return mS.size();
+        }
     
     protected:
         /**
          * The base vector list
          */
-        boost::shared_ptr<FeatureMatrix<FVector> > mX;
+        FMatrix  mX;
         
         /**
          * The combination matrix.
          * 
          * In case of an EVD decomposition, mX mY is orthonormal
          */
-        boost::shared_ptr<Matrix> mY;
+        Matrix mY;
         
         /**
          * The singular values
@@ -104,7 +107,7 @@ namespace kqp {
          * This matrix is used only if the KernelOperator is in a 
          * EVD decomposed form
          */
-        boost::shared_ptr<Eigen::DiagonalMatrix<double, Eigen::Dynamic> > mS;
+        RealVector mS;
         
         //! Is the decomposition othonormal, i.e. is Y^T X^T X Y the identity?
         bool orthonormal;
@@ -130,7 +133,7 @@ namespace kqp {
          * Construct a Event from a kernel EVD. See
          * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(KernelEVD, bool)}
          */
-        Event(const KernelEVD<FMatrix> &evd, bool deepCopy) {
+        Event(const KernelEVD<FMatrix> &evd) {
             
         }
         
@@ -156,7 +159,8 @@ namespace kqp {
          * @param evd
          * @param deepCopy
          */
-        Density(const KernelEVD<FMatrix>& evd, bool deepCopy);
+        Density(const KernelEVD<FMatrix>& evd) : KernelOperator<FMatrix>(evd) {
+        }
         
         /**
          * Compute the probability of an event
@@ -210,8 +214,9 @@ namespace kqp {
             
             return mP;
         }
+        
         /**
-         * Get the matrix v^T * (U x S) where U is the basis and S is the square
+         * Get the matrix V^T * (U x S) where U is the basis and S is the square
          * root of the eigenvalues. The Froebenius norm of the resulting matrix is
          * the probability of the event defined by v x v^t
          * 
@@ -219,8 +224,8 @@ namespace kqp {
          *            The vector v
          * @return
          */
-        Vector getProbabilityMatrix(const FVector& vector) const {
-            return this->mX.computeInnerProducts(vector) * this->mY * this->mS;
+        Vector getProbabilityMatrix(const FMatrix& fmatrix) const {
+            return this->mX.computeInnerProducts(fmatrix) * this->mY * this->mS;
         }
         
         /**
