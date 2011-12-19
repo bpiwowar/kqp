@@ -70,7 +70,7 @@ namespace kqp{
             kqp::thinEVD(evd, _mY, mD);
             
             _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
-            mY.swap(_mY);
+            mY.swap_dense(_mY);
             
             mX = fMatrix;
         }
@@ -126,8 +126,8 @@ namespace kqp{
             for(Index i = 0; i < combination_matrices.size(); i++) {
                 const AltMatrix &mAi = *combination_matrices[i];
                 for(Index j = 0; j <= i; j++) {
-                    const AltMatrix &mAj = *combination_matrices[i];
-                    getBlock(gram, offsets_A, i, j) =  (alphas[i] * alphas[j]) * (mAi.adjoint() *  getBlock(gram_X, offsets_X, i, j)) * mAj;
+                    const AltMatrix &mAj = *combination_matrices[j];
+                    getBlock(gram, offsets_A, i, j) =  (Eigen::internal::conj(alphas[i]) * alphas[j]) * (mAi.adjoint() *  getBlock(gram_X, offsets_X, i, j)) * mAj;
                 }
             }
             
@@ -145,12 +145,12 @@ namespace kqp{
                 _mY.block(offsets_A[i], 0, offsets_A[i+1]-offsets_A[i], _mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
-            mY.swap(_mY);
+            mY.swap_dense(_mY);
             mX = fMatrix;
         }
         
     private:
-        inline Eigen::Block<Matrix> getBlock(Matrix &m, std::vector<Index> &offsets, Index i, Index j) {
+        static inline Eigen::Block<Matrix> getBlock(Matrix &m, std::vector<Index> &offsets, Index i, Index j) {
             return m.block(offsets[i], offsets[j], offsets[i+1] - offsets[i], offsets[j+1]-offsets[j]);
         }
         

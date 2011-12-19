@@ -31,10 +31,10 @@ namespace kqp {
             return kevd_tests::direct_builder(test);
         
         if (name == "accumulator") 
-            return kevd_tests::accumulator(test, false);
+            return kevd_tests::accumulator(test, true);
         
         if (name == "accumulator-no-lc")
-            return kevd_tests::accumulator(test, true);
+            return kevd_tests::accumulator(test, false);
         
         if (name == "incremental") 
             return kevd_tests::incremental(test);

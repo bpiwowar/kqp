@@ -180,9 +180,10 @@ bool _KQP_LOG_CHECKER_ = kqp::LoggerInit::check(); \
 log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
 }
     
-    // Note: Use the if (false) construct to compile code; the code optimizer
+    // * Note * Use the if (false) construct to compile code; the code optimizer
     // is able to remove the corresponding code, so it does change
     // the speed 
+    // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
 #ifndef NDEBUG
     
     /** Debug */
@@ -207,7 +208,13 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
 #define KQP_LOG_INFO(name,message) LOG4CXX_INFO(name, message)
 #define KQP_LOG_WARN(name,message) LOG4CXX_WARN(name, message)
 #define KQP_LOG_ERROR(name,message) LOG4CXX_ERROR(name, message)
+
     
+#define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, boost::format(message) args)
+#define KQP_LOG_INFO_F(name,message,args) KQP_LOG_INFO(name, boost::format(message) args)
+#define KQP_LOG_WARN_F(name,message,args) KQP_LOG_WARN(name, boost::format(message) args)
+#define KQP_LOG_ERROR_F(name,message,args) KQP_LOG_ERROR(name, boost::format(message) args)
+
 #endif
     
 } // NS kqp

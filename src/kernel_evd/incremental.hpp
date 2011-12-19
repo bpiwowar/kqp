@@ -107,7 +107,7 @@ namespace kqp {
                 if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
                     AltMatrix<Scalar> m;
-                    m.swap(mY);
+                    m.swap_dense(mY);
                     mX = mX.linear_combination(m);
                     mY.resize(0,0);
                 } else {
