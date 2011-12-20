@@ -36,14 +36,14 @@ namespace kqp {
         
         // We expect eigenvalues to be sorted by increasing order
         const Eigen::Matrix<Real, Eigen::Dynamic, 1> &d = evd.eigenvalues();
-        double threshold = EPSILON * (double)d.size();
+        Real threshold = EPSILON * (Real)d.size();
         
         Index n = d.rows();
         Index negatives = 0, zeros = 0;
         
-        for(Index i = 0; i < d.rows(); i++) {
+        for(Index i = 0; i < n; i++) {
             assert(i==0 || d[i-1] <= d[i]);
-            if (d[i] < 0 && -d[i] < threshold) negatives++;
+            if (-d[i] > threshold) negatives++;
             else if (d[i] < threshold) zeros++; 
             else break;
         }

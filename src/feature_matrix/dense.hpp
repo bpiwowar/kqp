@@ -204,6 +204,14 @@ namespace kqp {
         boost::shared_ptr<Matrix> matrix;
     };
     
+    
+    
+    template<typename Scalar>
+    std::ostream& operator<<(std::ostream &out, const DenseMatrix<Scalar> &f) {
+        return out << "[Dense Matrix with scalar " << KQP_DEMANGLE((Scalar)0) << "]" << std::endl << f.get_matrix();
+    }
+    
+    
     // The scalar for dense feature matrices
     template <typename _Scalar> struct FeatureMatrixTypes<DenseMatrix<_Scalar> > {
         typedef _Scalar Scalar;

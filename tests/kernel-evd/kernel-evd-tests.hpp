@@ -24,6 +24,8 @@
 
 namespace kqp {
     namespace kevd_tests {
+        
+
         extern double tolerance;
         
         /**
@@ -73,7 +75,7 @@ namespace kqp {
                 typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
                 typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
                 
-                KQP_LOG_INFO(logger, "Kernel EVD with dense vectors and builder=" << KQP_DEMANGLE(builder));
+                KQP_LOG_INFO_F(logger, "Kernel EVD with dense vectors and builder \"%s\" (pre-images = %d, linear combination = %d)", %KQP_DEMANGLE(builder) %max_preimages %max_lc);
                 
                 Matrix matrix(n,n);
                 matrix.setConstant(0);
@@ -83,15 +85,16 @@ namespace kqp {
                     
                     Scalar alpha = Eigen::internal::abs(Eigen::internal::random_impl<Scalar>::run()) + 1e-3;
                     
+                    int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)max_preimages) + 1;
+                    int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)max_lc) + 1;
+                    KQP_LOG_INFO(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % n % k % k % p);
+
                     // Generate a number of pre-images
-                    int k = (int)(Eigen::internal::random_impl<double>::run() * (double)max_preimages) + 1;
                     Matrix m = Matrix::Random(n, k);
                     
                     // Generate the linear combination matrix
-                    int p = (int)(Eigen::internal::random_impl<double>::run() * (double)max_lc) + 1;
                     Matrix mA = Matrix::Random(k, p);
                     
-                    KQP_LOG_INFO(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % n % k % k % p);
                     matrix.template selfadjointView<Eigen::Lower>().rankUpdate(m * mA, alpha);
                     
                     
@@ -125,13 +128,36 @@ namespace kqp {
                 // Computing the difference between operators || U1 - U2 ||^2
                 
                 KQP_LOG_INFO(logger, "Comparing the decompositions");
-                double error = trace_function(mX, mY, mD, mX, mY, mD);       
-                error += trace_function(mU, mUY, mU_d, mU, mUY, mU_d);
-                error -= 2. * trace_function(mX, mY, mD, mU, mUY, mU_d);
-                KQP_LOG_INFO(logger, "Squared error is " << error);
+                double tr1 = trace_function(mX, mY, mD, mX, mY, mD);       
+                double tr2 = trace_function(mU, mUY, mU_d, mU, mUY, mU_d);
+                double tr12 = trace_function(mX, mY, mD, mU, mUY, mU_d);
+                
+                double error = tr1 + tr2 - 2. * tr12;
+                KQP_LOG_INFO_F(logger, "Squared error is %e [tr1=%e, tr2=%e, tr12=%e]", %error %tr1 %tr2 %tr12);
                 return error < tolerance ? 0 : 1;
             }
         };
+        
+        
+        struct Builder {
+            virtual int run(const Dense_evd_test &) const = 0;  
+        };
+        
+        
+        struct Direct_builder : public Builder {
+            virtual int run(const Dense_evd_test &) const;
+        };
+        struct Accumulator : public Builder {
+            Accumulator(bool use_lc) : use_lc(use_lc) {}
+            virtual int run(const Dense_evd_test &) const;
+            
+            bool use_lc;
+        };
+        struct Incremental : public Builder {
+            virtual int run(const Dense_evd_test &) const;
+        };
+        
+        
     }
     
 }

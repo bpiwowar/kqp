@@ -27,7 +27,7 @@ namespace kqp {
      * @param nzeroD Number of zero entries in diagonal matrix
      * @param nzeroZ Number of zero entries in vector
      */
-    template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int nzeroD, int nzeroZ) {
+    template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int nzeroD, int nzeroZ, bool use_update = false) {
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef typename Eigen::NumTraits<scalar>::Real Real;
         typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
@@ -40,6 +40,8 @@ namespace kqp {
             D(i) = std::rand();
         
         int i = 0;
+        Matrix mQ;
+        
         while (rhos[i++] != 0) {
             FastRankOneUpdate<scalar> updater;
 
@@ -49,11 +51,11 @@ namespace kqp {
                 z(i) = rand();
             
             EvdUpdateResult<scalar> result;
-            updater.update(D, rho, z, true, 0, true, result);
+            updater.update(D, rho, z, true, 0, true, result, use_update ? &mQ : 0);
             
             
             Matrix zzt = z*z.adjoint();
-            Matrix delta = result.mQ * result.mD.asDiagonal() * result.mQ.adjoint() - (Matrix(D.template cast<scalar>().asDiagonal()) + rho * z * z.adjoint());
+            Matrix delta = (use_update ? mQ : result.mQ) * result.mD.asDiagonal() * (use_update ? mQ : result.mQ).adjoint() - (Matrix(D.template cast<scalar>().asDiagonal()) + rho * z * z.adjoint());
             
             double error = delta.norm();
             
@@ -82,8 +84,10 @@ int evd_update_test(std::deque<std::string> &args) {
     
     if (name == "simple") {
         return evd_update_random<double>(rhos, 0, 10, 0, 0);
+        return evd_update_random<double>(rhos, 0, 10, 0, 0, true);
     } else if (name == "complex") {
         return evd_update_random<std::complex<double> >(rhos, 0, 10, 0, 0);
+        return evd_update_random<double>(rhos, 0, 10, 0, 0, true);
     }
         
     

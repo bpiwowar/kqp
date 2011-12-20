@@ -152,6 +152,10 @@ namespace kqp {
         
     };
     
+    template<class Derived>
+    std::ostream& operator<<(std::ostream &out, const FeatureMatrix<Derived> &f) {
+        return out << "[" << KQP_DEMANGLE(f) << "]";
+    }
     
     //! Compute an inner product of two feature matrices
     template<typename Derived, class DerivedMatrix>

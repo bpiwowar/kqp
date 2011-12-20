@@ -295,7 +295,8 @@ namespace kqp {
     }
     
 #define INSTANCE(Scalar) \
-    template void solve_qp<Scalar>(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
+    template void solve_qp<Scalar>(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);\
+    template class KQP_KKTPreSolver<Scalar>;
     
     INSTANCE(float);
     INSTANCE(double);

@@ -18,6 +18,8 @@ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef __KQP_NULL_SPACE_H__
 #define __KQP_NULL_SPACE_H__
 
+#include <numeric>
+
 #include <Eigen/Dense>
 
 #include "feature_matrix.hpp"
@@ -115,6 +117,16 @@ namespace kqp {
         Scalar maxa;
         Index j;
         LambdaError(Scalar delta, Scalar maxa, Index j) : delta(delta), maxa(maxa), j(j) {}
+        
+        LambdaError operator+(const LambdaError &other) {
+            LambdaError<Scalar> r;
+            r.delta = this->delta + other.delta;
+            r.maxa = this->maxa + other.maxa;
+        }
+        struct Comparator {
+            bool operator() (const LambdaError &e1, const LambdaError &e2) { return e1.delta < e2.delta; }
+        };
+        
     };
     
     
@@ -128,7 +140,7 @@ namespace kqp {
      */
     template <class FMatrix, typename Derived>
     typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &mY) {
+    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const typename ftraits<FMatrix>::AltMatrix &mY, const typename ftraits<FMatrix>::RealVector &mD) {
         // Real case
         typedef ftraits<FMatrix> FTraits;
         typedef typename FTraits::Scalar Scalar;
@@ -152,17 +164,19 @@ namespace kqp {
                 delta += mY(i,j);
                 maxa = std::max(maxa, std::abs(mY(i,j)));
             }
-            errors.push_back(LambdaError(delta*gram(j,j)), maxa, j));
-
+            errors.push_back(LambdaError<Scalar>(delta*gram(j,j)), maxa, j);
         }
         
-        Real lambda = 0;
+        std::sort(errors.begin(), errors.end(), LambdaError<Scalar>::Comparator());
+        LambdaError<Scalar> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Scalar>());
+        
+        Real lambda = acc_lambda.delta / acc_lambda.maxa;
         
         // Compute a
         RealVector a(n*r+n);
         for(Index i = 0; i < r; i++)
-            a.segment(i*n, n) = - 2 * g * mY.col(i);
-        a.segment(n*r,n).setConstant(lambda);
+            a.segment(i*n, n) = - gram * mY.col(i);
+        a.segment(n*r,n).setConstant(lambda / (Scalar)2);
         
         // Solve
         kqp::cvxopt::ConeQPReturn<Scalar> result;

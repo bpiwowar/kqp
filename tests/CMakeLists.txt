@@ -29,8 +29,16 @@ do_test(qp-kkt-random "kqp-qp-solver" "kkt-solver-random")
 do_test(kqp-qp-simple "kqp-qp-solver" "simple")
 do_test(kqp-qp-random "kqp-qp-solver" "random")
 
-do_test(kernel-evd-direct kernel-evd direct-builder)
-do_test(kernel-evd-accumulator kernel-evd accumulator)
-do_test(kernel-evd-accumulator-no-lc kernel-evd accumulator-no-lc)
-do_test(kernel-evd-incremental kernel-evd incremental)
+# --- Kernel EVD
+
+FUNCTION(do_kevd_test id builder)
+    FOREACH(task "simple" "rank-1" "rank-n")
+        do_test("${id}-${task}" "kernel-evd"  "${builder}" "${task}" ${ARGN})
+    ENDFOREACH(task)
+ENDFUNCTION(do_kevd_test id taskname)
+
+do_kevd_test(kernel-evd-direct direct)
+do_kevd_test(kernel-evd-accumulator accumulator)
+do_kevd_test(kernel-evd-accumulator-no-lc  accumulator-no-lc)
+do_kevd_test(kernel-evd-incremental incremental)
 

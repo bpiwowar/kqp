@@ -18,9 +18,10 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
+#include <iostream>
 #include <algorithm>
 #include "Eigen/Core"
-
+#include "kqp.hpp"
 
 namespace Eigen {
     template<typename Lhs, typename Rhs, bool Tr> class AltDenseProduct;
@@ -158,6 +159,18 @@ namespace kqp {
         
         Scalar _alpha;
     };
+    
+    
+    template<typename Scalar>
+    std::ostream &operator<<(std::ostream &out, const AltMatrix<Scalar> &alt_matrix) {
+        switch(alt_matrix.type()) {
+            case DIAGONAL:
+                return out << "[Diagonal matrix of dimension " << alt_matrix.rows() << " with scalar=" << KQP_DEMANGLE((Scalar)0) << "]";
+            case DENSE:
+                return out << "[Dense matrix]" << std::endl << alt_matrix.dense_matrix();
+        }
+        KQP_THROW_EXCEPTION(assertion_exception, "Unknown AltMatrix type");
+    }
     
 }
 

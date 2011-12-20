@@ -205,9 +205,9 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
 #endif // ELSE
     
     
-#define KQP_LOG_INFO(name,message) LOG4CXX_INFO(name, message)
-#define KQP_LOG_WARN(name,message) LOG4CXX_WARN(name, message)
-#define KQP_LOG_ERROR(name,message) LOG4CXX_ERROR(name, message)
+#define KQP_LOG_INFO(name,message) { LOG4CXX_INFO(name, message); }
+#define KQP_LOG_WARN(name,message) { LOG4CXX_WARN(name, message); }
+#define KQP_LOG_ERROR(name,message) { LOG4CXX_ERROR(name, message); }
 
     
 #define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, boost::format(message) args)

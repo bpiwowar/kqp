@@ -19,8 +19,8 @@ namespace kqp {
             return test.run(logger, builder);
         }
         
-        int accumulator(const Dense_evd_test &test, bool use_lc) {
-            if (use_lc) 
+        int kevd_tests::Accumulator::run(const Dense_evd_test &test) const {
+            if (this->use_lc) 
                 return _accumulator<true>(test);
             return _accumulator<false>(test);
         }

@@ -18,6 +18,7 @@
 #ifndef __KQP_INCREMENTAL_BUILDER_H__
 #define __KQP_INCREMENTAL_BUILDER_H__
 
+#include <iostream>
 #include <limits>
 
 #include "evd_update.hpp"
@@ -75,6 +76,10 @@ namespace kqp {
             // Compute V^T V
             Matrix vtv = mA.adjoint() * mU.inner() * mA - mW.adjoint() * mW;
             
+            std::cerr << "alpha is :::" << alpha << std::endl;
+            std::cerr << "mW is :::" << std::endl << mW << std::endl;
+            std::cerr << "vtv is :::" << std::endl << vtv << std::endl;
+            std::cerr << "mA is ::: " << std::endl << (mA * Matrix::Identity(mA.rows(), mA.rows())) << std::endl;
             
             // (thin) eigen-value decomposition of V^T V
             Eigen::SelfAdjointEigenSolver<Matrix> evd(vtv);
@@ -82,8 +87,12 @@ namespace kqp {
             RealVector mQD;
             kqp::thinEVD(evd, mQ, mQD);
             Index rank_Q = mQ.cols();             
+            for(Index i = 0; i < rank_Q; i++)
+                mQ.col(i) /= Eigen::internal::sqrt(mQD(i));
             std::cerr << "Rank of Q is " << rank_Q << std::endl;
-            
+            std::cerr << "mQ is :::" << std::endl << mQ << std::endl;
+            std::cerr << "mQD is :::" << std::endl << mQD << std::endl;
+
             // --- Update
            
             Matrix mZtW(mZ.cols() + rank_Q, mW.cols());
@@ -102,22 +111,29 @@ namespace kqp {
                 std::cerr << "D is now ::: " << mD.adjoint() << std::endl;
             }
             
-            // Add the pre-images
-            mX.add(mU);
-            
-            // Update mY
-            Index old_Y_rows = mY.rows();
-            Index old_Y_cols = mY.cols();
-            mY.conservativeResize(mY.rows() + mQ.rows(), mY.cols() + mQ.cols());
-            
-            mY.bottomLeftCorner(mQ.rows(), old_Y_cols).setConstant(0);
-            mY.bottomRightCorner(mQ.rows(), mQ.cols()) = mQ;
-            mY.topRightCorner(old_Y_rows, mQ.cols()).setConstant(0);
+            // Update X and Y if the rank has changed
+            if (rank_Q > 0) {
+                // Add the pre-images
+                mX.add(mU);
+                
+                // Update mY
+                Index old_Y_rows = mY.rows();
+                Index old_Y_cols = mY.cols();
+                mY.conservativeResize(mY.rows() + mA.rows(), mY.cols() + mQ.cols());
+
+                mY.bottomRightCorner(mA.rows(), mQ.cols()) = mA * mQ;
+                mY.bottomLeftCorner(mA.rows(), old_Y_cols).setConstant(0);
+                if (old_Y_rows > 0)
+                    mY.topRightCorner(old_Y_rows, mQ.cols()) = - mY.topLeftCorner(old_Y_rows, mW.rows()) * mW * mQ;
+            }
+            std::cerr << "Y is now ::: " << mY << std::endl;
+
                               
             // (4) Clean-up
             
             // Remove unused images
-            
+//            removeUnusedPreImages(mX, mY);
+
             // Ensure we have a small enough number of pre-images
             if (mX.size() > (preImagesPerRank * mD.rows())) {
                 if (mX.can_linearly_combine()) {
@@ -128,7 +144,6 @@ namespace kqp {
                     mY.setIdentity(mX.size(), mX.size());
                 } else {
                     // Optimise
-                    removeUnusedPreImages(mX, mY);
                 }
                 
             }
@@ -143,6 +158,10 @@ namespace kqp {
             }
             mY = AltMatrix<Scalar>(this->mY);
             mD = this->mD;
+            
+            std::cerr << "inner(X) = " << std::endl << mX.inner() << std::endl;
+            std::cerr << "Y = " << std::endl << mY * Matrix::Identity(mY.rows(), mY.rows()) << std::endl;
+            std::cerr << "D = " << std::endl << mD.adjoint() << std::endl;
         }
         
         

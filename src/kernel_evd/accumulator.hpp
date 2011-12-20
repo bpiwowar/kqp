@@ -63,15 +63,17 @@ namespace kqp{
         //! Actually performs the computation
         virtual void get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             const typename FMatrix::Matrix& gram = fMatrix.inner();
-            
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
             
             typename FTraits::Matrix _mY;
             kqp::thinEVD(evd, _mY, mD);
             
-            mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
-            
+            mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
             mX = fMatrix;
+
+            std::cerr << "X=" << mX << std::endl;
+            std::cerr << "Y=" << mY << std::endl;
+            std::cerr << "D=" << mD.adjoint() << std::endl;
         }
         
     private:
@@ -138,13 +140,15 @@ namespace kqp{
             
             // Y <- A * Y * D^-1/2
             
-            _mY = _mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+            _mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            Matrix __mY(offsets_X.back(), _mY.cols());
+            
             for(Index i = 0; i < combination_matrices.size(); i++) {
                 const AltMatrix &mAi = *combination_matrices[i];
-                _mY.block(offsets_A[i], 0, offsets_A[i+1]-offsets_A[i], _mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
+                __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
-            mY.swap_dense(_mY);
+            mY.swap_dense(__mY);
             mX = fMatrix;
         }
         
