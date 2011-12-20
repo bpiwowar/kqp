@@ -557,7 +557,7 @@ namespace kqp {
         }
         
         if (nbNaN > 0)
-            BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("We had some eigen value(s) that is/are NaN"));
+            KQP_THROW_EXCEPTION_F(arithmetic_exception, "We had %d eigen value(s) that is/are NaN", %nbNaN);
         
         // --- Compute the eigenvectors
         
@@ -629,7 +629,7 @@ namespace kqp {
                     Z->topRightCorner(z_rows, diff).setConstant(0);
                 }
 
-                *Z = (*Z) * Q;
+                *Z = ((*Z) * Q).eval();
             }
             
         }

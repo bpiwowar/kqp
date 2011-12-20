@@ -10,39 +10,43 @@
 #include "kqp.hpp"
 
 namespace kqp {
-
-double EPSILON = 1e-15;
-
     
+    // Machine zero
+    double EPSILON = 1e-15;
+        
     template<typename Scalar> const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& EMPTY<Scalar>::matrix() { 
         const static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> matrix;
         return matrix; 
     }
     
-  KQP_FOR_ALL_SCALAR_TYPES(template struct kqp::EMPTY<, >);
+    KQP_FOR_ALL_SCALAR_TYPES(template struct kqp::EMPTY<, >);
     
 #ifndef NOLOGGING
-const LoggerInit __LOGGER_INIT;
-
-bool LoggerInit::check() {
-    return true;
-}
-
-LoggerInit::LoggerInit() {
-   
-//    log4cxx::BasicConfigurator::configure();
+    const LoggerInit __LOGGER_INIT;
     
-    log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
-    log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
-    appender->setName("kqp-appender");
-    log4cxx::BasicConfigurator::configure(appender);
-    appender->setThreshold(log4cxx::Level::getDebug());
-    log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
+    bool LoggerInit::check() {
+        return true;
+    }
     
-    KQP_LOG_DEBUG(logger, "Initialised the logging system");
-}
+    LoggerInit::LoggerInit() {
+        
+        //    log4cxx::BasicConfigurator::configure();
+        
+        log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
+        log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
+        appender->setName("kqp-appender");
+        log4cxx::BasicConfigurator::configure(appender);
+        appender->setThreshold(log4cxx::Level::getDebug());
+        log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
+        
+        KQP_LOG_DEBUG(logger, "Initialised the logging system");
+    }
+    
+    // Main KQP logger
+    log4cxx::LoggerPtr main_logger;
+
 #endif
-
+    
 }
 
 
@@ -55,9 +59,9 @@ LoggerInit::LoggerInit() {
  This project aims at providing an API that allows to compute quantum densities (semi-definite positive hermitian operators) 
  or events (subspaces). It provides tools to compute quantum probabilities and update densities (conditionalisation), and 
  supports the use of kernels to implicitely define the space, thus allowing working in very high dimensional spaces. 
-
+ 
  This project is <a href="http://sourceforge.net/projects/kqp/">hosted on SourceForge</a>.
-*/
+ */
 
 
 
@@ -71,7 +75,7 @@ LoggerInit::LoggerInit() {
  - \ref KernelEVD "Operator builders" are the classes that compute a thin representations of (kernel) linear operators, based on a single type of feature matrix;
  - \ref Probabilities "Probabilities" can then be computed from built operators (they both define events and quantum probability densities).
  
-*/
+ */
 
 
 
@@ -80,15 +84,15 @@ LoggerInit::LoggerInit() {
  
  Feature matrices are used to represent a set of feature vector. In a finite vectorial space, this is typically a matrix.
  
-*/
+ */
 
 /**
  @defgroup KernelEVD Building kernel linear operators
-
-*/
+ 
+ */
 
 /**
  @defgroup Probabilities Computing quantum probabilities
  
  
-*/
+ */

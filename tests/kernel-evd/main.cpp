@@ -25,14 +25,16 @@ namespace kqp {
         // Constant random seed
         std::map<std::string, Dense_evd_test> tests;
         {
+            // 1 rank-1 update
             Dense_evd_test test;
             test.nb_add = 1;
             test.n = 3;
             test.max_preimages = 1;
             test.max_lc = 1;
-            tests["simple"] = test;
+            tests["rank-1-once"] = test;
         }
         {
+            // 10 rank-1 updates
             Dense_evd_test test;
             test.nb_add = 10;
             test.n = 10;
@@ -41,10 +43,33 @@ namespace kqp {
             tests["rank-1"] = test;
         }
         {
+            // 1 rank-n update
+            Dense_evd_test test;
+            test.nb_add = 1;
+            test.n = 10;
+            test.max_preimages = 3;
+            test.max_lc = 3;
+            test.min_lc = 2;
+            tests["rank-n-once"] = test;
+        }
+        {
+            // 2 rank-n update
+            Dense_evd_test test;
+            test.nb_add = 2;
+            test.n = 10;
+            test.max_preimages = 3;
+            test.max_lc = 3;
+            test.min_lc = 2;
+            tests["rank-n-twice"] = test;
+        }
+        
+        {
+            // 15 rank-n update
             Dense_evd_test test;
             test.nb_add = 15;
             test.n = 10;
             test.max_preimages = 3;
+            test.min_lc = 2;
             test.max_lc = 3;
             tests["rank-n"] = test;
         }

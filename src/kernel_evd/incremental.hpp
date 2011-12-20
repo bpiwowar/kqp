@@ -76,39 +76,41 @@ namespace kqp {
             // Compute V^T V
             Matrix vtv = mA.adjoint() * mU.inner() * mA - mW.adjoint() * mW;
             
-            std::cerr << "alpha is :::" << alpha << std::endl;
-            std::cerr << "mW is :::" << std::endl << mW << std::endl;
-            std::cerr << "vtv is :::" << std::endl << vtv << std::endl;
-            std::cerr << "mA is ::: " << std::endl << (mA * Matrix::Identity(mA.rows(), mA.rows())) << std::endl;
             
             // (thin) eigen-value decomposition of V^T V
             Eigen::SelfAdjointEigenSolver<Matrix> evd(vtv);
             Matrix mQ;
+            Matrix mQ_null;
             RealVector mQD;
-            kqp::thinEVD(evd, mQ, mQD);
+            kqp::thinEVD(evd, mQ, mQD, &mQ_null);
+
             Index rank_Q = mQ.cols();             
+            mQD = mQD.cwiseAbs().cwiseSqrt();
             for(Index i = 0; i < rank_Q; i++)
-                mQ.col(i) /= Eigen::internal::sqrt(mQD(i));
-            std::cerr << "Rank of Q is " << rank_Q << std::endl;
-            std::cerr << "mQ is :::" << std::endl << mQ << std::endl;
-            std::cerr << "mQD is :::" << std::endl << mQD << std::endl;
+                mQ.col(i) /= mQD(i);
 
             // --- Update
            
-            Matrix mZtW(mZ.cols() + rank_Q, mW.cols());
-            mZtW.topRows(mZ.cols()) = mZ.adjoint() * mW;
-            mZtW.bottomRightCorner(rank_Q, mW.cols() - rank_Q).setConstant(0);
-            mZtW.bottomLeftCorner(rank_Q, rank_Q) = mQD.template cast<Scalar>().asDiagonal();
+            Matrix m(mW.rows() + rank_Q, mW.cols());
+                        
+            m.topLeftCorner(mW.rows(), rank_Q) =  mW * mQ * mQD.asDiagonal();
+            m.topRightCorner(mW.rows(), mW.cols() - rank_Q) = mW * mQ_null;                
             
-            for(Index i = 0; i < mW.cols(); i++) {
+            m.bottomLeftCorner(rank_Q, rank_Q) = mQD.template cast<Scalar>().asDiagonal();
+            m.bottomRightCorner(rank_Q, mW.cols() - rank_Q).setConstant(0) ;
+            
+
+            for(Index i = 0; i < m.cols(); i++) {
                 EvdUpdateResult<Scalar> result;
                 // Update
-                std::cerr << "Rank-one update with " << mZtW.col(i).adjoint() << std::endl;
-                evdRankOneUpdate.update(mD, alpha, mZtW.col(i), false, selector.get(), false, result, &mZ);
-                std::cerr << "mZ is now ::: " << mZ << std::endl;
+                ScalarVector v(m.rows());
+                v.head(mZ.cols()) = mZ.adjoint() * m.col(i).head(mZ.cols());
+                v.tail(m.rows() - mZ.cols()) = m.col(i).tail(m.rows() - mZ.cols());
+                
+                
+                evdRankOneUpdate.update(mD, alpha, v, false, selector.get(), false, result, &mZ);
                 // Take the new diagonal
                 mD = result.mD;
-                std::cerr << "D is now ::: " << mD.adjoint() << std::endl;
             }
             
             // Update X and Y if the rank has changed
@@ -126,8 +128,6 @@ namespace kqp {
                 if (old_Y_rows > 0)
                     mY.topRightCorner(old_Y_rows, mQ.cols()) = - mY.topLeftCorner(old_Y_rows, mW.rows()) * mW * mQ;
             }
-            std::cerr << "Y is now ::: " << mY << std::endl;
-
                               
             // (4) Clean-up
             
@@ -159,9 +159,6 @@ namespace kqp {
             mY = AltMatrix<Scalar>(this->mY);
             mD = this->mD;
             
-            std::cerr << "inner(X) = " << std::endl << mX.inner() << std::endl;
-            std::cerr << "Y = " << std::endl << mY * Matrix::Identity(mY.rows(), mY.rows()) << std::endl;
-            std::cerr << "D = " << std::endl << mD.adjoint() << std::endl;
         }
         
         

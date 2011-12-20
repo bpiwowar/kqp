@@ -133,11 +133,7 @@ namespace kqp {
 #define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
 #define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
     
-    //! Throw an exception with a message
-#define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
     
-    //! Throw an exception with a message
-#define KQP_THROW_EXCEPTION_F(type, message, arguments) BOOST_THROW_EXCEPTION(type() << errinfo_message((boost::format(message) arguments).str()))
     
     //! Demangle a pointer
 #define KQP_DEMANGLEP(x) (x ? demangle(typeid(x)) : demangle(typeid(*x)))
@@ -162,15 +158,20 @@ namespace kqp {
 #define KQP_LOG_WARN(name,message)
 #define KQP_LOG_ERROR(name,message)
 #define KQP_LOG_ASSERT(name,condition,message)
-    
+
+//! Throw an exception with a message
+#define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+
 #else
     
     class LoggerInit {
     public:
+         
         LoggerInit();
         static bool check();
     };
     extern const LoggerInit __LOGGER_INIT;
+    extern log4cxx::LoggerPtr main_logger;
     
     // We define the logger
     
@@ -186,15 +187,22 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
     // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
 #ifndef NDEBUG
     
+
     /** Debug */
 #define KQP_LOG_DEBUG(name,message) LOG4CXX_DEBUG(name, message)
     /** Debug and display the class name */
 #define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
     /** Assertion with message */
 #define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+
+//! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
+#define KQP_THROW_EXCEPTION(type, message) { KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
+
+#else // No DEBUG
     
-#else
-    
+//! Throw an exception with a message
+#define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+
     /** Debug */
 #define KQP_LOG_DEBUG(name,message) { if (false) LOG4CXX_DEBUG(name, message) }
     /** Debug and display the class name */
@@ -209,14 +217,16 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
 #define KQP_LOG_WARN(name,message) { LOG4CXX_WARN(name, message); }
 #define KQP_LOG_ERROR(name,message) { LOG4CXX_ERROR(name, message); }
 
+
+#endif // ndef(NOLOGGING)
     
+// With message versions
+#define KQP_THROW_EXCEPTION_F(type, message, arguments) KQP_THROW_EXCEPTION(type, (boost::format(message) arguments).str())
 #define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, boost::format(message) args)
 #define KQP_LOG_INFO_F(name,message,args) KQP_LOG_INFO(name, boost::format(message) args)
 #define KQP_LOG_WARN_F(name,message,args) KQP_LOG_WARN(name, boost::format(message) args)
 #define KQP_LOG_ERROR_F(name,message,args) KQP_LOG_ERROR(name, boost::format(message) args)
-
-#endif
-    
+  
 } // NS kqp
 
 #endif

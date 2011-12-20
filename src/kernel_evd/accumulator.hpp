@@ -70,10 +70,6 @@ namespace kqp{
             
             mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
             mX = fMatrix;
-
-            std::cerr << "X=" << mX << std::endl;
-            std::cerr << "Y=" << mY << std::endl;
-            std::cerr << "D=" << mD.adjoint() << std::endl;
         }
         
     private:

@@ -30,11 +30,15 @@
 namespace kqp {
     template <class Derived> 
     void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> &eigenvectors, 
-                 Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> &eigenvalues) {
+                 Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> &eigenvalues,
+                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> *nullEigenvectors = 0
+                 ) {
         typedef typename Derived::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
         // We expect eigenvalues to be sorted by increasing order
+        Index dimension = evd.eigenvectors().rows();
+        
         const Eigen::Matrix<Real, Eigen::Dynamic, 1> &d = evd.eigenvalues();
         Real threshold = EPSILON * (Real)d.size();
         
@@ -54,9 +58,13 @@ namespace kqp {
         eigenvalues.head(negatives) = d.head(negatives);
         eigenvalues.tail(positives) = d.tail(positives);
         
-        eigenvectors.resize(evd.eigenvectors().rows(), positives + negatives);
+        eigenvectors.resize(dimension, positives + negatives);
         eigenvectors.leftCols(negatives) = evd.eigenvectors().leftCols(negatives);
         eigenvectors.rightCols(positives) = evd.eigenvectors().rightCols(positives);
+        
+        if (nullEigenvectors) {
+            *nullEigenvectors = evd.eigenvectors().block(0, negatives, dimension, zeros);
+        }
     }
     
 }

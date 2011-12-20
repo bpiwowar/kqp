@@ -8,6 +8,8 @@
 
 using namespace kqp;
 
+DEFINE_LOGGER(logger,  "kqp.test.main");
+
 int main(int argc, const char **argv) {  
     
 
@@ -17,6 +19,7 @@ int main(int argc, const char **argv) {
     
     try {
         long seed = 0;
+        
         
         while (args.size() > 0) {
             if (args[0] == "--seed" && args.size() >= 2) {
@@ -30,7 +33,10 @@ int main(int argc, const char **argv) {
             KQP_THROW_EXCEPTION(illegal_argument_exception, "No task was given");
         
         std::string name = args[0];
-        args.pop_front();       
+        args.pop_front(); 
+        
+        KQP_LOG_INFO_F(logger, "Setting the seed to %d", %seed);
+        std::srand(seed);
         
         try {
             if (name == "evd-update") 

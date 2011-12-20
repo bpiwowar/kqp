@@ -25,7 +25,7 @@
 namespace kqp {
     namespace kevd_tests {
         
-
+        
         extern double tolerance;
         
         /**
@@ -65,8 +65,14 @@ namespace kqp {
         struct Dense_evd_test {
             int nb_add;
             int n; 
+            
+            int min_preimages;
             int max_preimages; 
+            
+            int min_lc;
             int max_lc;
+            
+            Dense_evd_test() : min_preimages(1), min_lc(1) {}
             
             template<class T> 
             int run(const log4cxx::LoggerPtr &logger, T &builder) const {
@@ -85,10 +91,10 @@ namespace kqp {
                     
                     Scalar alpha = Eigen::internal::abs(Eigen::internal::random_impl<Scalar>::run()) + 1e-3;
                     
-                    int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)max_preimages) + 1;
-                    int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)max_lc) + 1;
+                    int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(max_preimages-min_preimages)) + min_preimages;
+                    int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(max_lc-min_lc)) + min_lc;
                     KQP_LOG_INFO(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % n % k % k % p);
-
+                    
                     // Generate a number of pre-images
                     Matrix m = Matrix::Random(n, k);
                     
@@ -124,6 +130,12 @@ namespace kqp {
                 builder.get_decomposition(mX, mY, mD);
                 
                 typename FTraits::AltMatrix mUY = FTraits::AltMatrix::Identity(mU.dimension());
+                
+                KQP_LOG_DEBUG(logger, "=== Decomposition ===");
+                KQP_LOG_DEBUG(logger, "X = " << mX);
+                KQP_LOG_DEBUG(logger, "Y = " << mY);
+                KQP_LOG_DEBUG(logger, "D = " << mD.adjoint());
+                
                 
                 // Computing the difference between operators || U1 - U2 ||^2
                 

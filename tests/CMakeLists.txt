@@ -32,7 +32,7 @@ do_test(kqp-qp-random "kqp-qp-solver" "random")
 # --- Kernel EVD
 
 FUNCTION(do_kevd_test id builder)
-    FOREACH(task "simple" "rank-1" "rank-n")
+    FOREACH(task "rank-1-once" "rank-1" "rank-n-once" "rank-n-twice" "rank-n")
         do_test("${id}-${task}" "kernel-evd"  "${builder}" "${task}" ${ARGN})
     ENDFOREACH(task)
 ENDFUNCTION(do_kevd_test id taskname)
