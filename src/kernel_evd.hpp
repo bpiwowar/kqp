@@ -18,7 +18,9 @@
 #ifndef __KQP_KERNEL_EVD_H__
 #define __KQP_KERNEL_EVD_H__
 
+
 #include "feature_matrix.hpp"
+#include "rank_selector.hpp"
 
 namespace kqp {
     
@@ -42,8 +44,19 @@ namespace kqp {
     public:
         typedef ftraits<FMatrix> FTraits;
         
-        static typename FTraits::Matrix ID_MATRIX;
+        
+        KernelEVD() : pre_images_per_rank(std::numeric_limits<float>::infinity()) {
             
+        }
+        
+        void set_pre_images_per_rank(float pre_images_per_rank) {
+            this->pre_images_per_rank = pre_images_per_rank;
+        }
+
+        void set_selector(const boost::shared_ptr<const Selector> &selector) {
+            this->selector = selector;
+        }
+        
         //! Virtual destructor to build the vtable
         ~KernelEVD() {}
                
@@ -58,15 +71,40 @@ namespace kqp {
          * @param mA  The mixture matrix (of dimensions n x k).
          */
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) = 0;
-        
+
         /**
          * Get the current decomposition
          * @param mX the pre-images
          * @param mY is used to get a basis from pre-images
          * @param mD is a diagonal matrix
          */
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) = 0;
+        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+            // Get the decomposition from the instance of Kernel EVD
+            _get_decomposition(mX, mY, mD);
+            
+            // Reduce the rank
+        }
+
         
+    protected:
+        /**
+         * Get the current decomposition
+         * @param mX the pre-images
+         * @param mY is used to get a basis from pre-images
+         * @param mD is a diagonal matrix
+         */
+        virtual void _get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) = 0;
+
+        /**
+         * Maximum number of pre-images per rank
+         */
+        float pre_images_per_rank;
+        
+        /**
+         * Eigen value selector
+         */
+        boost::shared_ptr<const Selector> selector;
+
     };
 
     

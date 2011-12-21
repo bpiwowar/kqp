@@ -71,6 +71,14 @@ namespace kqp {
         }
         
         /**
+         * Returns a subset
+         */
+        DenseMatrix<Scalar> subset(const std::vector<Index>::const_iterator &begin, const std::vector<Index>::const_iterator &end) {
+            DenseMatrix<Scalar> r;
+                       return r;
+        }
+        
+        /**
          * Add a vector (from a template expression)
          */
         template<typename Derived>

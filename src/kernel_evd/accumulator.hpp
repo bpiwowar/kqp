@@ -61,14 +61,14 @@ namespace kqp{
         
         
         //! Actually performs the computation
-        virtual void get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             const typename FMatrix::Matrix& gram = fMatrix.inner();
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
             
             typename FTraits::Matrix _mY;
             kqp::thinEVD(evd, _mY, mD);
             
-            mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            mY = _mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             mX = fMatrix;
         }
         
@@ -109,9 +109,9 @@ namespace kqp{
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
-        
+    protected:
         //! Actually performs the computation
-        virtual void get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             

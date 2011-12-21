@@ -566,7 +566,7 @@ namespace kqp {
             result.mQ.setZero(N, rank);
             Matrix &Q = result.mQ;
             
-            // Set the new values
+            // Set the new values: work eigenvector by eigenvector (indexed by j)
             for (int j = 0; j < rank; j++) {
                 IndexedValue<scalar> &vj = *v[j];
                 if (!vj.isSelected()) {
@@ -584,7 +584,7 @@ namespace kqp {
                             Q(vi.position, j) = x;
                             
                             if (isNaN(x)) 
-                                BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("NaN value in matrix Q"));
+                                KQP_THROW_EXCEPTION(arithmetic_exception, "NaN value in matrix Q");
                             iM++;
                         }
                     }
@@ -614,22 +614,19 @@ namespace kqp {
                 Q = Q.block(0,0,rank,rank);
             
             if (Z) {
-               
-                // TODO: optimise this
-                
-                if (Z->cols() < Q.rows()) {
+                if (Z->cols() < rank) {
                     Index z_cols = Z->cols();
                     Index z_rows = Z->rows();
                     
-                    Index diff = Q.rows() - z_cols;
+                    Index diff = rank - z_cols;
                     Z->conservativeResize(Z->rows() + diff, Z->cols() + diff);
                     
                     Z->bottomLeftCorner(diff, z_cols).setConstant(0);
                     Z->bottomRightCorner(diff, diff).setIdentity(diff, diff);
                     Z->topRightCorner(z_rows, diff).setConstant(0);
                 }
-
                 *Z = ((*Z) * Q).eval();
+
             }
             
         }

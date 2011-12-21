@@ -23,7 +23,6 @@
 
 #include "evd_update.hpp"
 #include "kernel_evd.hpp"
-#include "null_space.hpp"
 #include "alt_matrix.hpp"
 #include "coneprog.hpp"
 #include "utils.hpp"
@@ -55,16 +54,7 @@ namespace kqp {
             }
         };
         
-        IncrementalKernelEVD() :preImagesPerRank(std::numeric_limits<float>::infinity()) {
-            
-        }
-        
-        IncrementalKernelEVD(double minimumRelativeError, Index maxRank, float preImagesPerRank) :
-        preImagesPerRank(preImagesPerRank) {
-            
-        }
-        
-        
+               
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) {
             // --- Pre-computations
             
@@ -135,7 +125,7 @@ namespace kqp {
 //            removeUnusedPreImages(mX, mY);
 
             // Ensure we have a small enough number of pre-images
-            if (mX.size() > (preImagesPerRank * mD.rows())) {
+            if (mX.size() > (pre_images_per_rank * mD.rows())) {
                 if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
                     AltMatrix<Scalar> m;
@@ -150,7 +140,7 @@ namespace kqp {
         }
         
         
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
             mX = this->mX;
             if (mZ.rows() > 0) {
                 this->mY = this->mY * mZ;
@@ -176,9 +166,12 @@ namespace kqp {
         
         // Rank selector
         boost::shared_ptr<Selector> selector;
+
+        //! Ratio of pre-images per rank (target)
+        float pre_images_per_rank_target;
         
         //! Ratio of the number of pre-images to the rank (must be >= 1)
-        float preImagesPerRank;
+        float pre_images_per_rank;
         
     };
     

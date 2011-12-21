@@ -41,11 +41,19 @@ int main(int argc, const char **argv) {
         try {
             if (name == "evd-update") 
                 return evd_update_test(args);
-            else if (name == "kqp-qp-solver") 
-                return kqp_qp_solver_test(args);            
-            else if (name == "kernel-evd") 
-                return do_kevd_tests(args);            
             
+            if (name == "kqp-qp-solver") 
+                return kqp_qp_solver_test(args);            
+            
+            if (name == "kernel-evd") 
+                return do_kevd_tests(args);            
+
+            if (name == "null-space") 
+                return do_null_space_tests(args);            
+
+            if (name == "probabilities") 
+                return do_probabilities_tests(args);            
+
         } catch(const boost::exception &e) {
             std::cerr << boost::diagnostic_information(e) << std::endl;
             throw;

@@ -276,9 +276,9 @@ namespace kqp {
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result) {
         Index n = gramMatrix.rows();
         KQP_VECTOR(Scalar) c(n*r + n);
-        for(int i = 0; i < r; i++) {
+        for(int i = 0; i < r; i++) 
             c.segment(i*n, n) = - 2 * gramMatrix * alpha.block(0, i, n, 1);
-        }
+        
         c.segment(r*n,n).setConstant(lambda);
         
         QPConstraints<Scalar> G(n, r);

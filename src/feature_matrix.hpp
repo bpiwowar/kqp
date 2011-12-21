@@ -51,7 +51,7 @@ namespace kqp {
          * Returns true if the vectors can be linearly combined
          */
         bool can_linearly_combine() {
-            return static_cast<Derived*>(this)->Derived::can_linearly_combine();
+            return FTraits::can_linearly_combine;
         }
 
         /** Add all vectors */
@@ -74,7 +74,18 @@ namespace kqp {
         inline void set(Index i, const Derived &f) {
             this->view(i)._set(f);
         }
-        
+
+        /** @brief Construct a subset of feature vectors.
+         * 
+         * The list of indices is supposed to be ordered.
+         *
+         * @param begin Beginning of the list of indices
+         * @param end End of the list of indices
+         */
+        Derived subset(const std::vector<Index>::const_iterator &begin, const std::vector<Index>::const_iterator &end) {
+            return static_cast<const Derived*>(this)->Derived::subset(begin, end);
+        }
+
         //! View on the i<sup>th</sup> feature vector
         const Derived view(Index i) const { 
             return this->view(i,1);

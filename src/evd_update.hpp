@@ -19,7 +19,9 @@
 
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
+
 #include "Eigen/Core"
+#include "rank_selector.hpp"
 
 namespace kqp {
 
@@ -43,72 +45,7 @@ namespace kqp {
         Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> mQ;
 	};
     
-    /**
-     * A list of eigenvalues that can be edited
-     */
-    class EigenList {
-    public:
-        virtual ~EigenList();
-        
-		/**
-		 * Select an eigenvalue
-		 */
-        virtual double get(size_t i) const = 0;
-        
-		/**
-		 * Remove this eigenvalue from the selection
-		 */
-		virtual void remove(size_t i) = 0;
-        
-		/**
-		 * The original number of eigenvalues
-		 */
-		virtual size_t size() const = 0;
-        
-		/**
-		 * The current number of selected
-		 */
-		virtual size_t getRank() const = 0;
-        
-		/**
-		 * Check if an eigenvalue is currently selected or not
-		 */
-		virtual bool isSelected(size_t i) const = 0;
-	};
-    
-    /**
-     * Gets an eigenlist and removes whatever eigenvalues it does not like
-     */
-    class Selector {
-    public:
-        /**
-         * @param eigenValues
-         *            The ordered list of eigenvalues
-         */
-        virtual void selection(EigenList& eigenValues) const = 0;
 
-    };
-    
-    /**
-     * Chain selection
-     */
-    class ChainSelector : public Selector {
-    public:
-        ChainSelector();
-        void add(const ChainSelector &);
-        virtual void selection(EigenList& eigenValues) const;
-    };
-
-    /**
-     * Minimum relative eigenvalue
-     */
-    template<typename Scalar>
-    class MinimumSelector {
-    public:
-        MinimumSelector();
-        virtual void selection(EigenList& eigenValues) const;
-    };
-    
     /**
      * Maximum rank
      */
