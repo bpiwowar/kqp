@@ -24,26 +24,29 @@ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "feature_matrix.hpp"
 #include "coneprog.hpp"
+#include "rank_selector.hpp"
 
 namespace kqp {
     
     /**
      * @brief Removes pre-images with the null space method
      */
-    template <class FVector> 
-    void removeUnusedPreImages(FeatureMatrix<FVector> &mF, Eigen::Matrix<typename FVector::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY) {
+    template <class FMatrix> 
+    void removeUnusedPreImages(const FMatrix &mF, const Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
+                               FMatrix &_mF, Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &_mY) {
         // Dimension of the problem
         Index N = mY.rows();
         assert(N == mF.size());
         
+        std::vector<bool> to_keep(N, true);
+        
         // Removes unused pre-images
         for(Index i = 0; i < N; i++) 
-            while (N > 0 && mY.row(i).norm() < EPSILON) {
-                mF.remove(i, true);
-                if (i != N - 1) 
-                    mY.row(i) = mY.row(N-1);
-                N = N - 1;
-            }
+            if (mY.row(i).norm() < EPSILON) 
+                to_keep[i] = false;
+
+        select_rows(to_keep.begin(), to_keep.end(), mY, _mY);
+        _mF = mF.subset(to_keep.begin(), to_keep.end());
     }
     
     
@@ -55,8 +58,8 @@ namespace kqp {
      * @param mF the feature matrix
      * @param nullSpace the null space vectors of the gram matrix of the feature matrix
     */
-    template <class FVector, typename Derived>
-    void removeNullSpacePreImages(FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &nullSpace) {
+    template <class FMatrix, typename Derived>
+    void removeNullSpacePreImages(FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &nullSpace) {
         
     }
     
@@ -97,7 +100,7 @@ namespace kqp {
             mL1.template triangularView<Derived, Eigen::Upper>().solveInPlace(mL2);
             mL2 *= ldlt.transpositionsP().adjoint();
             
-            // TODO: Remove the vectors
+            // Simplify mL2
             removeNullSpacePreImages(mF, mL2);
                 
             // Removes unused pre-images

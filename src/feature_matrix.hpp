@@ -82,8 +82,8 @@ namespace kqp {
          * @param begin Beginning of the list of indices
          * @param end End of the list of indices
          */
-        Derived subset(const std::vector<Index>::const_iterator &begin, const std::vector<Index>::const_iterator &end) {
-            return static_cast<const Derived*>(this)->Derived::subset(begin, end);
+        Derived subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const {
+            return static_cast<const Derived*>(this)->Derived::_subset(begin, end);
         }
 
         //! View on the i<sup>th</sup> feature vector
@@ -157,8 +157,8 @@ namespace kqp {
          * Remove the i<sup>th</sup> feature vector 
          * @param if swap is true, then the last vector will be swapped with one to remove (faster)
          */
-        inline void remove(Index i, bool swap = false) {
-            static_cast<Derived*>(this)->Derived::remove(i, swap);
+        inline Index remove(Index i, bool swap = false) {
+            return static_cast<Derived*>(this)->Derived::remove(i, swap);
         }
         
     };

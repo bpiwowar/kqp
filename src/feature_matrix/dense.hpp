@@ -17,6 +17,7 @@
 #ifndef __KQP_DENSE_FEATURE_MATRIX_H__
 #define __KQP_DENSE_FEATURE_MATRIX_H__
 
+#include "rank_selector.hpp"
 #include "feature_matrix.hpp"
 
 namespace kqp {
@@ -70,13 +71,7 @@ namespace kqp {
             this->add(other.get_matrix());
         }
         
-        /**
-         * Returns a subset
-         */
-        DenseMatrix<Scalar> subset(const std::vector<Index>::const_iterator &begin, const std::vector<Index>::const_iterator &end) {
-            DenseMatrix<Scalar> r;
-                       return r;
-        }
+
         
         /**
          * Add a vector (from a template expression)
@@ -96,19 +91,22 @@ namespace kqp {
         }
         
         
-        void remove(Index i, bool swap) {
+        Index remove(Index i, bool swap) {
             this->check_can_modify();
-            
+            Index r = -1;
             Index last = matrix->cols() - 1;
             if (swap) {
-                if (i != last) 
+                if (i != last) {
                     matrix->col(i) = matrix->col(last);
+                    r = last;
+                }
             } else {
                 for(Index j = i + 1; j <= last; j++)
                     matrix->col(i-1) = matrix->col(i);
             }
             matrix->conservativeResize(matrix->rows(), last);
             _size--;
+            return r;
         }
         
         /**
@@ -130,10 +128,12 @@ namespace kqp {
             return this->matrix->block(0, column_start, matrix->rows(), _size);
         }
 
+        //! Get a non-const reference to the matrix
         Eigen::Block<Matrix> get_matrix() {
             return this->matrix->block(0, column_start, matrix->rows(), _size);
         }
         
+        // Computes the Gram matrix
         const Matrix & inner() const {
             if (_size == 0) return gramMatrix;
             
@@ -166,10 +166,18 @@ namespace kqp {
         
     protected:
         Self _linear_combination(const AltMatrix<Scalar> & mA, Scalar alpha) const {
-            return Self(alpha * (get_matrix() * mA))
-            ;
+            return Self(alpha * (get_matrix() * mA));
         }
         
+        /**
+         * Returns a subset
+         */
+        DenseMatrix<Scalar> _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const {
+            Matrix m;
+            select_columns<Scalar>(begin, end, *this->matrix, m);
+            DenseMatrix<Scalar> r(m);
+            return r;
+        }
         void _set(const Self &f) {            
             if (f.size() > 0)
                 this->get_matrix() = f.get_matrix();            

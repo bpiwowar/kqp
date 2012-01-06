@@ -113,70 +113,67 @@ namespace kqp {
     };
     
     
+    struct Mover {
+        virtual void prepare(Index new_size) {}
+        virtual void cleanup() {}
+        virtual void assign(Index from, Index to, Index size) = 0;
+    };
+    
     //! Reduces a set of indexed things by block
-    template <class T>
-    void selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, const T &values, T &new_values)  {
-        // Current column for insertions
-        size_t current_index = 0;
-        
-        // Resize
-        size_t rank = 0;
-        for(std::vector<bool>::const_iterator i = begin; i != end; i++)
-            if (*i) rank++;
-        
-        new_values.resize(rank);
-        
-        // Set i on the first eigenvalue
-        std::vector<bool>::const_iterator i = begin;
-        
-        while ((i = std::find(i, end, true)) != end) {
-            std::vector<bool>::const_iterator j = std::find(i, end, false) - 1;
-            if (i == j) 
-                // Move
-                if (i != begin) {
-                    new_values.segment(current_index, j - i) = new_values.segment(i - begin, j - i);
-                }
-            
-            // Update the current column index
-            current_index += j - i;
-        }
-        
-    }
+    void selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Mover &mover);
     
     template<typename Scalar>
-    struct columns {
+    struct columns : public Mover {
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        Matrix m;
+        const Matrix &source;
+        Matrix &dest;
         
-        columns(Matrix &m) : m(m) {}
+        columns(const Matrix &source, Matrix &dest) : source(source), dest(dest) {}
         
-        Eigen::Block<Matrix> segment(Index i, Index j) {
-            return m.block(0, i, m.rows(), j);
+        void prepare(Index new_size) {
+            dest.resize(source.rows(), new_size);
         }
         
+        void assign(Index from, Index to, Index size) {
+            dest.block(0, to, dest.rows(), size) = source.block(0, from, source.rows(), size);
+        }        
     };
-    
-    template<typename Scalar>
-    struct blocks {
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 
-        Matrix m;
+    template<typename Scalar>
+    struct rows : public Mover {
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        const Matrix &source;
+        Matrix &dest;
         
-        blocks(Matrix &m) : m(m) {}
+        rows(const Matrix &source, Matrix &dest) : source(source), dest(dest) {}
         
-        Eigen::Block<Matrix> segment(Index i, Index j) {
-            return m.block(i, i, j, j);
+        void prepare(Index new_size) {
+            dest.resize(new_size, source.cols());
         }
         
+        void assign(Index from, Index to, Index size) {
+            dest.block(to, 0, size, dest.cols()) = source.block(from, 0, size, source.cols());
+        }        
     };
+    
+
     
     //! Reduces the eigenpair given the current selection pattern
     template <typename Scalar>
-    void vector_selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
+    void select_columns(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
                           const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &values, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &new_values)  {
-        selection(begin, end, columns<Scalar>(values), columns<Scalar>(new_values));
+        kqp::columns<Scalar> mover(values, new_values);
+        selection(begin, end, mover);
     }
     
+    template <typename Scalar>
+    void select_rows(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
+                        const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &values, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &new_values)  {
+        kqp::rows<Scalar> mover(values, new_values);
+        selection(begin, end, mover);
+    }
+
+
     
     //! Reduces the eigenpair given the current selection pattern
     template<typename Scalar>
