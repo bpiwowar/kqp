@@ -16,23 +16,29 @@
  */
 
 %module kqp
+
+
 %{
   #include "feature_matrix/dense.hpp"
+  #include "kernel_evd/dense_direct.hpp"
 %}
 
-namespace kqp {
+#define Index int
+#define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix)
 
-   template <typename scalar> class DenseMatrix {
-	public:
-       /** Constructor */
-       DenseMatrix(unsigned long dimension);
-       
-		/** Get the dimensional of the feature vectors */
-       unsigned long size();
-   };
+%define ALL_SCALARS_DECLARATION(javaname, classname)
+%template(Double ## javaname) classname <double >;
+%enddef
 
-}
+%define FOR_ALL_SCALAR(prefix, suffix)
+prefix ## double ## suffix;
+%enddef
 
-%template(DenseDoubleFeatureMatrix) kqp::DenseMatrix<double>;
-%template(FloatDoubleFeatureMatrix) kqp::DenseMatrix<float>;
 
+%ignore kqp::DenseMatrix::get_matrix;
+%include "feature_matrix/dense.hpp"
+ALL_SCALARS_DECLARATION(DenseFeatureMatrix, kqp::DenseMatrix)
+
+
+%include "kernel_evd/dense_direct.hpp"
+ALL_SCALARS_DECLARATION(DenseDirectBuilder, kqp::DenseMatrix)
