@@ -172,11 +172,10 @@ namespace kqp {
         /**
          * Returns a subset
          */
-        DenseMatrix<Scalar> _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const {
-            Matrix m;
-            select_columns<Scalar>(begin, end, *this->matrix, m);
-            DenseMatrix<Scalar> r(m);
-            return r;
+        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) {
+            check_can_modify();
+            select_columns<Scalar>(begin, end, *this->matrix, *this->matrix);
+            _size = this->matrix->cols();
         }
         void _set(const Self &f) {            
             if (f.size() > 0)

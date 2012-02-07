@@ -75,15 +75,15 @@ namespace kqp {
             this->view(i)._set(f);
         }
 
-        /** @brief Construct a subset of feature vectors.
+        /** @brief Reduces the feature matrix to a subset of its vectors.
          * 
          * The list of indices is supposed to be ordered.
          *
          * @param begin Beginning of the list of indices
          * @param end End of the list of indices
          */
-        Derived subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const {
-            return static_cast<const Derived*>(this)->Derived::_subset(begin, end);
+        void subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) {
+            static_cast<Derived*>(this)->Derived::_subset(begin, end);
         }
 
         //! View on the i<sup>th</sup> feature vector

@@ -114,9 +114,40 @@ namespace kqp {
     
     
     struct Mover {
+        bool same;
+        Mover(bool same) : same(same) {}
+        
         virtual void prepare(Index new_size) {}
         virtual void cleanup() {}
-        virtual void assign(Index from, Index to, Index size) = 0;
+        
+        virtual void disjoint_assign(Index from, Index to, Index size) = 0;   
+
+        virtual void assign(Index from, Index to, Index size) {
+            if (!same || to + size <= from)
+                disjoint_assign(from, to, size);
+            else 
+                if (from != to) {
+                    // Cases where we are the same and from + size > to:
+                    // only consider the case where from is different from to.
+                    
+                    // Move by block
+                    Index maxStep = from - to;
+                    while (size > 0) {
+                        // Choose the step size
+                        Index step = size <= maxStep ? size : maxStep;
+                        
+                        // Move data
+                        disjoint_assign(from, to, step);
+                        
+                        // Update
+                        from += step; 
+                        to += step;
+                        size -= step;
+                    }
+                    
+                }
+        }
+        
     };
     
     //! Reduces a set of indexed things by block
@@ -127,16 +158,24 @@ namespace kqp {
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         const Matrix &source;
         Matrix &dest;
+        Index new_size;
         
-        columns(const Matrix &source, Matrix &dest) : source(source), dest(dest) {}
+        columns(const Matrix &source, Matrix &dest) : Mover(&source == &dest), source(source), dest(dest), new_size(0) {}
         
         void prepare(Index new_size) {
-            dest.resize(source.rows(), new_size);
+            this->new_size = new_size;
+            if (!same) 
+                dest.resize(source.rows(), new_size);
         }
         
-        void assign(Index from, Index to, Index size) {
+        void disjoint_assign(Index from, Index to, Index size) {
             dest.block(0, to, dest.rows(), size) = source.block(0, from, source.rows(), size);
         }        
+        
+        void cleanup() {
+            if (&source == &dest) 
+                dest.conservativeResize(source.rows(), new_size);
+        }
     };
 
     template<typename Scalar>
@@ -144,16 +183,24 @@ namespace kqp {
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         const Matrix &source;
         Matrix &dest;
+        Index new_size;
         
-        rows(const Matrix &source, Matrix &dest) : source(source), dest(dest) {}
+        rows(const Matrix &source, Matrix &dest) : Mover(&source == &dest), source(source), dest(dest), new_size(0) {}
         
         void prepare(Index new_size) {
-            dest.resize(new_size, source.cols());
+            this->new_size = new_size;
+            if (&source != &dest) 
+                dest.resize(new_size, source.cols());
         }
         
-        void assign(Index from, Index to, Index size) {
-            dest.block(to, 0, size, dest.cols()) = source.block(from, 0, size, source.cols());
-        }        
+        void disjoint_assign(Index from, Index to, Index size) {
+                dest.block(to, 0, size, dest.cols()) = source.block(from, 0, size, source.cols());
+        }       
+        
+        void cleanup() {
+            if (&source == &dest) 
+                dest.conservativeResize(new_size, source.cols());
+        }
     };
     
 

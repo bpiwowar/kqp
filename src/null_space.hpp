@@ -32,8 +32,7 @@ namespace kqp {
      * @brief Removes pre-images with the null space method
      */
     template <class FMatrix> 
-    void removeUnusedPreImages(const FMatrix &mF, const Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
-                               FMatrix &_mF, Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &_mY) {
+    void removeUnusedPreImages(FMatrix &mF, Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY) {
         // Dimension of the problem
         Index N = mY.rows();
         assert(N == mF.size());
@@ -45,8 +44,8 @@ namespace kqp {
             if (mY.row(i).norm() < EPSILON) 
                 to_keep[i] = false;
 
-        select_rows(to_keep.begin(), to_keep.end(), mY, _mY);
-        _mF = mF.subset(to_keep.begin(), to_keep.end());
+        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
+        mF.subset(to_keep.begin(), to_keep.end());
     }
     
     
