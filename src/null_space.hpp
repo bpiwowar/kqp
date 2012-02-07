@@ -32,7 +32,7 @@ namespace kqp {
      * @brief Removes pre-images with the null space method
      */
     template <class FMatrix> 
-    void removeUnusedPreImages(FMatrix &mF, Eigen::Matrix<typename FMatrix::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY) {
+    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
         // Dimension of the problem
         Index N = mY.rows();
         assert(N == mF.size());
@@ -47,66 +47,7 @@ namespace kqp {
         select_rows(to_keep.begin(), to_keep.end(), mY, mY);
         mF.subset(to_keep.begin(), to_keep.end());
     }
-    
-    
-    /**
-     * @brief Removes pre-images with the null space method
-     * 
-     * Removes pre-images using the null space method
-     * 
-     * @param mF the feature matrix
-     * @param nullSpace the null space vectors of the gram matrix of the feature matrix
-    */
-    template <class FMatrix, typename Derived>
-    void removeNullSpacePreImages(FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &nullSpace) {
-        
-    }
-    
-    /**
-     * @brief Removes unuseful pre-images 
-     *
-     * 1. Removes unused pre-images 
-     * 2. Computes a \f$LDL^\dagger\f$ decomposition of the Gram matrix to find redundant pre-images
-     * 3. Removes newly unused pre-images
-     */
-    template <class FVector, typename Derived>
-    void removeUnusefulPreImages(FeatureMatrix<FVector> &mF, const Eigen::MatrixBase<Derived> &mY) {
-        typedef typename FVector::Scalar Scalar;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        
-        // Removes unused pre-images
-        removeUnusedPreImages(mF, mY);
-        
-        // Dimension of the problem
-        Index N = mY.rows();
-        assert(N == mF.size());
 
-        // LDL decomposition (stores the L^T matrix)
-        Eigen::LDLT<Eigen::MatrixBase<Derived>, Eigen::Upper> ldlt(mF.getGramMatrix());
-        Eigen::MatrixBase<Derived> &mLDLT = ldlt.matrixLDLT();
-        
-        // Get the rank
-        Index rank = 0;
-        for(Index i = 0; i < N; i++)
-            if (mLDLT.get(i,i) < EPSILON) rank++;
-        
-       
-        Eigen::Block<Matrix> mL1 = mLDLT.block(0,0,rank,rank);
-        Eigen::Block<Matrix> mL2 = mLDLT.block(0,rank+1,rank,N-rank);
-        
-        if (rank != N) {
-            // Gets the null space vectors in mL2
-            mL1.template triangularView<Derived, Eigen::Upper>().solveInPlace(mL2);
-            mL2 *= ldlt.transpositionsP().adjoint();
-            
-            // Simplify mL2
-            removeNullSpacePreImages(mF, mL2);
-                
-            // Removes unused pre-images
-            removeUnusedPreImages(mF, mY);
-        }
-    }
-    
     /// Solve a QP system
     template<typename Scalar>
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
