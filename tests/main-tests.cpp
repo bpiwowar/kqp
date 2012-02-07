@@ -3,10 +3,40 @@
 #include <boost/exception/diagnostic_information.hpp> 
 
 #include "kqp.hpp"
-#include "test.hpp"
+#include <deque>
 #include <cstdlib>
 
 using namespace kqp;
+
+
+// Map from an ID to a test method
+namespace {
+    typedef int (*arg_function)(std::deque<std::string>&);
+    typedef std::map<std::string, arg_function> TestMap;
+    TestMap tests;
+    
+    struct Declare {
+        Declare(std::string name, arg_function f) {
+            tests[name] = f;
+        }
+    };
+}
+
+#define DEFINE_TEST(id,name) \
+    namespace kqp { int name(std::deque<std::string> &args); } \
+    namespace { Declare name ## _decl (id, &name); }
+
+DEFINE_TEST("evd-update", evd_update_test);
+
+DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
+DEFINE_TEST("kernel-evd", do_kevd_tests)
+
+DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
+DEFINE_TEST("reduced-set/ldl", test_reduced_set_ldl)
+DEFINE_TEST("reduced-set/qp", test_reduced_set_qp)
+
+DEFINE_TEST("probabilities", do_probabilities_tests)
+
 
 DEFINE_LOGGER(logger,  "kqp.test.main");
 
@@ -39,20 +69,9 @@ int main(int argc, const char **argv) {
         std::srand(seed);
         
         try {
-            if (name == "evd-update") 
-                return evd_update_test(args);
-            
-            if (name == "kqp-qp-solver") 
-                return kqp_qp_solver_test(args);            
-            
-            if (name == "kernel-evd") 
-                return do_kevd_tests(args);            
-
-            if (name == "null-space") 
-                return do_null_space_tests(args);            
-
-            if (name == "probabilities") 
-                return do_probabilities_tests(args);            
+            const TestMap::const_iterator it = tests.find(name);
+            if (it != tests.end())
+                it->second(args);
 
         } catch(const boost::exception &e) {
             std::cerr << boost::diagnostic_information(e) << std::endl;

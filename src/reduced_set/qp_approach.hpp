@@ -1,58 +1,37 @@
 /*
  This file is part of the Kernel Quantum Probability library (KQP).
+ 
+ KQP is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ KQP is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-KQP is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+#ifndef __KQP_REDUCED_QP_APPROACH_H__
+#define __KQP_REDUCED_QP_APPROACH_H__
 
-KQP is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with KQP.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-#ifndef __KQP_NULL_SPACE_H__
-#define __KQP_NULL_SPACE_H__
-
+#include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 #include <numeric>
 
-#include <Eigen/Dense>
-
+#include "kqp.hpp"
 #include "feature_matrix.hpp"
 #include "coneprog.hpp"
-#include "rank_selector.hpp"
 
 namespace kqp {
-    
-    /**
-     * @brief Removes pre-images with the null space method
-     */
-    template <class FMatrix> 
-    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
-        // Dimension of the problem
-        Index N = mY.rows();
-        assert(N == mF.size());
-        
-        std::vector<bool> to_keep(N, true);
-        
-        // Removes unused pre-images
-        for(Index i = 0; i < N; i++) 
-            if (mY.row(i).norm() < EPSILON) 
-                to_keep[i] = false;
-
-        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
-        mF.subset(to_keep.begin(), to_keep.end());
-    }
-
     /// Solve a QP system
     template<typename Scalar>
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
     
-
+    
     // Estimate the lambda
     template<typename Scalar>
     struct LambdaError {
@@ -112,7 +91,7 @@ namespace kqp {
         ScalarMatrix gram = mF.inner();
         Index n = gram.rows();
         
-    
+        
         // Estimate lambda
         std::vector<LambdaError<Real> > errors;
         for(Index j = 0; j < n; j++) {
@@ -155,11 +134,11 @@ namespace kqp {
         // Compute mY so that X_new Y is orthonormal, ie Y' X_new' X_new Y is the identity
         Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
         new_mY = evd.eigenvectors() * evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
-
+        
         // Project
         new_mY *= new_mY.adjoint() * new_mF.inner(mF) * mY;
     }
-
+    
     
     /**
      * Reduces the set of images using the quadratic optimisation approach.
@@ -172,7 +151,7 @@ namespace kqp {
     template <class FMatrix, typename Derived>
     typename boost::enable_if_c<Eigen::NumTraits<typename FMatrix::Scalar>::IsComplex, void>::type
     removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &mY);
-
+    
     
     /**
      * The KKT pre-solver to solver the QP problem
@@ -189,8 +168,8 @@ namespace kqp {
         cvxopt::KKTSolver<Scalar> *get(const cvxopt::ScalingMatrix<Scalar> &w);
     };
     
+}
 
-    
-} // end namespace
 
 #endif
+

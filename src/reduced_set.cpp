@@ -2,7 +2,7 @@
 
 #include "coneprog.hpp"
 
-#include "null_space.hpp"
+#include "reduced_set/qp_approach.hpp"
 
 DEFINE_LOGGER(logger, "kqp.kernel-evd");
 

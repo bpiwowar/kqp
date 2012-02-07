@@ -1,8 +1,6 @@
 
 
-FILE(GLOB kqp_test_kevd_SRC "kernel-evd/*.hpp" "kernel-evd/*.cpp")
 FILE(GLOB kqp_test_SRC   "*.hpp"   "*.cpp")
-SOURCE_GROUP("Kernel EVD" FILES ${kqp_test_kevd_SRC})
 
 INCLUDE_DIRECTORIES(${kqp_SOURCE_DIR}/src)
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
@@ -18,8 +16,12 @@ FUNCTION(do_test id taskname)
    ADD_TEST(${id} ${EXECUTABLE_OUTPUT_PATH}/kqp_test "${taskname}" ${ARGN})
 ENDFUNCTION(do_test taskname)
 
+# --- EVD update tests
+
 do_test(evd-update evd-update simple)
 do_test(evd-update-c evd-update complex)
+
+# --- QP solver
 
 do_test(qp-kkt-simple "kqp-qp-solver" "kkt-solver-simple")
 do_test(qp-kkt-diagonal-g "kqp-qp-solver" "kkt-solver-diagonal-g")
@@ -29,7 +31,13 @@ do_test(qp-kkt-random "kqp-qp-solver" "kkt-solver-random")
 do_test(kqp-qp-simple "kqp-qp-solver" "simple")
 do_test(kqp-qp-random "kqp-qp-solver" "random")
 
-# --- Kernel EVD
+# --- Reduced set methods
+
+do_test(reduced-set_unused "reduced-set/unused")
+do_test(reduced-set_ldl "reduced-set/ldl")
+do_test(reduced-set_qp "reduced-set/qp")
+
+# --- Exact Kernel EVD
 
 FUNCTION(do_kevd_test id builder)
     FOREACH(task "rank-1-once" "rank-1" "rank-n-once" "rank-n-twice" "rank-n")
@@ -42,3 +50,8 @@ do_kevd_test(kernel-evd-accumulator accumulator)
 do_kevd_test(kernel-evd-accumulator-no-lc  accumulator-no-lc)
 do_kevd_test(kernel-evd-incremental incremental)
 
+
+# --- Approximate Kernel EVD
+
+
+# --- Quantum Probabilities

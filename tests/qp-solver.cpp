@@ -1,13 +1,13 @@
 #include <iostream>
 #include <complex>
+#include <deque>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 
 #include "kqp.hpp"
-#include "null_space.hpp"
 #include "coneprog.hpp"
-#include "test.hpp"
+#include "reduced_set/qp_approach.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 
