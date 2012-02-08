@@ -2,25 +2,26 @@
 
 #include "reduced_set/ldl_approach.hpp"
 #include "feature_matrix/dense.hpp"
+#include "tests_utils.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.reduced-set.ldl")
 
 namespace kqp {
     
     int test_reduced_set_ldl(std::deque<std::string> &args) {
+        // --- Simple test
         
-        // Creates a rank-n matrix
+        
+        
+        // --- Random test
+
+        // Parameters
         Index dim = 10;
-        Index n = 7;
+        Index n = 3;
         
-        Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(dim,dim);
-        for(Index i = 0; i < n; i++) {
-            Eigen::VectorXd x = Eigen::VectorXd::Random(dim);
-            _mF.selfadjointView<Eigen::Lower>().rankUpdate(x, 1);
-        }
-        
-        Eigen::MatrixXd _mY = Eigen::MatrixXd::Random(dim,dim);
-        
+        // Gets a rank-n matrix and a full rank matrix
+        Eigen::MatrixXd _mF = generateMatrix<double>(dim, n);        
+        Eigen::MatrixXd _mY = generateMatrix<double>(dim, dim);                        
         
         // Copy
         Eigen::MatrixXd mY = _mY;
@@ -34,6 +35,7 @@ namespace kqp {
         
         Index delta = (_mY.rows() - mY.rows());
         KQP_LOG_INFO_F(logger, "Error is %g and row difference is %d", %error %delta);
-        return 0;
+
+        return mF.size() == n && (error < EPSILON * delta);
     }
 }

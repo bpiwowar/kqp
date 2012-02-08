@@ -13,8 +13,6 @@ namespace kqp {
         
         std::string name = args[0];
         
-        // (1) Simplest test: remove explicitely unused pre-images
-        if (name == "unused") {
             Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(10,10);
             DenseMatrix<double> mF(_mF);
             
@@ -33,10 +31,5 @@ namespace kqp {
             KQP_LOG_INFO_F(logger, "Error is %g and row difference is %d", %error %delta);
             
             return (delta > 0) && (error < EPSILON * delta);
-        }
-        
-      
-        
-        return 0;
     }
 }
