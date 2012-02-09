@@ -50,16 +50,17 @@ namespace kqp {
     template <class FMatrix>
     void removeNullSpacePreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &kernel, 
                                   Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index>& mP, const typename ftraits<FMatrix>::RealVector &weights, double delta = 1e-4) {
+        typedef typename ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
+        typedef typename ftraits<FMatrix>::ScalarVector ScalarVector;
         typedef typename ftraits<FMatrix>::RealVector RealVector;
+        typedef typename ftraits<FMatrix>::Real Real;
         typedef typename Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index> Permutation;
 
         // --- Look up at the indices to remove
         
         // Get the pre-images available for removal (one per vector of the null space, i.e. by columns in kernel)
-        Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> available = kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta;
-
         // Summarize the result per pre-image (number of vectors where it appears)
-        Eigen::Matrix<int, Eigen::Dynamic, 1> num_vectors = available.cast<int>().rowwise().sum();
+        Eigen::Matrix<int, Eigen::Dynamic, 1> num_vectors = (kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta).template cast<int>().rowwise().sum();
         
         std::vector<Index> to_remove;
         for(Index i = 0; i < num_vectors.rows(); i++)
@@ -67,8 +68,9 @@ namespace kqp {
                 to_remove.push_back(i);
         
         // Sort        
-        Index remove_size = kernel.cols();
-        Index keep_size = mF.size() - remove_size;
+        const Index pre_images_count = kernel.rows();
+        const Index remove_size = kernel.cols();
+        const Index keep_size = mF.size() - remove_size;
         
         mP = Permutation(mF.size());
         mP.setIdentity();
@@ -77,28 +79,40 @@ namespace kqp {
         std::vector<bool> selection(mF.size(), true);
         std::vector<bool> used(remove_size, false);
 
-        // --- Remove the vectors one by one
+        ScalarVector v;
+        
+        // --- Remove the vectors one by one (Pivoted Gauss)
+
         for(size_t index = 0;  index < remove_size; index++) {
             // remove the ith pre-image
             size_t i = to_remove[index];
-            std::cerr << "Removing " << i << std::endl;
             
-            // Searching for the vector in the null space
-            Index j = 0;
-            for(; j < available.cols(); j++)
-                if (!used[j] && available(i, j)) break;
+            // Searching for the highest magnitude
+            Index j = -1;
+            Real max = 0;
+            for(Index k = 0; k < kernel.cols(); k++) {
+                Real x = kernel.array().abs()(i, k);
+                if (!used[k] && x > max) {
+                    max = x;
+                    j = k;
+                }
+            }
+            assert(j != -1);
             used[j] = true;
             
             // Update permutation
             selection[i] = false;            
             mP.indices()(i) = j + keep_size;
-            std::cerr << "[[" << i << " to " << j + keep_size << "]]\n";
 
-            // Change the vector
-            kernel.col(j) /= - kernel(i,j);
+            // Update the matrix
+            v = kernel.col(j) / kernel(i,j);
+            kernel.col(j) /= -kernel(i,j);
             kernel(i,j) = 0;
             
+            kernel = ((ScalarMatrix::Identity(pre_images_count, pre_images_count) 
+                      - v * ScalarVector::Unit(pre_images_count, i).transpose()) * kernel).eval();
         }
+        
         
         // --- Remove the vectors from mF and set the permutation matrix
 
@@ -110,10 +124,8 @@ namespace kqp {
         Index count = 0;
         for(size_t index = 0; index < selection.size(); index++) 
             if (selection[index]) {
-                std::cerr << "[" << index << " to " << count << "]\n";
                 mP.indices()(index) = count++;
             }
-        std::cerr << mP.toDenseMatrix() << std::endl;
 
     }
     

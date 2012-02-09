@@ -8,6 +8,6 @@ DEFINE_LOGGER(logger, "kqp.test.reduced-set.qp")
 namespace kqp {
     
     int test_reduced_set_qp(std::deque<std::string> &args) {
-        
+        return 0;
     }
 }

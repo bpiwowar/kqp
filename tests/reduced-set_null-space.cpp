@@ -1,17 +1,14 @@
 #include "kqp.hpp"
 
-#include "reduced_set/ldl_approach.hpp"
+#include "reduced_set/null_space.hpp"
 #include "feature_matrix/dense.hpp"
 #include "tests_utils.hpp"
 
-DEFINE_LOGGER(logger, "kqp.test.reduced-set.ldl")
+DEFINE_LOGGER(logger, "kqp.test.reduced-set.null-space")
 
 namespace kqp {
     
-    int test_reduced_set_ldl(std::deque<std::string> &args) {
-        // --- Simple test
-        
-        
+    int test_reduced_set_null_space(std::deque<std::string> &args) {
         
         // --- Random test
 

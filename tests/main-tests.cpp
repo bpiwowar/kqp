@@ -49,7 +49,7 @@ DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
 DEFINE_TEST("kernel-evd", do_kevd_tests)
 
 DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
-DEFINE_TEST("reduced-set/ldl", test_reduced_set_ldl)
+DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
 DEFINE_TEST("reduced-set/qp", test_reduced_set_qp)
 
 DEFINE_TEST("probabilities", do_probabilities_tests)

@@ -8,10 +8,6 @@ DEFINE_LOGGER(logger, "kqp.test.null-space")
 namespace kqp {
 
     int test_reduced_set_unused(std::deque<std::string> &args) {
-        if (args.size() != 1) 
-            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Expected the task name, got %d arguments", %args.size());
-        
-        std::string name = args[0];
         
             Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(10,10);
             DenseMatrix<double> mF(_mF);

@@ -34,7 +34,7 @@ do_test(kqp-qp-random "kqp-qp-solver" "random")
 # --- Reduced set methods
 
 do_test(reduced-set_unused "reduced-set/unused")
-do_test(reduced-set_ldl "reduced-set/ldl")
+do_test(reduced-set_null-space "reduced-set/null-space")
 do_test(reduced-set_qp "reduced-set/qp")
 
 # --- Exact Kernel EVD
