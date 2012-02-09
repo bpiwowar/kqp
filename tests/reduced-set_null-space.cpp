@@ -31,8 +31,9 @@ namespace kqp {
         double error = (m1 - m2).norm();
         
         Index delta = (_mY.rows() - mY.rows());
-        KQP_LOG_INFO_F(logger, "Error is %g and row difference is %d", %error %delta);
+        double threshold = (1e-10 * delta);
+        KQP_LOG_INFO_F(logger, "Error is %g [threshold=%g] and row difference is %d", %error %threshold %delta);
 
-        return mF.size() == n && (error < EPSILON * delta);
+        return mF.size() == n && (error < threshold) ? 0 : 1;
     }
 }
