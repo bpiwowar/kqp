@@ -169,17 +169,24 @@ namespace kqp {
             return Self(alpha * (get_matrix() * mA));
         }
         
-        /**
-         * Returns a subset
-         */
-        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) {
-            check_can_modify();
-            select_columns<Scalar>(begin, end, *this->matrix, *this->matrix);
-            _size = this->matrix->cols();
+
+
+        /// Makes a subset
+        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
+            if (&into == this) 
+                into.check_can_modify();
+            
+            select_columns<Scalar>(begin, end, *this->matrix, *into.matrix);
+            into._size = this->matrix->cols();
         }
+
+
+        /// Copy from another dense matrix
         void _set(const Self &f) {            
-            if (f.size() > 0)
-                this->get_matrix() = f.get_matrix();            
+            view_mode = false;
+            column_start = 0;
+            
+            this->get_matrix() = f.get_matrix();            
             this->gramMatrix.resize(0,0);
         }
         

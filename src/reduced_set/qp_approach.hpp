@@ -26,18 +26,27 @@
 #include "feature_matrix.hpp"
 #include "coneprog.hpp"
 
+
 namespace kqp {
-    /// Solve a QP system
+    /** \brief Solve the QP system associated to the reduced set problem.
+     * 
+     * <p>Mimimise 
+     * \f$ \sum_{q=1}^{r}\beta_{q}^{\dagger}K\beta_{q}-2\Re\left(\alpha_{q}^{\dagger}Kb_{q}\right)+\lambda\xi_{q} \f$
+     * </p>
+     * @param r The rank of the operator
+     * @param gramMatrix The gram matrix \f$K\$
+     */
     template<typename Scalar>
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
     
-    
-    // Estimate the lambda
+    /// Structured used to estimate the lambda
     template<typename Scalar>
     struct LambdaError {
         Scalar delta;
         Scalar maxa;
         Index j;
+        
+        LambdaError() : delta(0), maxa(0) {}
         LambdaError(Scalar delta, Scalar maxa, Index j) : delta(delta), maxa(maxa), j(j) {}
         
         LambdaError operator+(const LambdaError &other) {
@@ -61,24 +70,13 @@ namespace kqp {
         }
     };
     
+    template<typename Derived> IndirectComparator<Derived> getIndirectComparator(const Derived &x) {
+        return IndirectComparator<Derived>(x);
+    }
     
-    /**
-     * Reduces the set of images using the quadratic optimisation approach.
-     * 
-     * It is advisable to use the removeUnusefulPreImages technique first.
-     * The decomposition <em>should</em> be orthonormal in order to work better.
-     * The returned decomposition is not orthonormal
-     *
-     * @param target The number of pre-images that we should get at the end
-     * @param mF The matrix of pre-images
-     * @param mY the 
-     */
-    template <class FMatrix, typename Derived>
-    typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const typename ftraits<FMatrix>::AltMatrix &mY, 
-                          const typename ftraits<FMatrix>::RealVector &mD,
-                          FeatureMatrix<FMatrix> &new_mF, typename ftraits<FMatrix>::AltMatrix &new_mY) {
-        // Real case
+    
+    template <class FMatrix>
+    struct ReducedSetWithQP {
         typedef ftraits<FMatrix> FTraits;
         typedef typename FTraits::Scalar Scalar;
         typedef typename FTraits::Real Real;
@@ -86,71 +84,92 @@ namespace kqp {
         typedef typename FTraits::ScalarVector ScalarVector;
         typedef typename FTraits::RealVector RealVector;
         
-        Index r = mY.cols();
         
-        ScalarMatrix gram = mF.inner();
-        Index n = gram.rows();
+        /// Result of a run
+        FMatrix new_mF;
+        ScalarMatrix new_mY;
+        RealVector new_mD;
         
-        
-        // Estimate lambda
-        std::vector<LambdaError<Real> > errors;
-        for(Index j = 0; j < n; j++) {
-            Scalar maxa = 0;
-            Scalar delta = 0;
-            for(Index i = 0; i < r; i++) {
-                delta += mY(i,j);
-                maxa = std::max(maxa, std::abs(mY(i,j)));
+        /**
+         * Reduces the set of images using the quadratic optimisation approach.
+         * 
+         * It is advisable to use the removeUnusefulPreImages technique first.
+         * The decomposition <em>should</em> be orthonormal in order to work better.
+         * The returned decomposition is not orthonormal
+         *
+         * @param target The number of pre-images that we should get at the end
+         * @param mF The matrix of pre-images
+         * @param mY the 
+         */
+        //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
+        void run(Index target, FMatrix &mF, typename ftraits<FMatrix>::AltMatrix &mY, const RealVector &mD) {
+            
+            Index r = mY.cols();
+            
+            ScalarMatrix gram = mF.inner();
+            Index n = gram.rows();
+            
+            
+            // Estimate lambda
+            std::vector<LambdaError<Real> > errors;
+            for(Index j = 0; j < n; j++) {
+                Scalar maxa = 0;
+                Scalar delta = 0;
+                for(Index i = 0; i < r; i++) {
+                    Scalar x = mY(i,j); 
+                    delta += x;
+                    maxa = std::max(maxa, std::abs(x));
+                }
+                errors.push_back(LambdaError<Scalar>(delta*gram(j,j), maxa, j));
             }
-            errors.push_back(LambdaError<Scalar>(delta*gram(j,j)), maxa, j);
+            
+            typedef typename LambdaError<Scalar>::Comparator LambdaComparator;
+            std::sort(errors.begin(), errors.end(), LambdaComparator());
+            LambdaError<Scalar> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Scalar>());
+            
+            Real lambda = acc_lambda.delta / acc_lambda.maxa;   
+            
+            
+            // Solve
+            kqp::cvxopt::ConeQPReturn<Scalar> result;
+            solve_qp<Scalar>(r, lambda, gram, (mY * mD.asDiagonal()), result);
+            
+            // Re-orthogonalise: direct EVD on reduced gram matrix
+            
+            // In result.x, the last n components are the maximum of the norm of the coefficients for each pre-image
+            // we use the <target> first
+            std::vector<Index> indices(n);
+            for(Index i = 0; i < n; i++)
+                indices[i] = i;
+            
+            // Sort by increasing order: we will keep only the target last vectors
+            std::sort(indices.begin(), indices.end(), getIndirectComparator(result.x.tail(n)));
+            
+            // Now sorts so that we minimise the number of swaps
+            std::sort(indices.end() - target, indices.end());
+            
+            // Construct a sub-view of the initial set of indices
+            std::vector<bool> to_keep(false, n);
+            for(Index i = target; i < n; i++)
+                to_keep[indices[i]] = true;
+            mF.subset(to_keep.begin(), to_keep.end(), new_mF);
+            
+            // Compute mY so that X_new Y is orthonormal, ie Y' X_new' X_new Y is the identity
+            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
+            ScalarMatrix new_mY = evd.eigenvectors() * evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            
+            // Project
+            
+            // TODO: optimise
+            KQP_MATRIX(Scalar) inner;
+            kqp::inner(new_mF, mF, inner);
+            new_mY *= new_mY.adjoint() * inner * mY;
+            
+            mY = AltMatrix<Scalar>(new_mY);
         }
         
-        std::sort(errors.begin(), errors.end(), LambdaError<Scalar>::Comparator());
-        LambdaError<Scalar> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Scalar>());
-        
-        Real lambda = acc_lambda.delta / acc_lambda.maxa;
-        
-        
-        // Solve
-        kqp::cvxopt::ConeQPReturn<Scalar> result;
-        solve_qp(r, lambda, gram, mY * mD.asDiagonal(), result);
-        
-        // Re-orthogonalise: direct EVD on reduced gram matrix
-        
-        // In result.x, the last n components are the maximum of the norm of the coefficients for each pre-image
-        // we use the <target> first
-        std::vector<Index> indices(n);
-        for(Index i = 0; i < n; i++)
-            indices[i] = i;
-        
-        // Sort by increasing order: we will keep only the target last vectors
-        std::sort(indices.begin(), indices.end(), IndirectComparator<Real>(result.x.tail(n)));
-        
-        // Now sorts so that we minimise the number of swaps
-        std::sort(indices.end() - target, indices.end());
-        
-        // Construct a sub-view of the initial set of indices
-        new_mF = mF.subset(indices.begin(), indices.end());
-        
-        // Compute mY so that X_new Y is orthonormal, ie Y' X_new' X_new Y is the identity
-        Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
-        new_mY = evd.eigenvectors() * evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
-        
-        // Project
-        new_mY *= new_mY.adjoint() * new_mF.inner(mF) * mY;
-    }
+    };
     
-    
-    /**
-     * Reduces the set of images using the quadratic optimisation approach.
-     * 
-     * It is advisable to use the removeUnusefulPreImages technique first.
-     *
-     * @param target The number of pre-images that we should get at the end
-     * @param F
-     */    
-    template <class FMatrix, typename Derived>
-    typename boost::enable_if_c<Eigen::NumTraits<typename FMatrix::Scalar>::IsComplex, void>::type
-    removePreImagesWithQP(Index target, FeatureMatrix<FMatrix> &mF, const Eigen::MatrixBase<Derived> &mY);
     
     
     /**

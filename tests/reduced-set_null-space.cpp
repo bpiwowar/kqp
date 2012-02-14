@@ -24,7 +24,7 @@ namespace kqp {
         Eigen::MatrixXd mY = _mY;
         DenseMatrix<double> mF(_mF);
         
-        kqp::removePreImagesWithLDL(mF, mY);
+        kqp::removePreImagesWithNullSpace(mF, mY);
         
         Eigen::MatrixXd m1 = mF.get_matrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;

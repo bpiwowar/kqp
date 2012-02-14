@@ -30,8 +30,10 @@ namespace kqp {
      * 
      * This class holds a list of vectors whose exact representation might not be
      * known. All sub-classes must implement basic list operations (add, remove).
-     * Vectors added to the feature matrix are considered as immutable by default
-     * since they might be kept as is.
+     *
+     * Vectors added to the feature matrix are considered as immutable by default.
+     *
+     * Copy constructor are not assumed to perform a deep copy.
      * 
      * @ingroup FeatureMatrix
      * @param _FVector the type of the feature vectors
@@ -83,7 +85,18 @@ namespace kqp {
          * @param end End of the list of indices
          */
         void subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) {
-            static_cast<Derived*>(this)->Derived::_subset(begin, end);
+            static_cast<Derived*>(this)->Derived::_subset(begin, end, *static_cast<Derived*>(this));
+        }
+        
+        /** @brief Reduces the feature matrix to a subset of its vectors.
+         * 
+         * The list of indices is supposed to be ordered.
+         *
+         * @param begin Beginning of the list of indices
+         * @param end End of the list of indices
+         */
+        void subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Derived &other) const {
+            static_cast<const Derived*>(this)->Derived::_subset(begin, end, other);
         }
 
         //! View on the i<sup>th</sup> feature vector
@@ -112,11 +125,12 @@ namespace kqp {
             return static_cast<Derived*>(this)->Derived::view(start, size);
         }
         
-        /** Get the i<sup>th</sup> feature vector */
+        /** Assignation operator */
         inline void set(const Derived &f) {
             if (f.size() != this->size())
                 KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Can only assign feature matrices of same size (%d vs %d)", %this->size() %f.size());
-            static_cast<Derived*>(this)->Derived::_set(f);
+            if (f.size() != 0)
+                static_cast<Derived*>(this)->Derived::_set(f);
         }
         
         

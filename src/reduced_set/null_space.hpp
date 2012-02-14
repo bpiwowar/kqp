@@ -137,7 +137,7 @@ namespace kqp {
      * 3. Removes newly unused pre-images
      */
     template <class FMatrix>
-    void removePreImagesWithLDL(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
+    void removePreImagesWithNullSpace(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
         typedef typename ftraits<FMatrix>::Scalar Scalar;
         typedef typename ftraits<FMatrix>::Real Real;
         typedef typename ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
