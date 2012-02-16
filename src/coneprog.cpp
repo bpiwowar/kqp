@@ -1242,7 +1242,7 @@ namespace kqp { namespace cvxopt {
             if (pcost == 0.0) relgap = NAN;
             else  relgap = 0.0;
             
-            r.status = "optimal";      
+            r.status = OPTIMAL;
             r.primal_objective = r.dual_objective = pcost;
             return;
         }
@@ -1418,7 +1418,7 @@ namespace kqp { namespace cvxopt {
         KQP_VECTOR(Scalar) sigz(dimss);
         
         // Makes some references for fast access
-        std::string &status = r.status;
+        Status &status = r.status;
         Scalar &pcost = r.primal_objective, &dcost = r.dual_objective, &dres = r.dual_infeasibility, &pres = r.primal_infeasibility;
         Scalar &gap = r.gap, &relgap = r.relative_gap;
         
@@ -1493,12 +1493,12 @@ namespace kqp { namespace cvxopt {
                 if (iters == options.maxiters) {
                     if (options.show_progress)
                         std::cerr << "Terminated (maximum number of iterations reached)." << std::endl;
-                    status = "unknown";
+                    status = NOT_CONVERGED;
                 }
                 else {
                     if (options.show_progress)
                         std::cerr << "Optimal solution found." << std::endl;
-                    status = "optimal";
+                    status = OPTIMAL;
                 }
                 r.dual_slack = -tz;
                 r.primal_slack = -ts;
@@ -1548,7 +1548,7 @@ namespace kqp { namespace cvxopt {
                     r.primal_slack = -max_step(s, dims);
                     r.dual_slack = -max_step(z, dims);
                     std::cerr << "Terminated (singular KKT matrix).";
-                    status = "unknown";
+                    status = SINGULAR_KKT_MATRIX;
                     return;
                 }
             }
@@ -1645,7 +1645,7 @@ namespace kqp { namespace cvxopt {
                     r.primal_slack = -max_step(s, dims);
                     r.dual_slack = -max_step(z, dims);
                     std::cerr << "Terminated (singular KKT matrix)." << std::endl;
-                    status = "unknown";
+                    status = SINGULAR_KKT_MATRIX;
                     return;
                     
                 }

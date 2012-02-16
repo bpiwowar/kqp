@@ -19,7 +19,7 @@
 #define __KQP_REDUCED_SET_UNUSED_H__
 
 #include "feature_matrix.hpp"
-#include "rank_selector.hpp"
+#include "subset.hpp"
 
 namespace kqp {
 /**

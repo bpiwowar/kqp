@@ -28,12 +28,12 @@
 namespace kqp {
 
     /** 
-     * Generate a real matrix of a given rank in given space dimension
+     * Generate an hermitian matrix of a given rank in given space dimension
      * 
      * @param dim The dimension of the space
      * @param rank The rank of the matrix
      */
-    template<typename Scalar> Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(Index dim, Index rank, Scalar min = (Scalar)1, Scalar max = (Scalar)100) {
+    template<typename Scalar> Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(Index dim, Index rank, Scalar min = (Scalar)1, Scalar max = (Scalar)10) {
         // Initialisation
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;

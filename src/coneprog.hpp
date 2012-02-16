@@ -65,6 +65,18 @@ namespace kqp {
             ConeQPOptions();
         };
         
+        /// Status of the result
+        enum Status {
+            /// Converged
+            OPTIMAL,
+            
+            // Singular KKT matrix
+            SINGULAR_KKT_MATRIX,
+            
+            // Not converged
+            NOT_CONVERGED
+        };
+        
         template<typename Scalar>
         struct ConeQPReturn {
             KQP_VECTOR(Scalar) x;
@@ -72,7 +84,7 @@ namespace kqp {
             KQP_VECTOR(Scalar) s;
             KQP_VECTOR(Scalar) z;
             
-            std::string status;
+            Status status;
             
             Scalar gap;
             Scalar relative_gap;

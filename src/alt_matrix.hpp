@@ -165,7 +165,26 @@ namespace kqp {
         
         inline Scalar coeff(Index i, Index j) const {
             return operator()(i,j);
+            
+            
         }
+        
+        template<typename Dest> inline void evalTo(Dest& dst) const {
+            switch(_type) {
+                case IDENTITY:
+                    dst = _alpha * DenseMatrix::Identity(_rows, _cols);
+                    break;
+                case DIAGONAL:
+                    dst = (_alpha * _dense_matrix.col(0)).asDiagonal();
+                    break;
+                case DENSE:
+                    dst = _dense_matrix;
+                    break;
+                default:
+                    KQP_THROW_EXCEPTION(assertion_exception, "Unknown AltMatrix type");
+            }
+        }
+        
     private:
         
         template<typename Lhs, typename Rhs, bool Tr> friend class Eigen::AltDenseProduct;
@@ -480,12 +499,15 @@ namespace Eigen {
         inline Index rows() const { return m_lhs.rows(); }
         inline Index cols() const { return m_rhs.cols(); }
         
+        template<typename Dest> inline void evalTo(Dest& dst) const {
+            dst = eval();
+        }
         kqp::AltMatrix<Scalar> eval() const {
             switch(m_rhs.type()) {
                 case kqp::IDENTITY:
                     return kqp::AltMatrix<Scalar>( m_rhs.alpha() * m_lhs.diagonal() );
-                case kqp::DIAGONAL:
-                    return kqp::AltMatrix<Scalar> ( m_lhs * (m_rhs.dense_matrix() * m_rhs.alpha()).col(0).asDiagonal().diagonal() );
+                case kqp::DIAGONAL: 
+                    return kqp::AltMatrix<Scalar>((m_rhs.alpha() * m_rhs.dense_matrix().col(0).cwiseProduct(m_lhs.diagonal())).asDiagonal());
                 case kqp::DENSE: {
                     return kqp::AltMatrix<Scalar>(m_rhs.alpha() * (m_lhs * m_rhs.dense_matrix()));  
                 }
@@ -530,12 +552,16 @@ namespace Eigen {
         inline Index rows() const { return m_lhs.rows(); }
         inline Index cols() const { return m_rhs.cols(); }
         
+        template<typename Dest> inline void evalTo(Dest& dst) const {
+            dst = eval();
+        }
+        
         kqp::AltMatrix<Scalar> eval() const {
             switch(m_lhs.type()) {
                 case kqp::IDENTITY:
                     return kqp::AltMatrix<Scalar>( m_lhs.alpha() * m_rhs.diagonal() );
-                case kqp::DIAGONAL:
-                    return kqp::AltMatrix<Scalar> ( (m_lhs.dense_matrix() * m_lhs.alpha()).col(0).asDiagonal().diagonal() * m_rhs);
+                case kqp::DIAGONAL: 
+                    return kqp::AltMatrix<Scalar>((m_lhs.alpha() * m_lhs.dense_matrix().col(0).cwiseProduct(m_rhs.diagonal())).asDiagonal());
                 case kqp::DENSE: {
                     return kqp::AltMatrix<Scalar>(m_lhs.alpha() * ( m_lhs.dense_matrix() * m_rhs ));  
                 }

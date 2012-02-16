@@ -90,6 +90,12 @@ namespace kqp {
         ScalarMatrix new_mY;
         RealVector new_mD;
         
+        
+        // 
+        FMatrix &getFeatureMatrix() { return new_mF; }
+        ScalarMatrix &getMixtureMatrix() { return new_mY; }
+        RealVector &getEigenValues() { return new_mD; }
+        
         /**
          * Reduces the set of images using the quadratic optimisation approach.
          * 
@@ -102,20 +108,25 @@ namespace kqp {
          * @param mY the 
          */
         //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-        void run(Index target, FMatrix &mF, typename ftraits<FMatrix>::AltMatrix &mY, const RealVector &mD) {
-            
-            Index r = mY.cols();
-            
+        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::AltMatrix &mY, const RealVector &mD) {
             ScalarMatrix gram = mF.inner();
+            
+            // Dimension of the basis
+            Index r = mY.cols();
+
+            // Number of pre-images
             Index n = gram.rows();
             
             
-            // Estimate lambda
-            std::vector<LambdaError<Real> > errors;
-            for(Index j = 0; j < n; j++) {
+            //
+            // (1) Estimate the regularization coefficient \f$lambda\f$
+            //
+            
+            std::vector< LambdaError<Real> > errors;
+            for(Index j = 0; j < r; j++) {
                 Scalar maxa = 0;
                 Scalar delta = 0;
-                for(Index i = 0; i < r; i++) {
+                for(Index i = 0; i < n; i++) {
                     Scalar x = mY(i,j); 
                     delta += x;
                     maxa = std::max(maxa, std::abs(x));
@@ -129,12 +140,20 @@ namespace kqp {
             
             Real lambda = acc_lambda.delta / acc_lambda.maxa;   
             
-            
-            // Solve
+            //
+            // (2) Solve the cone quadratic problem
+            //
             kqp::cvxopt::ConeQPReturn<Scalar> result;
             solve_qp<Scalar>(r, lambda, gram, (mY * mD.asDiagonal()), result);
+
+            if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
+                KQP_THROW_EXCEPTION_F(arithmetic_exception, "QP approach did not converge (singular KKT matrix)", %result.status);
             
-            // Re-orthogonalise: direct EVD on reduced gram matrix
+            // FIXME: case not converged
+            
+            //
+            // (3) Get the subset 
+            //
             
             // In result.x, the last n components are the maximum of the norm of the coefficients for each pre-image
             // we use the <target> first
@@ -149,23 +168,32 @@ namespace kqp {
             std::sort(indices.end() - target, indices.end());
             
             // Construct a sub-view of the initial set of indices
-            std::vector<bool> to_keep(false, n);
-            for(Index i = target; i < n; i++)
+            std::vector<bool> to_keep(n, false);
+            for(Index i = n-target; i < n; i++) {
                 to_keep[indices[i]] = true;
+            }
             mF.subset(to_keep.begin(), to_keep.end(), new_mF);
             
-            // Compute mY so that X_new Y is orthonormal, ie Y' X_new' X_new Y is the identity
+            
+            //
+            // (4) Project onto the new subspace
+            //
+            
+            // Compute new_mY so that new_mF Y is orthonormal, ie new_mY' new_mF' new_mF new_mY is the identity
+            
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
-            ScalarMatrix new_mY = evd.eigenvectors() * evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            new_mY.swap(evd.eigenvectors());
+            new_mY *= evd.eigenvalues().cwiseSqrt().cwiseInverse().asDiagonal();
             
-            // Project
+            // Project onto new_mF new_mY
             
-            // TODO: optimise
             KQP_MATRIX(Scalar) inner;
             kqp::inner(new_mF, mF, inner);
             new_mY *= new_mY.adjoint() * inner * mY;
-            
-            mY = AltMatrix<Scalar>(new_mY);
+
+            // Diagonal matrix does not change
+            new_mD = mD;
+
         }
         
     };

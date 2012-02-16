@@ -23,6 +23,7 @@
 #include <Eigen/LU> // LU decomposition
 
 #include "feature_matrix.hpp"
+#include "subset.hpp"
 #include "reduced_set/unused.hpp"
 
 namespace kqp {

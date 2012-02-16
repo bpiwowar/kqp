@@ -17,7 +17,7 @@
 #ifndef __KQP_DENSE_FEATURE_MATRIX_H__
 #define __KQP_DENSE_FEATURE_MATRIX_H__
 
-#include "rank_selector.hpp"
+#include "subset.hpp"
 #include "feature_matrix.hpp"
 
 namespace kqp {
@@ -41,6 +41,7 @@ namespace kqp {
         
         //! The type of inner product matrices
         typedef typename FTraits::Matrix Matrix;
+        typedef typename FTraits::ScalarMatrix ScalarMatrix;
         
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() : view_mode(false), column_start(0), _size(0) {}
@@ -176,10 +177,12 @@ namespace kqp {
             if (&into == this) 
                 into.check_can_modify();
             
-            select_columns<Scalar>(begin, end, *this->matrix, *into.matrix);
-            into._size = this->matrix->cols();
+            boost::shared_ptr<ScalarMatrix> m(new ScalarMatrix());
+            select_columns<Scalar>(begin, end, *this->matrix, *m);
+            into = Self(m);
         }
 
+        
 
         /// Copy from another dense matrix
         void _set(const Self &f) {            
@@ -193,6 +196,10 @@ namespace kqp {
         
     private:   
         friend class FeatureMatrix<Self>;
+        
+        // New featuer matrix from shared pointer
+        explicit DenseMatrix(const boost::shared_ptr<ScalarMatrix> &m) : view_mode(false), column_start(0), _size(m->cols()), matrix(m) {
+        }
         
         //! Creates a view
         DenseMatrix(const Self &other, Index i, Index size) : 

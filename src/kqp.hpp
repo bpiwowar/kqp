@@ -136,9 +136,9 @@ namespace kqp {
     
     
     //! Demangle a pointer
-#define KQP_DEMANGLEP(x) (x ? demangle(typeid(x)) : demangle(typeid(*x)))
+#define KQP_DEMANGLEP(x) (x ? kqp::demangle(typeid(x)) : kqp::demangle(typeid(*x)))
     //! Demangle a reference
-#define KQP_DEMANGLE(x) demangle(typeid(x))
+#define KQP_DEMANGLE(x) kqp::demangle(typeid(x))
     
     //! Hidden macro for STRING_IT(x)
 #define KQP_XSTRING_IT(x) #x

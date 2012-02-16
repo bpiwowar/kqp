@@ -274,6 +274,8 @@ namespace kqp {
     
     template<typename Scalar>
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result) {
+        std::cerr << "[1]\n" << gramMatrix << std::endl;
+        std::cerr << "[2]\n" << alpha << std::endl;
         Index n = gramMatrix.rows();
         KQP_VECTOR(Scalar) c(n*r + n);
         for(int i = 0; i < r; i++) 
