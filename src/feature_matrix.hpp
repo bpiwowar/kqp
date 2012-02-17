@@ -159,6 +159,15 @@ namespace kqp {
         }
         
         
+        /** 
+         * \brief Get the dimesion of the underlying space.
+         * 
+         * \todo Say what to do when infinite
+         */
+        inline Index dimension() const {
+            return static_cast<const Derived*>(this)->Derived::dimension();            
+        }
+        
         /**
          * @brief Computes the Gram matrix of this feature matrix
          * @return A dense self-adjoint matrix

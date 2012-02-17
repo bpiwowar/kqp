@@ -54,6 +54,10 @@ DEFINE_TEST("reduced-set/qp", test_reduced_set_qp)
 
 DEFINE_TEST("probabilities", do_probabilities_tests)
 
+DEFINE_TEST("divergence/simple", divergence_simpleTest);
+DEFINE_TEST("divergence/full", divergence_fullTest);
+DEFINE_TEST("divergence/simple-epsilon", divergence_simpleEpsilonTest);
+DEFINE_TEST("divergence/zero", divergence_zeroTest);
 
 DEFINE_LOGGER(logger,  "kqp.test.main");
 

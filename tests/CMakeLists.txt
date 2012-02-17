@@ -55,3 +55,11 @@ do_kevd_test(kernel-evd-incremental incremental)
 
 
 # --- Quantum Probabilities
+
+# --- Quantum Probabilities (divergence)
+
+do_test(divergence_simpleTest "divergence/simple")
+do_test(divergence_fullTest "divergence/full")
+do_test(divergence_simpleEpsilonTest "divergence/simple-epsilon")
+do_test(divergence_zeroTest "divergence/zero")
+

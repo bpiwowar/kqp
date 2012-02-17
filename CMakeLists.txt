@@ -19,7 +19,7 @@ project (kqp)
 
 # --- Version number
 
-SET (kqp_VERSION "0.0.1")
+SET (libkqp_VERSION "0.0.1")
 
 STRING (REGEX MATCHALL "[0-9]" libkqp_VERSION_PARTS "${libkqp_VERSION}")
 
@@ -74,18 +74,18 @@ ENDIF(OPEN_MP MATCHES "ON")
 
 # --- Build kqp library
 
-file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")
 file(GLOB kqp_SRC "src/*.hpp"  "src/*.cpp")
-file(GLOB kqp_operator_builder_SRC "src/kernel_evd/*.?pp" "src/kernel_evd.*")
+file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")
+file(GLOB kqp_kernel_evd_SRC "src/kernel_evd/*.?pp" "src/kernel_evd.*")
 file(GLOB kqp_reduced_set_SRC "src/reduced_set/*.?pp" "src/reduced_set.*")
 
 SOURCE_GROUP("Feature matrix" FILES ${kqp_fmatrix_SRC})
-SOURCE_GROUP("Kernel EVD" FILES ${kqp_operator_builder_SRC})
+SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
 SOURCE_GROUP("Reduced Set" FILES ${kqp_reduced_set_SRC})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
 
-ADD_LIBRARY (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_ScRC} ${kqp_reduced_set_SRC} "src/Eigen")
+ADD_LIBRARY (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_reduced_set_SRC} "src/Eigen")
 
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 
