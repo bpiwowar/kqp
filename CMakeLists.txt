@@ -16,7 +16,32 @@
  
 cmake_minimum_required (VERSION 2.6)
 project (kqp) 
+
+# --- Version number
+
 SET (kqp_VERSION "0.0.1")
+
+STRING (REGEX MATCHALL "[0-9]" libkqp_VERSION_PARTS "${libkqp_VERSION}")
+
+LIST (GET libkqp_VERSION_PARTS 0 libkqp_VERSION_MAJOR)
+LIST (GET libkqp_VERSION_PARTS 1 libkqp_VERSION_MINOR)
+LIST (GET libkqp_VERSION_PARTS 2 libkqp_VERSION_PATCH)
+
+SET (libkqp_SOVERSION "${libkqp_VERSION_MAJOR}.${libkqp_VERSION_MINOR}")
+
+
+# --- Compilation flags
+
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET (EXTRA_C_FLAGS "-Wno-deprecated -Wall -W -Wextra -fPIC")
+  SET (EXTRA_C_FLAGS_RELEASE "-O3")
+  SET (EXTRA_C_FLAGS_DEBUG "-O3 -g")
+ENDIF()
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_C_FLAGS}")
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${EXTRA_C_FLAGS_RELEASE}")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_C_FLAGS_DEBUG}")
+
 
 # --- Options
 
@@ -47,7 +72,7 @@ IF(OPEN_MP MATCHES "ON")
 	MESSAGE(STATUS "Using OpenMP")
 ENDIF(OPEN_MP MATCHES "ON")
 
-# --- Build kqp
+# --- Build kqp library
 
 file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")
 file(GLOB kqp_SRC "src/*.hpp"  "src/*.cpp")
@@ -58,9 +83,9 @@ SOURCE_GROUP("Feature matrix" FILES ${kqp_fmatrix_SRC})
 SOURCE_GROUP("Kernel EVD" FILES ${kqp_operator_builder_SRC})
 SOURCE_GROUP("Reduced Set" FILES ${kqp_reduced_set_SRC})
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
 
-add_library (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_SRC} ${kqp_reduced_set_SRC} "src/Eigen")
+ADD_LIBRARY (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_operator_builder_ScRC} ${kqp_reduced_set_SRC} "src/Eigen")
 
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 
@@ -75,6 +100,9 @@ COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
 endif(DOXYGEN_FOUND)
 
+# --- Benchmark
+
+add_subdirectory(benchmark)
 
 # --- Tests
 
