@@ -72,6 +72,14 @@ namespace kqp {
          */
         virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) = 0;
 
+        /** @brief Rank-n update.
+         * 
+         * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
+         */
+        inline void add(const typename FTraits::FMatrix &mU) {
+            add(1., mU, typename FTraits::AltMatrix::Identity(mU.cols()));
+        }
+
         /**
          * Get the current decomposition
          * @param mX the pre-images
