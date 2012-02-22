@@ -105,6 +105,10 @@ namespace kqp {
             return selected[i];
         }
         
+        const std::vector<bool> &getSelected() const {
+            return selected;
+        }
+        
     private:
         
         Vector eigenvalues;

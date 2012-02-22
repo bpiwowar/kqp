@@ -21,15 +21,15 @@ function dispMatrix(name, a)
  
 function dispTest(name, description, U1, S1, U2, S2, epsilon)
   printf("// Test: %s\n", description);
-  printf("int divergence_%sTest(std::deque<std::string> &args) {\n", name);
+  printf("int divergence_%sTest(std::deque<std::string> &/*args*/) {\n", name);
 
   dispMatrix("U1", U1);
   dispMatrix("U2", U2);
   dispDiag("S1", S1);
   dispDiag("S2", S2);
   printf("\ndouble epsilon = %.15g;\n\n", epsilon);
-  printf("Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1);\n");
-  printf("Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2);\n");
+  printf("Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1, true);\n");
+  printf("Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2, true);\n");
 
   eid = eye(rows(U1)) / rows(U1);
 

@@ -4,9 +4,19 @@
 
 #include "reduced_set/qp_approach.hpp"
 
-DEFINE_LOGGER(logger, "kqp.kernel-evd");
+DEFINE_LOGGER(logger, "kqp.qp_approach");
 
 namespace kqp {
+    
+    namespace {
+        template<typename Derived>
+        bool isnan(const Eigen::MatrixBase<Derived> &x) {
+            for(Index i = 0; i < x.rows(); i++)
+                for(Index j = 0; j < x.cols(); j++)
+                    if (std::isnan(x(i,j))) return true;
+            return false;
+        }
+    }
     
     // --- QP solver
     
@@ -120,7 +130,10 @@ namespace kqp {
         }
         
         
-        virtual void solve(KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, KQP_VECTOR(Scalar) & z) const {
+        virtual void solve(KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &/*y*/, KQP_VECTOR(Scalar) & z) const {
+            if (isnan(x)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in x");
+            if (isnan(z)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in z");
+
             // Prepares the access to sub-parts
             Eigen::VectorBlock<KQP_VECTOR(Scalar)> b = x.segment(r*n,n);
             
@@ -168,7 +181,14 @@ namespace kqp {
             
             // Scale z
             z.array() *= Wd.array();
+
+            // Detect NaN
+            
+            
+            if (isnan(x)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in x");
+            if (isnan(z)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in z");
         }
+        
         
         
     };
@@ -274,8 +294,9 @@ namespace kqp {
     
     template<typename Scalar>
     void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result) {
-        std::cerr << "[1]\n" << gramMatrix << std::endl;
-        std::cerr << "[2]\n" << alpha << std::endl;
+        KQP_LOG_DEBUG(logger, "Gram matrix:\n" << gramMatrix);
+        KQP_LOG_DEBUG(logger,  "Alpha:\n" << alpha);
+        
         Index n = gramMatrix.rows();
         KQP_VECTOR(Scalar) c(n*r + n);
         for(int i = 0; i < r; i++) 
@@ -287,8 +308,11 @@ namespace kqp {
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix);
         cvxopt::ConeQPOptions<Scalar> options;
         
+        KQP_LOG_DEBUG(logger,  "c:\n" << c);
+
         cvxopt::coneqp<Scalar>(KMult<Scalar>(n,r, gramMatrix), c, result, 
-                               false, cvxopt::Dimensions(),
+                               false /* No initial value */, 
+                               cvxopt::Dimensions(),
                                &G, NULL, NULL, NULL,
                                &kkt_presolver,
                                options

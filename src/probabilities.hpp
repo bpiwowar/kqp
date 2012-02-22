@@ -23,6 +23,7 @@
 #include "alt_matrix.hpp"
 #include "feature_matrix.hpp"
 #include "kernel_evd.hpp"
+#include "trace.hpp"
 
 namespace kqp {
     /**
@@ -47,12 +48,7 @@ namespace kqp {
      */
     template <class FMatrix> class KernelOperator {       
     public:
-        typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Matrix  Matrix;
-        typedef typename FTraits::AltMatrix  AltMatrix;
-        typedef typename FTraits::RealVector RealVector;
-        
+        KQP_FMATRIX_TYPES(FMatrix);
         
         /**
          * Creates an object given a Kernel EVD
@@ -68,20 +64,9 @@ namespace kqp {
         /**
          * \brief Creates a new kernel operator
          */
-        KernelOperator(const FMatrix &mX, const kqp::AltMatrix<Scalar> &mY, const RealVector &mS) : mX(mX), mY(mY), mS(mS) {
+        KernelOperator(const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : mX(mX), mY(mY), mS(mS), orthonormal(orthonormal) {
         }
         
-        
-        /**
-         * Creates a one dimensional eigen-decomposition representation
-         * 
-         * @param list The list of vectors
-         *           
-         * @param copy If the object should be copied
-         */
-        KernelOperator(const FMatrix &mX) : mX(mX), orthonormal(true) {
-            mS = RealVector::Ones(mX.size());
-        }
         
         /**
          * Trim the eigenvalue decomposition to a lower rank
@@ -98,7 +83,72 @@ namespace kqp {
             if (orthonormal) return mS.size();
         }
         
-    protected:
+        // Get the feature matrix
+        inline const FMatrix &X() const {
+            return mX;
+        }
+        
+        inline const ScalarAltMatrix &Y() const {
+            return mY;
+        }
+        
+        inline const RealVector &S() const {
+            return mS;
+        }
+        
+        /**
+         * Compute the squared norm of the operator
+         */
+        double squaredNorm() {
+            if (orthonormal) return mS.squaredNorm();
+            
+            return kqp::squaredNorm(X(), Y(), S());
+        }
+        
+        //! Multiply the operator by a positive real
+        void multiplyBy(Real alpha) {
+            if (alpha < 0) 
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot multiply a kernel operator by a negative value (%g)", %alpha);
+                
+            mS *= std::sqrt(alpha);
+        }
+        
+        
+        /**
+         * @brief Pre-computation of a probability. 
+         * 
+         * <p>
+         * Given the subspace representation \f$ S U \f$ and the density
+         * \f$ S^\prime U^\prime \f$, computes \f$ U^\top U^\prime S^\prime \f$ (crisp
+         * subspace) or \f$ S U^\top U^\prime S^\prime\f$ (fuzzy subspace). The sum of
+         * the squares of the matrix correspond to the probability of observing the
+         * subspace given the density.
+         * </p>
+         * 
+         * <p>
+         * Each row of the resulting matrix correspond to the probability associated
+         * with one of the dimension of the subspace. Similarly, each column is
+         * associated to a dimension of the density.
+         * </p>
+         * 
+         * @param subspace The subspace
+         * @return A matrix where each row correspond to one dimension of the density, 
+         *         and each column to one dimension of the subspace
+         */
+        ScalarMatrix inners(const KernelOperator<FMatrix>& that) const {
+            return that.S().asDiagonal() * that.Y().transpose() * inner(that.X(), this->X()) * this->Y() * this->S().asDiagonal();
+        }
+        
+        /**
+         * @brief Get the matrix corresponding to the decomposition.
+         * @throws An exception if the feature matrix cannot be linearly combined
+         */
+        FMatrix matrix() const {
+            return X().linear_combination(mY * mS);
+        }
+        
+    // We keep those private in case of re-factorisation
+    private:
         /**
          * The base vector list
          */
@@ -109,7 +159,7 @@ namespace kqp {
          * 
          * In case of an EVD decomposition, mX mY is orthonormal
          */
-        AltMatrix mY;
+        ScalarAltMatrix mY;
         
         /**
          * The singular values
@@ -121,10 +171,6 @@ namespace kqp {
         
         //! Is the decomposition othonormal, i.e. is Y^T X^T X Y the identity?
         bool orthonormal;
-        
-        //! Is the decomposition an observable, i.e. all the non null eigenvalues equal 1?
-        bool observable;
-        
     };
     
     template <class FMatrix> class Density;
@@ -138,14 +184,38 @@ namespace kqp {
      * 
      */
     template <class FMatrix> class Event : public KernelOperator<FMatrix>  {
-    public:        
+    public:
+        KQP_FMATRIX_TYPES(FMatrix);
+
         /**
          * Construct a Event from a kernel EVD. See
          * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(KernelEVD, bool)}
          * @param evd The kernel EVD decomposition
-         * @param fuzzy If false (default), the eigenvalues are ignored
          */
-        Event(const KernelEVD<FMatrix> &evd, bool fuzzy = false) : KernelOperator<FMatrix>(evd) {            
+        Event(const KernelEVD<FMatrix> &evd) : KernelOperator<FMatrix>(evd) {            
+        }
+        
+        /** Construct an event from a basis */
+        Event(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarAltMatrix::Identity(mX.rows()), RealVector::Ones(mX.size()), orthonormal) {
+        }
+
+        /** Construct an event from a basis */
+        Event(const FMatrix &mX, const ScalarAltMatrix &mY, bool orthonormal) : KernelOperator<FMatrix>(mX, mY, RealVector::Ones(mX.size()), orthonormal) {
+        }
+
+        
+        /**
+         * @brief Project onto a subspace.
+         *
+         * The resulting density will <b>not</b> normalised 
+         */
+        Density<FMatrix> project(const Density<FMatrix>& density, bool orthogonal) {
+            
+        }
+        
+        
+        Density<FMatrix> project(const Density<FMatrix>& density) {
+            
         }
         
         friend class Density<FMatrix>;
@@ -158,13 +228,7 @@ namespace kqp {
      */
     template <class FMatrix> class Density: public KernelOperator<FMatrix>  {
     public: 
-        typedef kqp::ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Real Real;
-        typedef typename FTraits::Matrix  Matrix;
-        typedef typename FTraits::AltMatrix  AltMatrix;
-        typedef typename FTraits::ScalarMatrix ScalarMatrix;
-        typedef typename FTraits::RealVector RealVector;
+        KQP_FMATRIX_TYPES(FMatrix);
         
         /**
          * Creates a new density
@@ -175,7 +239,10 @@ namespace kqp {
         Density(const KernelEVD<FMatrix>& evd) : KernelOperator<FMatrix>(evd) {
         }
         
-        Density(const FMatrix &mX, const AltMatrix &mY, const RealVector &mD) : KernelOperator<FMatrix>(mX, mY, mD) {
+        Density(const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<FMatrix>(mX, mY, mD, orthonormal) {
+        }
+
+        Density(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarAltMatrix::Identity(mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
         
@@ -196,40 +263,7 @@ namespace kqp {
             
             return result.squared_norm();
         }
-        
-        /**
-         * Pre-computation of a probability. This method is shared by others.
-         * 
-         * <p>
-         * Given the subspace representation \f$ S U \f$ and the density
-         * \f$ S^\prime U^\prime \f$, computes \f$ U^\top U^\prime S^\prime \f$ (crisp
-         * subspace) or \f$ S U^\top U^\prime S^\prime\f$ (fuzzy subspace). The sum of
-         * the squares of the matrix correspond to the probability of observing the
-         * subspace given the density.
-         * </p>
-         * 
-         * <p>
-         * Each row of the resulting matrix correspond to the probability associated
-         * with one of the dimension of the subspace. Similarly, each column is
-         * associated to a dimension of the density.
-         * </p>
-         * 
-         * @param subspace The subspace
-         * @param fuzzyEvent True if the event should be considered as fuzzy
-         * @return A matrix where each row correspond to one dimension of the density, 
-         *         and each column to one dimension of the subspace
-         */
-        ScalarMatrix getProbabilityMatrix(const Event<FMatrix>& subspace,
-                                          bool fuzzyEvent) const {
-            // Compute Y_s^T (P) Y_d S_d
-            ScalarMatrix mP = subspace.mY.transpose() * subspace.mX.computeInnerProducts(this->mX) * this->mY * this->SmS;
-            
-            // Pre-multiply the result by S_s if using fuzzy subspaces
-            if (fuzzyEvent)
-                mP = subspace.mS * mP;
-            
-            return mP;
-        }
+
         
         /**
          * Get the matrix V^T * (U x S) where U is the basis and S is the square
@@ -259,13 +293,13 @@ namespace kqp {
             const Density<FMatrix> &rho = *this;
             
             ScalarMatrix inners;
-            kqp::inner(rho.mX, tau.mX, inners);
-            inners = (rho.mY.adjoint() * inners * tau.mY * tau.mS.asDiagonal()).eval();
+            kqp::inner(rho.X(), tau.X(), inners);
+            inners = (rho.Y().transpose() * inners * tau.Y() * tau.S().asDiagonal()).eval();
 
             // --- Compute tr(p log q)
             Scalar plogq = 0;
         
-            Index dimension = rho.mX.dimension();
+            Index dimension = rho.X().dimension();
             
 			// The background density span the subspace 
 			Scalar alpha = 1. / (Scalar)(dimension);
@@ -277,15 +311,15 @@ namespace kqp {
             
 			
 			// Main computation
-			RealVector mD(tau.mS.rows());
+			RealVector mD(tau.S().rows());
 			
-			for(int j = 0; j < tau.mS.rows(); j++) {
-				Scalar sj = tau.mS(j) * tau.mS(j);
+			for(int j = 0; j < tau.S().rows(); j++) {
+				Scalar sj = tau.S()(j) * tau.S()(j);
 				
 				Scalar x = -log(((Scalar)1 - epsilon) * sj + alpha_noise);
 				if (x < 0)
 					if (x > - EPSILON) x = 0;
-					else KQP_THROW_EXCEPTION_F(arithmetic_exception, "%g is not greather than 0. Note: S[%d] = %g", %x %j %tau.mS(j,j));
+					else KQP_THROW_EXCEPTION_F(arithmetic_exception, "%g is not greather than 0. Note: S[%d] = %g", %x %j %tau.S()(j,j));
 				
 				mD(j) = sqrt(x);
 			}
@@ -297,8 +331,8 @@ namespace kqp {
             
             // --- Compute tr(p log p)
             Scalar plogp = 0;
-            for (int i = 0; i < rho.mS.rows(); i++) {
-                Scalar x = rho.mS(i) * rho.mS(i);
+            for (int i = 0; i < rho.S().rows(); i++) {
+                Scalar x = rho.S()(i) * rho.S()(i);
                 plogp +=  x * log(x);
             }
             

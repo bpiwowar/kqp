@@ -18,9 +18,14 @@
 #ifndef __KQP_KERNEL_EVD_H__
 #define __KQP_KERNEL_EVD_H__
 
-
+#include <utility>
 #include "feature_matrix.hpp"
 #include "rank_selector.hpp"
+
+#include "reduced_set/unused.hpp"
+#include "reduced_set/null_space.hpp"
+#include "reduced_set/qp_approach.hpp"
+
 
 namespace kqp {
     
@@ -42,15 +47,17 @@ namespace kqp {
      */
     template <class FMatrix> class KernelEVD  {        
     public:
-        typedef ftraits<FMatrix> FTraits;
+        KQP_FMATRIX_TYPES(FMatrix);        
         
-        
-        KernelEVD() : pre_images_per_rank(std::numeric_limits<float>::infinity()) {
+        KernelEVD() : preImageRatios(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()) {
             
         }
         
-        void set_pre_images_per_rank(float pre_images_per_rank) {
-            this->pre_images_per_rank = pre_images_per_rank;
+        /**
+         * @brief Set constraints on the number of pre-images
+         */
+        void set_pre_images_per_rank(float minimum, float maximum) {
+            this->preImageRatios = std::make_pair(minimum, maximum);
         }
 
         void set_selector(const boost::shared_ptr<const Selector> &selector) {
@@ -60,6 +67,7 @@ namespace kqp {
         //! Virtual destructor to build the vtable
         ~KernelEVD() {}
                
+
         /**
          * @brief Rank-n update.
          *
@@ -70,14 +78,16 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) = 0;
+        virtual void add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) {
+            _add(alpha, mU, mA);
+        }
 
         /** @brief Rank-n update.
          * 
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
-        inline void add(const typename FTraits::FMatrix &mU) {
-            add(1., mU, typename FTraits::AltMatrix::Identity(mU.cols()));
+        inline void add(const FMatrix &mU) {
+            add(1., mU, ScalarAltMatrix::Identity(mU.size()));
         }
 
         /**
@@ -85,12 +95,14 @@ namespace kqp {
          * @param mX the pre-images
          * @param mY is used to get a basis from pre-images
          * @param mD is a diagonal matrix
+         * @param cleanup Try to reduce the size of the decomposition
          */
-        virtual void get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD, bool do_cleanup = true) const {
             // Get the decomposition from the instance of Kernel EVD
             _get_decomposition(mX, mY, mD);
-            
-            // Reduce the rank
+
+            if (do_cleanup) 
+                cleanup(mX, mY, mD);
         }
 
         
@@ -101,16 +113,68 @@ namespace kqp {
          * @param mY is used to get a basis from pre-images
          * @param mD is a diagonal matrix
          */
-        virtual void _get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) = 0;
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const = 0;
 
         /**
-         * Maximum number of pre-images per rank
+         * @brief Rank-n update.
+         *
+         * Updates the current decomposition to \f$A^\prime \approx A + \alpha   X A A^T  X^\top\f$
+         * 
+         * @param alpha
+         *            The coefficient for the update
+         * @param mX  The feature matrix X with n feature vectors.
+         * @param mA  The mixture matrix (of dimensions n x k).
          */
-        float pre_images_per_rank;
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
+
         
         /**
-         * Eigen value selector
+         * @brief Ensures the decomposition has the right rank and number of pre-images 
          */
+        void cleanup(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
+            // --- Rank selection   
+            
+            DecompositionList<Scalar> list(mD);
+            selector->selection(list);
+            
+            // Remove corresponding entries
+            select_rows(list.getSelected(), mD, mD);
+            select_columns(list.getSelected(), mY, mY);
+            
+            // --- Remove null space
+            removePreImagesWithNullSpace(mX, mY);
+            
+            // --- Ensure we have a small enough number of pre-images
+            if (mX.size() > (preImageRatios.second * mD.rows())) {
+                if (mX.can_linearly_combine()) {
+                    // Easy case: we can linearly combine pre-images
+                    mX = mX.linear_combination(mY);
+                    mY = ScalarAltMatrix::Identity(mX.size());
+                } else {
+                    // Use QP approach
+                    ReducedSetWithQP<FMatrix> qp_rs;
+                    qp_rs.run(preImageRatios.first * mD.rows(), mX, mY, mD);
+                    mX = qp_rs.getFeatureMatrix();
+                    mY = qp_rs.getMixtureMatrix();
+                    mD = qp_rs.getEigenValues();
+                }
+                
+            }
+        }
+        
+        void cleanup(FMatrix& mX, ScalarMatrix &mY, RealVector& mD) const {
+            ScalarAltMatrix _mY;
+            _mY.swap_dense(mY);
+            cleanup(mX, _mY, mD);
+            mY.swap(_mY.dense_matrix());
+        }
+        
+        /**
+         * Minimum/Maximum number of pre-images per rank
+         */
+        std::pair<float,float> preImageRatios;
+
+        //! Eigen value selector
         boost::shared_ptr<const Selector> selector;
 
     };

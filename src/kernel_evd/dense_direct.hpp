@@ -34,34 +34,33 @@ namespace kqp {
      * 
      * @ingroup KernelEVD
      */
-    template <class Scalar> class DenseDirectBuilder : public KernelEVD<DenseMatrix<Scalar> > {
+    template <class _Scalar> class DenseDirectBuilder : public KernelEVD< DenseMatrix<_Scalar> > {
     public:
-        typedef ftraits<DenseMatrix<Scalar> > FTraits;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef typename FTraits::Real Real;
+        typedef DenseMatrix<_Scalar> FMatrix;
+        KQP_FMATRIX_TYPES(DenseMatrix<_Scalar>);        
         
         DenseDirectBuilder(int dimension) : matrix(dimension, dimension) {
             matrix.setConstant(0);
         }
         
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mX, const typename FTraits::AltMatrix &mA) {
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX.get_matrix() * mA, alpha);
         }
         
     protected:
-        virtual void _get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, typename FTraits::RealVector& mD) const {
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
             typename FTraits::Matrix _mX;
             kqp::thinEVD(evd, _mX, mD);  
             mX.swap(_mX);
             
-            mY = AltMatrix<Scalar>::Identity(mX.size());
+            mY = ScalarAltMatrix::Identity(mX.size());
         }
         
     public:
         
-        Matrix matrix;
+        ScalarMatrix matrix;
     };
     
     KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseDirectBuilder<, >;);

@@ -1,11 +1,3 @@
-#ifndef NOLOGGING
-#include "log4cxx/logger.h"
-#include "log4cxx/basicconfigurator.h"
-#include "log4cxx/consoleappender.h"
-#include "log4cxx/patternlayout.h"
-#include "log4cxx/propertyconfigurator.h"
-#include "log4cxx/helpers/exception.h"
-#endif
 
 #include "kqp.hpp"
 
@@ -22,28 +14,8 @@ namespace kqp {
     KQP_FOR_ALL_SCALAR_TYPES(template struct kqp::EMPTY<, >);
     
 #ifndef NOLOGGING
-    const LoggerInit __LOGGER_INIT;
-    
-    bool LoggerInit::check() {
-        return true;
-    }
-    
-    LoggerInit::LoggerInit() {
-        
-        //    log4cxx::BasicConfigurator::configure();
-        
-        log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
-        log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
-        appender->setName("kqp-appender");
-        log4cxx::BasicConfigurator::configure(appender);
-        appender->setThreshold(log4cxx::Level::getInfo());
-        log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("kqp"));
-        
-        KQP_LOG_DEBUG(logger, "Initialised the logging system");
-    }
-    
     // Main KQP logger
-    log4cxx::LoggerPtr main_logger;
+    log4cxx::LoggerPtr main_logger(log4cxx::Logger::getLogger("kqp"));
 
 #endif
     

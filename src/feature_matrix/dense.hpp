@@ -178,7 +178,7 @@ namespace kqp {
                 into.check_can_modify();
             
             boost::shared_ptr<ScalarMatrix> m(new ScalarMatrix());
-            select_columns<Scalar>(begin, end, *this->matrix, *m);
+            select_columns(begin, end, *this->matrix, *m);
             into = Self(m);
         }
 

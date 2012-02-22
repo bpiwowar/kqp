@@ -9,7 +9,7 @@ DEFINE_LOGGER(logger, "kqp.test.reduced-set.qp")
 
 namespace kqp {
     
-    int test_reduced_set_qp(std::deque<std::string> &args) {
+    int test_reduced_set_qp(std::deque<std::string> &/*args*/) {
         // Typedefs
         typedef DenseMatrix<double> FMatrix;
         typedef ftraits<FMatrix>::Scalar Scalar;
@@ -24,7 +24,7 @@ namespace kqp {
         
         // Gets a rank-n matrix and a full rank matrix
         Eigen::MatrixXd _mF = generateMatrix<Scalar>(dim, dim);        
-        _mF.col(0) = _mF.col(dim-1) + _mF.col(dim-2);
+//        _mF.col(0) = _mF.col(dim-1) + _mF.col(dim-2);
         Eigen::MatrixXd _mY = generateMatrix<Scalar>(dim, dim).leftCols(n);                        
         
         // Diagonal matrix
@@ -39,7 +39,7 @@ namespace kqp {
         FMatrix mF;
         AltMatrix<Scalar> mY;
         RealVector mD;
-        kEVD.get_decomposition(mF, mY, mD);
+        kEVD.get_decomposition(mF, mY, mD, false);
 
         // Reduced set computation
         ReducedSetWithQP<FMatrix> qp_rs;

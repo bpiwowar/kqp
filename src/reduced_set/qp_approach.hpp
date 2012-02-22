@@ -53,7 +53,9 @@ namespace kqp {
             LambdaError<Scalar> r;
             r.delta = this->delta + other.delta;
             r.maxa = this->maxa + other.maxa;
+            return r;
         }
+        
         struct Comparator {
             bool operator() (const LambdaError &e1, const LambdaError &e2) { return e1.delta < e2.delta; }
         };
@@ -74,7 +76,7 @@ namespace kqp {
         return IndirectComparator<Derived>(x);
     }
     
-    
+ 
     template <class FMatrix>
     struct ReducedSetWithQP {
         typedef ftraits<FMatrix> FTraits;
@@ -108,8 +110,9 @@ namespace kqp {
          * @param mY the 
          */
         //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::AltMatrix &mY, const RealVector &mD) {
+        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::ScalarAltMatrix &mY, const RealVector &mD) {
             ScalarMatrix gram = mF.inner();
+            
             
             // Dimension of the basis
             Index r = mY.cols();
@@ -117,6 +120,7 @@ namespace kqp {
             // Number of pre-images
             Index n = gram.rows();
             
+            KQP_LOG_ASSERT_F(main_logger, mY.rows() == n, "Incompatible dimensions (%d vs %d)", %mY.rows() %n);
             
             //
             // (1) Estimate the regularization coefficient \f$lambda\f$
@@ -138,8 +142,8 @@ namespace kqp {
             std::sort(errors.begin(), errors.end(), LambdaComparator());
             LambdaError<Scalar> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Scalar>());
             
-            Real lambda = acc_lambda.delta / acc_lambda.maxa;   
-            
+            Real lambda =  acc_lambda.delta / acc_lambda.maxa;   
+                            
             //
             // (2) Solve the cone quadratic problem
             //

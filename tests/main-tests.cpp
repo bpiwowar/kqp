@@ -20,6 +20,8 @@
 #include <boost/exception/diagnostic_information.hpp> 
 
 #include "kqp.hpp"
+#include "logging.hpp"
+
 #include <deque>
 #include <cstdlib>
 
@@ -43,6 +45,8 @@ namespace {
     namespace kqp { int name(std::deque<std::string> &args); } \
     namespace { Declare name ## _decl (id, &name); }
 
+DEFINE_TEST("alt-matrix", altmatrix_test);
+
 DEFINE_TEST("evd-update", evd_update_test);
 
 DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
@@ -52,7 +56,8 @@ DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
 DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
 DEFINE_TEST("reduced-set/qp", test_reduced_set_qp)
 
-DEFINE_TEST("probabilities", do_probabilities_tests)
+DEFINE_TEST("probabilities", do_probabilities_tests);
+DEFINE_TEST("projections", projection_test);
 
 DEFINE_TEST("divergence/simple", divergence_simpleTest);
 DEFINE_TEST("divergence/full", divergence_fullTest);
@@ -63,6 +68,7 @@ DEFINE_LOGGER(logger,  "kqp.test.main");
 
 int main(int argc, const char **argv) {  
     
+    LOGGER_CONFIG.setDefaultLevel("INFO");
 
     std::deque<std::string> args;
     for(int i = 1; i < argc; i++) 
@@ -77,7 +83,18 @@ int main(int argc, const char **argv) {
                 args.pop_front();
                 seed = std::atol(args[0].c_str());
                 args.pop_front();
-            } else break;
+            } 
+            
+            else if (args[0] == "--log-level") {
+                args.pop_front();
+                std::string id = args[0];
+                args.pop_front();
+                std::string level = args[0];
+                args.pop_front();
+                LOGGER_CONFIG.setLevel(id, level);
+            }
+            
+            else break;
             
         }
         if (args.size() < 1)

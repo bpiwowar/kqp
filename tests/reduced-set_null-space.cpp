@@ -8,7 +8,7 @@ DEFINE_LOGGER(logger, "kqp.test.reduced-set.null-space")
 
 namespace kqp {
     
-    int test_reduced_set_null_space(std::deque<std::string> &args) {
+    int test_reduced_set_null_space(std::deque<std::string> &/*args*/) {
         
         // --- Random test
 

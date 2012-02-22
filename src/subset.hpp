@@ -26,7 +26,7 @@ namespace kqp {
         bool same;
         Mover(bool same) : same(same) {}
         
-        virtual void prepare(Index new_size) {}
+        virtual void prepare(Index /*new_size*/) {}
         virtual void cleanup() {}
         
         virtual void disjoint_assign(Index from, Index to, Index size) = 0;   
@@ -62,9 +62,37 @@ namespace kqp {
     //! Reduces a set of indexed things by block
     void selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Mover &mover);
     
-    template<typename Scalar>
+    
+    //! Resize of fully dynamic matrices
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (conservative) matrix.derived().conservativeResize(rows, cols); else matrix.derived().resize(rows, cols);
+    }
+
+    
+    //! Resize of vectors
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime != Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (cols != matrix.cols())
+            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of columns in a fixed column-sized matrix (%d to %d)", %matrix.cols() %cols);
+        if (conservative) matrix.derived().conservativeResize(rows); else matrix.derived().resize(rows);
+    }
+
+    //! Resize of row vectors
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime != Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (rows != matrix.rows())
+            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of rows in a fixed row-sized matrix (%d to %d)", %matrix.rows() %rows);
+        if (conservative) matrix.derived().conservativeResize(cols); else matrix.derived().resize(cols);
+    }
+
+    
+    //! Mover for columns
+    template<typename Matrix>
     struct columns : public Mover {
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         const Matrix &source;
         Matrix &dest;
         Index new_size;
@@ -74,7 +102,7 @@ namespace kqp {
         void prepare(Index new_size) {
             this->new_size = new_size;
             if (!same) 
-                dest.resize(source.rows(), new_size);
+                resize<Matrix>(dest, false, source.rows(), new_size);
         }
         
         void disjoint_assign(Index from, Index to, Index size) {
@@ -83,13 +111,13 @@ namespace kqp {
         
         void cleanup() {
             if (&source == &dest) 
-                dest.conservativeResize(source.rows(), new_size);
+                resize<Matrix>(dest, true, source.rows(), new_size);
         }
     };
     
-    template<typename Scalar>
+    //! Mover for rows
+    template<typename Matrix>
     struct rows : public Mover {
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         const Matrix &source;
         Matrix &dest;
         Index new_size;
@@ -99,7 +127,7 @@ namespace kqp {
         void prepare(Index new_size) {
             this->new_size = new_size;
             if (&source != &dest) 
-                dest.resize(new_size, source.cols());
+                resize<Matrix>(dest, false, new_size, source.cols());
         }
         
         void disjoint_assign(Index from, Index to, Index size) {
@@ -108,26 +136,37 @@ namespace kqp {
         
         void cleanup() {
             if (&source == &dest) 
-                dest.conservativeResize(new_size, source.cols());
+                resize<Matrix>(dest, true, new_size, source.cols());
         }
     };
     
     
     
-    //! Reduces the eigenpair given the current selection pattern
-    template <typename Scalar>
+    //! Select columns of a matrix
+    template <typename Derived>
     void select_columns(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
-                        const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &values, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &new_values)  {
-        kqp::columns<Scalar> mover(values, new_values);
+                        const Derived &values, Derived &new_values)  {
+        kqp::columns<Derived> mover(values, new_values);
+        selection(begin, end, mover);
+    }
+    template <typename Derived>
+    void select_columns(const std::vector<bool> &list,  const Derived& values, Derived &new_values) {
+        select_columns(list.begin(), list.end(), values, new_values);
+    }
+    
+    //! Select rows of a matrix
+    template <typename Derived>
+    void select_rows(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
+                     const Derived& values, Derived &new_values)  {
+        kqp::rows<Derived> mover(values, new_values);
         selection(begin, end, mover);
     }
     
-    template <typename Scalar>
-    void select_rows(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end,
-                     const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &values, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &new_values)  {
-        kqp::rows<Scalar> mover(values, new_values);
-        selection(begin, end, mover);
+    template <typename Derived>
+    void select_rows(const std::vector<bool> &list,  const Derived& values, Derived &new_values) {
+        select_rows(list.begin(), list.end(), values, new_values);
     }
+
     
     
     

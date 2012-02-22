@@ -7,7 +7,7 @@ DEFINE_LOGGER(logger, "kqp.test.null-space")
 
 namespace kqp {
     
-    int test_reduced_set_unused(std::deque<std::string> &args) {
+    int test_reduced_set_unused(std::deque<std::string> &/*args*/) {
         
         Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(10,10);
         DenseMatrix<double> mF(_mF);

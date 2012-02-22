@@ -22,26 +22,60 @@
 #include "subset.hpp"
 
 namespace kqp {
-/**
- * @brief Removes pre-images with the null space method
- */
-template <class FMatrix> 
-void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
-    // Dimension of the problem
-    Index N = mY.rows();
-    assert(N == mF.size());
+    /**
+     * @brief Removes unused pre-images
+     */
+    // TODO make it work for EigenBase
+    template <class FMatrix> 
+    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
+        // Dimension of the problem
+        Index N = mY.rows();
+        assert(N == mF.size());
+        
+        std::vector<bool> to_keep(N, true);
+        
+        // Removes unused pre-images
+        for(Index i = 0; i < N; i++) 
+            if (mY.row(i).norm() < EPSILON) 
+                to_keep[i] = false;
+        
+        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
+        mF.subset(to_keep.begin(), to_keep.end());
+    }
     
-    std::vector<bool> to_keep(N, true);
+    template <class FMatrix> 
+    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarAltMatrix &mY) {
+        // Dimension of the problem
+        Index N = mY.rows();
+        assert(N == mF.size());
+        
+        
+        switch (mY.type()) {
+            case IDENTITY:
+                // Nothing to do
+                return;
+                
+            case DIAGONAL:
+            case DENSE:
+                break;
+                
+            default:
+                KQP_THROW_EXCEPTION(assertion_exception, "Unknown AltMatrix type");
+        }
+        
+        // Removes unused pre-images
+        typename ftraits<FMatrix>::ScalarMatrix m = mY.dense_matrix();
+        
+        std::vector<bool> to_keep(N, true);
+        for(Index i = 0; i < N; i++) 
+            if (m.row(i).squaredNorm() < EPSILON) 
+                to_keep[i] = false;
+        
+        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
+                                     
+        mF.subset(to_keep.begin(), to_keep.end());
+    }
     
-    // Removes unused pre-images
-    for(Index i = 0; i < N; i++) 
-        if (mY.row(i).norm() < EPSILON) 
-            to_keep[i] = false;
-    
-    select_rows(to_keep.begin(), to_keep.end(), mY, mY);
-    mF.subset(to_keep.begin(), to_keep.end());
-}
-
 }
 
 #endif

@@ -24,7 +24,6 @@
 #include "evd_update.hpp"
 #include "kernel_evd.hpp"
 #include "alt_matrix.hpp"
-#include "coneprog.hpp"
 #include "utils.hpp"
 
 namespace kqp {
@@ -36,14 +35,7 @@ namespace kqp {
      */
     template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix> {
     public:
-        typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Matrix Matrix;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Real Real;
-        typedef typename FTraits::RealVector RealVector;
-        typedef typename FTraits::ScalarVector ScalarVector;
-        
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+        KQP_FMATRIX_TYPES(FMatrix);
         
         // Indirect comparator (decreasing order)
         struct Comparator {
@@ -55,22 +47,22 @@ namespace kqp {
         };
         
                
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mU, const typename FTraits::AltMatrix &mA) {
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) {
             // --- Pre-computations
             
             // Compute W = Y^T X^T
             inner(mX, mU, k);
-            Matrix mW;
-            mW.noalias() = mY.adjoint() * k * mA;
+            ScalarMatrix mW;
+            mW.noalias() = mY.transpose() * k * mA;
             
             // Compute V^T V
-            Matrix vtv = mA.adjoint() * mU.inner() * mA - mW.adjoint() * mW;
+            ScalarMatrix vtv = mA.transpose() * mU.inner() * mA - mW.adjoint() * mW;
             
             
             // (thin) eigen-value decomposition of V^T V
-            Eigen::SelfAdjointEigenSolver<Matrix> evd(vtv);
-            Matrix mQ;
-            Matrix mQ_null;
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(vtv);
+            ScalarMatrix mQ;
+            ScalarMatrix mQ_null;
             RealVector mQD;
             kqp::thinEVD(evd, mQ, mQD, &mQ_null);
 
@@ -81,7 +73,7 @@ namespace kqp {
 
             // --- Update
            
-            Matrix m(mW.rows() + rank_Q, mW.cols());
+            ScalarMatrix m(mW.rows() + rank_Q, mW.cols());
                         
             m.topLeftCorner(mW.rows(), rank_Q) =  mW * mQ * mQD.asDiagonal();
             m.topRightCorner(mW.rows(), mW.cols() - rank_Q) = mW * mQ_null;                
@@ -98,7 +90,7 @@ namespace kqp {
                 v.tail(m.rows() - mZ.cols()) = m.col(i).tail(m.rows() - mZ.cols());
                 
                 
-                evdRankOneUpdate.update(mD, alpha, v, false, selector.get(), false, result, &mZ);
+                evdRankOneUpdate.update(mD, alpha, v, false, this->selector.get(), false, result, &mZ);
                 // Take the new diagonal
                 mD = result.mD;
             }
@@ -120,58 +112,35 @@ namespace kqp {
             }
                               
             // (4) Clean-up
-            
-            // Remove unused images
-//            removeUnusedPreImages(mX, mY);
+            this->cleanup(mX, mY, mD);
 
-            // Ensure we have a small enough number of pre-images
-            if (mX.size() > (pre_images_per_rank * mD.rows())) {
-                if (mX.can_linearly_combine()) {
-                    // Easy case: we can linearly combine pre-images
-                    AltMatrix<Scalar> m;
-                    m.swap_dense(mY);
-                    mX = mX.linear_combination(m);
-                    mY.setIdentity(mX.size(), mX.size());
-                } else {
-                    // Optimise
-                }
-                
-            }
         }
         
         
-        virtual void _get_decomposition(typename FTraits::FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
             mX = this->mX;
             if (mZ.rows() > 0) {
                 this->mY = this->mY * mZ;
                 mZ.resize(0,0);
             }
-            mY = AltMatrix<Scalar>(this->mY);
+            mY = ScalarAltMatrix(this->mY);
             mD = this->mD;
             
         }
         
         
     private:
-        FMatrix mX;
-        Matrix mY;
-        Matrix mZ;
+        mutable FMatrix mX;
+        mutable ScalarMatrix mY;
+        mutable ScalarMatrix mZ;
         typename FTraits::RealVector mD;
         
         // Rank-one EVD update
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
         
         // Used in computation
-        mutable Matrix k;
+        mutable ScalarMatrix k;
         
-        // Rank selector
-        boost::shared_ptr<Selector> selector;
-
-        //! Ratio of pre-images per rank (target)
-        float pre_images_per_rank_target;
-        
-        //! Ratio of the number of pre-images to the rank (must be >= 1)
-        float pre_images_per_rank;
         
     };
     

@@ -60,7 +60,8 @@ namespace kqp { namespace cvxopt {
         
         for(size_t i = 0; i < dims.s.size(); i++) { 
             int m = dims.s[i];
-            KQP_NOT_IMPLEMENTED;
+            
+            (void)m; KQP_NOT_IMPLEMENTED;
             /*
              a +=
              blas.dot(x, y, offsetx = ind, offsety = ind, incx = m+1, 
@@ -94,6 +95,9 @@ namespace kqp { namespace cvxopt {
      */
     template<typename Scalar>
     Scalar max_step(KQP_VECTOR(Scalar) &x, const Dimensions &dims, int mnl = 0, const KQP_VECTOR(Scalar) * sigma = NULL) {
+        // Get rid of unused warning
+        (void)sigma;
+        
         std::vector<Scalar> t;
         int ind = mnl + dims.l;
         if (ind > 0)
@@ -155,6 +159,7 @@ namespace kqp { namespace cvxopt {
      */
     template <typename Scalar, int ColsAtCompileTime>
     void scale(Eigen::Matrix<Scalar, Eigen::Dynamic, ColsAtCompileTime> &x, const ScalingMatrix<Scalar> &W, bool trans = false, bool inverse = false) {
+        (void)trans;
         
         size_t ind = 0;
         
@@ -350,7 +355,7 @@ namespace kqp { namespace cvxopt {
         
         int ind = mnl + dims.l;
         for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
-            KQP_NOT_IMPLEMENTED;
+            KQP_NOT_IMPLEMENTED; (void)m;
             //        aa = jnrm2(y, n = m, offset = ind)**2
             //        cc = x[ind]
             //        dd = blas.dot(y, x, offsetx = ind+1, offsety = ind+1, n = m-1)
@@ -370,7 +375,7 @@ namespace kqp { namespace cvxopt {
         
         int ind2 = ind;
         for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
-            KQP_NOT_IMPLEMENTED;
+            KQP_NOT_IMPLEMENTED; (void)m;
             //        for j in xrange(m):
             //            u = 0.5 * ( y[ind2+j:ind2+m] + y[ind2+j] )
             //            blas.tbsv(u, x, n = m-j, k = 0, ldA = 1, offsetx = ind + 
@@ -1076,6 +1081,8 @@ namespace kqp { namespace cvxopt {
                 KKTPreSolver<Scalar>* kktpresolver, 
                 ConeQPOptions<Scalar> options) {
         
+        KQP_LOG_DEBUG(logger, "Starting QP optimization");
+        
         typedef KQP_VECTOR(Scalar) Vector;
         typedef KQP_MATRIX(Scalar) Matrix;
         
@@ -1083,7 +1090,7 @@ namespace kqp { namespace cvxopt {
         const Scalar EXPON = 3;
         
         if (options.maxiters < 1)
-            BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("Option maxiters must be a positive integer"));
+            KQP_THROW_EXCEPTION(illegal_argument_exception, "Option maxiters must be a positive integer");
         
         
         if (options.reltol <= 0.0 && options.abstol <= 0.0)
@@ -1321,7 +1328,7 @@ namespace kqp { namespace cvxopt {
                 Scalar a = 1.0 + ts;
                 s.segment(0, dims.l).array() += a;
                 
-                for(int i = 0; i < indq.size() - 1; i++)
+                for(size_t i = 0; i < indq.size() - 1; i++)
                     s[indq[i]] += a;
                 
                 int ind = dims.l + dimsq;
@@ -1340,7 +1347,7 @@ namespace kqp { namespace cvxopt {
                 Scalar a = 1.0 + tz;
                 z.segment(0, dims.l).array() += a;
                 
-                for(int i = 0; i < indq.size() - 1; i++) z[indq[i]] += a;
+                for(size_t i = 0; i < indq.size() - 1; i++) z[indq[i]] += a;
                 int ind = dims.l + dimsq;
                 for(size_t i = 0; i < dims.s.size(); i++) { 
                     int m = dims.s[i];

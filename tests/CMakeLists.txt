@@ -1,5 +1,4 @@
 
-
 FILE(GLOB kqp_test_SRC   "*.hpp"   "*.cpp")
 
 INCLUDE_DIRECTORIES(${kqp_SOURCE_DIR}/src)
@@ -14,6 +13,7 @@ add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND}
 
 FUNCTION(do_test id taskname)
    ADD_TEST(${id} ${EXECUTABLE_OUTPUT_PATH}/kqp_test "${taskname}" ${ARGN})
+   set_tests_properties(${id} PROPERTIES TIMEOUT 5)
 ENDFUNCTION(do_test taskname)
 
 # --- EVD update tests
@@ -55,6 +55,9 @@ do_kevd_test(kernel-evd-incremental incremental)
 
 
 # --- Quantum Probabilities
+
+do_test(projections projections)
+do_test(probabilities probabilities)
 
 # --- Quantum Probabilities (divergence)
 

@@ -45,14 +45,12 @@ namespace kqp{
             use_linear_combination = 1
         };
         
-        typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Real Real;
+        KQP_FMATRIX_TYPES(FMatrix);
         
         AccumulatorKernelEVD() {
         }
         
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mX, const typename FTraits::AltMatrix &mA) {           
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {           
             // Just add the vectors using linear combination
             FMatrix fm = mX.linear_combination(mA, Eigen::internal::sqrt(alpha));
             fMatrix.add(fm);
@@ -61,7 +59,7 @@ namespace kqp{
         
         
         //! Actually performs the computation
-        virtual void _get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, typename FTraits::RealVector& mD) const {
             const typename FMatrix::Matrix& gram = fMatrix.inner();
             Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
             
@@ -77,31 +75,30 @@ namespace kqp{
         FMatrix fMatrix;        
     };
     
+    
+    
+    
     // Specialisation when we know how to combine linearly
     template <class FMatrix> class AccumulatorKernelEVD<FMatrix, false> : public KernelEVD<FMatrix> {
     public:
         enum {
             use_linear_combination = 0
         };
-        
-        typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Real Real;
-        typedef typename FTraits::Matrix Matrix;
-        typedef typename FTraits::AltMatrix AltMatrix;
+
+        KQP_FMATRIX_TYPES(FMatrix);
         
         AccumulatorKernelEVD() {
             offsets_X.push_back(0);
             offsets_A.push_back(0);
         }
         
-        virtual void add(typename FTraits::Real alpha, const typename FTraits::FMatrix &mX, const typename FTraits::AltMatrix &mA) {           
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {           
             // If there is nothing to add            
             if (mA.cols() == 0)
                 return;
             
             // Do a deep copy of mA
-            combination_matrices.push_back(boost::shared_ptr<typename FTraits::AltMatrix>(new typename FTraits::AltMatrix(mA)));
+            combination_matrices.push_back(boost::shared_ptr<ScalarAltMatrix>(new ScalarAltMatrix(mA)));
             
             alphas.push_back(Eigen::internal::sqrt(alpha));
             fMatrix.add(mX);
@@ -111,20 +108,22 @@ namespace kqp{
         
     protected:
         //! Actually performs the computation
-        virtual void _get_decomposition(FMatrix& mX, typename FTraits::AltMatrix &mY, typename FTraits::RealVector& mD) {
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
             Index size = offsets_A.back();
             
-            Matrix gram_X = fMatrix.inner();
-            Matrix gram(size, size);
+            ScalarMatrix gram_X = fMatrix.inner();
+            ScalarMatrix gram(size, size);
             
-            for(Index i = 0; i < combination_matrices.size(); i++) {
-                const AltMatrix &mAi = *combination_matrices[i];
+            for(size_t i = 0; i < combination_matrices.size(); i++) {
+                const ScalarAltMatrix &mAi = *combination_matrices[i];
                 for(Index j = 0; j <= i; j++) {
-                    const AltMatrix &mAj = *combination_matrices[j];
-                    getBlock(gram, offsets_A, i, j) =  (Eigen::internal::conj(alphas[i]) * alphas[j]) * (mAi.adjoint() *  getBlock(gram_X, offsets_X, i, j)) * mAj;
+                    const ScalarAltMatrix &mAj = *combination_matrices[j];
+                    getBlock(gram, offsets_A, i, j) 
+                            =  (Eigen::internal::conj(alphas[i]) * alphas[j]) 
+                                * (mAi.transpose() *  getBlock(gram_X, offsets_X, i, j)) * mAj;
                 }
             }
             
@@ -137,10 +136,10 @@ namespace kqp{
             // Y <- A * Y * D^-1/2
             
             _mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
-            Matrix __mY(offsets_X.back(), _mY.cols());
+            ScalarMatrix __mY(offsets_X.back(), _mY.cols());
             
-            for(Index i = 0; i < combination_matrices.size(); i++) {
-                const AltMatrix &mAi = *combination_matrices[i];
+            for(size_t i = 0; i < combination_matrices.size(); i++) {
+                const ScalarAltMatrix &mAi = *combination_matrices[i];
                 __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
@@ -149,7 +148,7 @@ namespace kqp{
         }
         
     private:
-        static inline Eigen::Block<Matrix> getBlock(Matrix &m, std::vector<Index> &offsets, Index i, Index j) {
+        static inline Eigen::Block<ScalarMatrix> getBlock(ScalarMatrix &m, const std::vector<Index> &offsets, Index i, Index j) {
             return m.block(offsets[i], offsets[j], offsets[i+1] - offsets[i], offsets[j+1]-offsets[j]);
         }
         
@@ -157,7 +156,7 @@ namespace kqp{
         FMatrix fMatrix;        
         
         //! Linear combination matrices
-        std::vector<boost::shared_ptr<typename FTraits::AltMatrix> > combination_matrices;
+        std::vector< boost::shared_ptr<ScalarAltMatrix> > combination_matrices;
         
         //! Offsets
         std::vector<Index> offsets_A;

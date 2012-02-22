@@ -162,24 +162,18 @@ namespace kqp {
 //! Throw an exception with a message
 #define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
 
-#else
     
-    class LoggerInit {
-    public:
-         
-        LoggerInit();
-        static bool check();
-    };
-    extern const LoggerInit __LOGGER_INIT;
+    
+#else // We do some logging
+
+    // This is implemented in logging.cpp
+    void prepareLogger();
+        
     extern log4cxx::LoggerPtr main_logger;
     
     // We define the logger
     
-#define DEFINE_LOGGER(loggerId, loggerName) \
-namespace { \
-bool _KQP_LOG_CHECKER_ = kqp::LoggerInit::check(); \
-log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
-}
+#define DEFINE_LOGGER(loggerId, loggerName) namespace { log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName)); }
     
     // * Note * Use the if (false) construct to compile code; the code optimizer
     // is able to remove the corresponding code, so it does change
@@ -189,14 +183,12 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
     
 
     /** Debug */
-#define KQP_LOG_DEBUG(name,message) LOG4CXX_DEBUG(name, message)
-    /** Debug and display the class name */
-#define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
+#define KQP_LOG_DEBUG(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
     /** Assertion with message */
-#define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+#define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { prepareLogger(); LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
 
 //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
-#define KQP_THROW_EXCEPTION(type, message) { KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
+#define KQP_THROW_EXCEPTION(type, message) { prepareLogger(); KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
 
 #else // No DEBUG
     
@@ -204,29 +196,30 @@ log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName));  \
 #define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
 
     /** Debug */
-#define KQP_LOG_DEBUG(name,message) { if (false) LOG4CXX_DEBUG(name, message) }
-    /** Debug and display the class name */
-#define KQP_LOG_DEBUG_S(name,message) { if (false) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "/" << "] " << message); }
+#define KQP_LOG_DEBUG(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
     /** Assertion with message */
 #define KQP_LOG_ASSERT(name,condition,message) { if (false && !(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
     
 #endif // ELSE
     
     
-#define KQP_LOG_INFO(name,message) { LOG4CXX_INFO(name, message); }
-#define KQP_LOG_WARN(name,message) { LOG4CXX_WARN(name, message); }
-#define KQP_LOG_ERROR(name,message) { LOG4CXX_ERROR(name, message); }
+#define KQP_LOG_INFO(name,message) { prepareLogger(); LOG4CXX_INFO(name, message); }
+#define KQP_LOG_WARN(name,message) { prepareLogger(); LOG4CXX_WARN(name, message); }
+#define KQP_LOG_ERROR(name,message) { prepareLogger(); LOG4CXX_ERROR(name, message); }
 
 
 #endif // ndef(NOLOGGING)
     
-// With message versions
+// --- Helper macros for logging
+    
 #define KQP_THROW_EXCEPTION_F(type, message, arguments) KQP_THROW_EXCEPTION(type, (boost::format(message) arguments).str())
 #define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, boost::format(message) args)
 #define KQP_LOG_INFO_F(name,message,args) KQP_LOG_INFO(name, boost::format(message) args)
 #define KQP_LOG_WARN_F(name,message,args) KQP_LOG_WARN(name, boost::format(message) args)
 #define KQP_LOG_ERROR_F(name,message,args) KQP_LOG_ERROR(name, boost::format(message) args)
-  
+#define KQP_LOG_ASSERT_F(name,condition,message,args) KQP_LOG_ASSERT(name,condition,boost::format(message) args)
+#define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
+
 } // NS kqp
 
 #endif

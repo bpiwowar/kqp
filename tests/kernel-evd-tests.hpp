@@ -19,47 +19,17 @@
 #define _KQP_KERNEL_EVD_TESTS_H_
 
 #include <boost/format.hpp>
-#include "feature_matrix/dense.hpp"
+
 #include "kqp.hpp"
+
+#include "feature_matrix/dense.hpp"
+#include "trace.hpp"
 
 namespace kqp {
     namespace kevd_tests {
         
         
         extern double tolerance;
-        
-        /**
-         * Computes tr( X1 Y1 D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T)
-         * 
-         * as
-         *  tr( D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T Y1^T X1^T )
-         */
-        template<class Derived>
-        double trace_function(const FeatureMatrix<Derived> &mX1, 
-                              const typename ftraits<Derived>::AltMatrix  &mY1,
-                              const typename ftraits<Derived>::RealVector &mD1,
-                              
-                              const FeatureMatrix<Derived> &mX2, 
-                              const typename ftraits<Derived>::AltMatrix  &mY2,
-                              const typename ftraits<Derived>::RealVector &mD2) {
-            typedef typename ftraits<Derived>::ScalarVector Vector;
-            typename ftraits<Derived>::Matrix m;
-            inner<Derived>(mX1.derived(), mX2.derived(),m);
-            
-            m = (mY1.adjoint() * m * mY2).eval();
-            
-            double trace = 0;
-            for(Index i = 0; i < m.rows(); i++) {
-                Vector x = m.row(i).adjoint().cwiseProduct(mD2);
-                Vector y = m.row(i).adjoint();
-                
-                trace += mD1[i] * x.dot(y);
-            }
-            
-            return trace;
-        }
-        
-        
         
         
         struct Dense_evd_test {
@@ -124,12 +94,12 @@ namespace kqp {
                 
                 KQP_LOG_INFO(logger, "Retrieving the decomposition");
                 typename FTraits::FMatrix mX;
-                typename FTraits::AltMatrix mY;
+                typename FTraits::ScalarAltMatrix mY;
                 typename FTraits::RealVector mD;
                 
                 builder.get_decomposition(mX, mY, mD);
                 
-                typename FTraits::AltMatrix mUY = FTraits::AltMatrix::Identity(mU.dimension());
+                typename FTraits::ScalarAltMatrix mUY = FTraits::ScalarAltMatrix::Identity(mU.dimension());
                 
                 KQP_LOG_DEBUG(logger, "=== Decomposition ===");
                 KQP_LOG_DEBUG(logger, "X = " << mX);
@@ -140,12 +110,9 @@ namespace kqp {
                 // Computing the difference between operators || U1 - U2 ||^2
                 
                 KQP_LOG_INFO(logger, "Comparing the decompositions");
-                double tr1 = trace_function(mX, mY, mD, mX, mY, mD);       
-                double tr2 = trace_function(mU, mUY, mU_d, mU, mUY, mU_d);
-                double tr12 = trace_function(mX, mY, mD, mU, mUY, mU_d);
+                double error = kqp::difference(mX, mY, mD, mU, mUY, mU_d);
                 
-                double error = tr1 + tr2 - 2. * tr12;
-                KQP_LOG_INFO_F(logger, "Squared error is %e [tr1=%e, tr2=%e, tr12=%e]", %error %tr1 %tr2 %tr12);
+                KQP_LOG_INFO_F(logger, "Squared error is %e", %error);
                 return error < tolerance ? 0 : 1;
             }
         };

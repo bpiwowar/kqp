@@ -142,7 +142,7 @@ Derived& DenseBase<Derived>::operator-=(const EigenBase<OtherDerived> &other)
 
 /** replaces \c *this by \c *this * \a other.
   *
-  * \returns a reference to \c *this
+  * \returns a reference to Blockl\c *this
   */
 template<typename Derived>
 template<typename OtherDerived>

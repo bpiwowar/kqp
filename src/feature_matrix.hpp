@@ -23,6 +23,7 @@
 #include "alt_matrix.hpp"
 
 namespace kqp {
+    //! Traits for feature matrices
     template <class Derived> struct ftraits;
     
     /**
@@ -173,7 +174,7 @@ namespace kqp {
          * @return A dense self-adjoint matrix
          */
         const typename FTraits::Matrix & inner() const {
-            return static_cast<Derived*>(this)->Derived::inner();
+            return static_cast<const Derived*>(this)->Derived::inner();
         }
         
         /** 
@@ -185,6 +186,10 @@ namespace kqp {
         }
         
     };
+    
+
+    //! Type information for feature matrices (feeds the ftraits structure)
+    template <class _FMatrix> struct FeatureMatrixTypes {};
     
     template<class Derived>
     std::ostream& operator<<(std::ostream &out, const FeatureMatrix<Derived> &f) {
@@ -202,11 +207,36 @@ namespace kqp {
             static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), _result);
     }
 
+    /// Compute the inner product between two feature matrices and return
+    template<typename Derived>
+    typename ftraits<Derived>::ScalarMatrix inner(const FeatureMatrix<Derived> &mA, const FeatureMatrix<Derived> &mB) {
+        // Define only one result to return for compiler optimisation (direct return)
+        typedef typename ftraits<Derived>::ScalarMatrix ScalarMatrix;
+        ScalarMatrix result;
+        
+        // Check for sizes
+        if (mA.size() == 0 || mB.size() == 0) 
+            // No need to compute anything - we just resize for consistency
+            result.resize(mA.size(), mB.size());
+        else
+            // Compute
+            static_cast<const Derived&>(mA).inner<ScalarMatrix>(static_cast<const Derived&>(mB), result);
+
+        return result;
+    }
+
     
-    //! Type informatino for feature matrices (feeds the ftraits structure)
-    template <class _FMatrix> 
-    struct FeatureMatrixTypes {};
     
+#define KQP_FMATRIX_TYPES(FMatrix) \
+    typedef ftraits< FMatrix > FTraits; \
+    typedef typename FTraits::Scalar Scalar; \
+    typedef typename FTraits::ScalarMatrix  ScalarMatrix; \
+    typedef typename FTraits::ScalarVector  ScalarVector; \
+    typedef typename FTraits::Real Real; \
+    typedef typename FTraits::RealVector RealMatrix; \
+    typedef typename FTraits::RealVector RealVector; \
+    typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; 
+
     /**
      * Feature Vector traits
      */
@@ -241,7 +271,7 @@ namespace kqp {
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
 
         //! Matrix used for linear combinations
-        typedef kqp::AltMatrix<Scalar> AltMatrix;
+        typedef kqp::AltMatrix<Scalar> ScalarAltMatrix;
     }; 
     
 }

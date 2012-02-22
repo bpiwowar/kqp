@@ -14,11 +14,36 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <string>
-#include <deque>
+
+#ifndef __KQP_LOGGING_H__
+#define __KQP_LOGGING_H__
+
+#ifndef NOLOGGING
+
+#include <map>
 
 namespace kqp {
-    int do_probabilities_tests(std::deque<std::string> &/*args*/) {
-        return 0;
-    }
+    class LoggerConfig {
+    public:
+        //! Default constructor
+        LoggerConfig();
+                
+        //! Set the level for one logger
+        void setLevel(const std::string &loggerId, const std::string &level);
+
+        //! Set the root logger default level
+        void setDefaultLevel(const std::string &level);
+
+        //! Prepare logger
+        void prepareLogger();
+        
+    private:
+        bool initialized;
+    };
+
+    //! The global logger configurator
+    extern LoggerConfig LOGGER_CONFIG;
 }
+
+#endif
+#endif
