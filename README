@@ -3,7 +3,16 @@ THANKS
 
 * Eigen - http://eigen.tuxfamily.org
 
-COMPILING
-=========
+INSTALLING
+==========
 
-Remember to enable OpenMP (-fopenmp in most compilers) in order to benefit from multithreading...
+--- Dependencies
+
+* A c++ compiler (gcc >= 4.2, clang >= 3.0)
+* CMake
+* Boost libraries
+* log4cxx
+
+--- Compiling
+
+[Remember to enable OpenMP (-fopenmp in most compilers) in order to benefit from multithreading...]

@@ -532,7 +532,7 @@ namespace kqp {
         static const LambdaComparator<Scalar> lambdaComparator;
         sortValues(v, 0, lambdaComparator);
         
-        size_t rank = v.size();
+        Index rank = v.size();
         if (selector) {
             EigenValues<Scalar> list(v);
             selector->selection(list);

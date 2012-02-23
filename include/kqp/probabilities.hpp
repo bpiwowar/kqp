@@ -20,11 +20,44 @@
 
 #include <Eigen/Core>
 
+#include <kqp/kqp.hpp>
 #include <kqp/alt_matrix.hpp>
 #include <kqp/kernel_evd.hpp>
 #include <kqp/trace.hpp>
+#include <kqp/kernel_evd/utils.hpp>
 
 namespace kqp {
+    
+    
+    template<typename FMatrix, class Enable = void> struct LinearCombination;
+    
+    template<typename FMatrix>
+    struct LinearCombination<FMatrix, typename boost::enable_if_c<ftraits<FMatrix>::can_linearly_combine>::type>  {
+        typedef typename ftraits<FMatrix>::Scalar Scalar;
+        static bool run(FMatrix &fmatrix, const FMatrix &mF, const kqp::AltMatrix<Scalar> &mA, Scalar alpha) {
+            fmatrix = mF.linear_combination(mA, alpha);
+            return true;
+        }
+        
+        static bool run(FMatrix &fmatrix, const FMatrix &mF, const kqp::AltMatrix<Scalar> &mA, Scalar alpha, const FMatrix &mY, const kqp::AltMatrix<Scalar> &mB, Scalar beta) {
+            fmatrix = mF.linear_combination(mA, alpha, mY, mB, beta);
+            return true;
+        }
+    };
+    
+    template<typename FMatrix>
+    struct LinearCombination<FMatrix, typename boost::enable_if_c<!ftraits<FMatrix>::can_linearly_combine>::type>  {        
+        typedef typename ftraits<FMatrix>::Scalar Scalar;
+        bool run(FMatrix &fmatrix, const FMatrix &mF, const kqp::AltMatrix<Scalar> &mA, Scalar alpha) {
+            return false;
+        }
+        
+        bool run(FMatrix &fmatrix, const FMatrix &mF, const kqp::AltMatrix<Scalar> &mA, Scalar alpha, const FMatrix &mY, const kqp::AltMatrix<Scalar> &mB, Scalar beta) {
+            return false;
+        }
+    };
+
+    
     /**
      * Common class shared by (fuzzy) events and densities
      * 
@@ -95,6 +128,10 @@ namespace kqp {
             return mS;
         }
         
+        void orthornormalize() const {
+            const_cast<KernelOperator*>(this)->_orthonormalize();
+        }
+        
         /**
          * Compute the squared norm of the operator
          */
@@ -147,7 +184,28 @@ namespace kqp {
         }
         
     // We keep those private in case of re-factorisation
-    private:
+    protected:
+        
+        
+        void _orthonormalize() {
+            // TODO: Eigen should only the needed part
+            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
+            
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
+            
+            ScalarMatrix _mY;
+            kqp::thinEVD(evd, _mY, mS);
+            
+            mS.array() = mS.array().cwiseAbs().cwiseSqrt();
+            _mY *= mS.cwiseInverse().asDiagonal();
+            
+            if (LinearCombination<FMatrix>::run(mX, mX, mY, 1)) mY = ScalarAltMatrix::Identity(mX.size());
+            else mY.swap_dense(_mY);
+            
+            
+        }
+
+        
         /**
          * The base vector list
          */
@@ -172,8 +230,14 @@ namespace kqp {
         bool orthonormal;
     };
     
+    
+    // Foward declarations
     template <class FMatrix> class Density;
     
+    // Projection helper classes
+    template<typename FMatrix, class Enable = void> struct ProjectionWithLC;
+    template<typename FMatrix> struct Projection;
+
     /**
      * A document subspace is defined by the basis vectors (matrix {@linkplain #mU}
      * ). A diagonal matrix ({@linkplain #mS}) defines the weights associated to the
@@ -182,7 +246,9 @@ namespace kqp {
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      * 
      */
-    template <class FMatrix> class Event : public KernelOperator<FMatrix>  {
+    template <class FMatrix> 
+    class Event : public KernelOperator<FMatrix>  {
+        bool useLinearCombination = ftraits<FMatrix>::can_linearly_combine;
     public:
         KQP_FMATRIX_TYPES(FMatrix);
 
@@ -208,16 +274,92 @@ namespace kqp {
          *
          * The resulting density will <b>not</b> normalised 
          */
+        
         Density<FMatrix> project(const Density<FMatrix>& density, bool orthogonal) {
+            if (orthogonal) 
+                return useLinearCombination ? ProjectionWithLC<FMatrix>::projectOrthogonal(density, *this) : Projection<FMatrix>::projectOrthogonal(density, *this);
             
+            return  useLinearCombination ? ProjectionWithLC<FMatrix>::project(density, *this) : Projection<FMatrix>::project(density, *this);
         }
-        
-        
-        Density<FMatrix> project(const Density<FMatrix>& density) {
-            
-        }
-        
+                
         friend class Density<FMatrix>;
+    };
+    
+    
+    
+    
+    //! Projection (using linear combination)
+    template<typename FMatrix> 
+    struct ProjectionWithLC<FMatrix, typename boost::enable_if_c<ftraits<FMatrix>::can_linearly_combine>::type>  {
+        KQP_FMATRIX_TYPES(FMatrix);
+
+        static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
+            FMatrix mX = event.X().linear_combination(event.Y().transpose() * inner(density.X(), density.X()) * density.Y() * density.S());
+            ScalarAltMatrix mY = ScalarAltMatrix::Identity(mX.size());
+            RealVector mS = RealVector::Ones(mX.size());
+            return Density<FMatrix>(mX, mY, mS, false);
+        }
+        
+        static Density<FMatrix> projectOrthogonal(const Density<FMatrix>& density, const Event<FMatrix> &event) {
+            // We need the event to be in an orthonormal form
+            event.orthornormalize();
+                        
+            Index n = event.S().rows();
+            
+            ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - event.S().cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y()));
+            
+            FMatrix mX = density.X().linear_combination(density.Y(), 1., event.X(), e_mY, -1.);
+            
+            return Density<FMatrix>(mX, ScalarAltMatrix::Identity(mX.size()), density.S(), false);
+        }
+    };
+
+    
+    //! Projection (error since FMatrix cannot be linearly combined)
+    template<typename FMatrix> 
+    struct ProjectionWithLC<FMatrix, typename boost::enable_if_c<!ftraits<FMatrix>::can_linearly_combine>::type>  {
+        static Density<FMatrix> project(const Density<FMatrix>& , const Event<FMatrix> &) {
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot use linear combination for feature matrix of type %s", %KQP_DEMANGLE((FMatrix*)0));
+        }
+        static Density<FMatrix> projectOrthogonal(const Density<FMatrix>& , const Event<FMatrix> &) {
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot use linear combination for feature matrix of type %s", %KQP_DEMANGLE((FMatrix*)0));
+        }
+    };    
+    
+    
+    //! Projection (without linear combination)
+    template<typename FMatrix> 
+    struct Projection  {
+        KQP_FMATRIX_TYPES(FMatrix);
+        
+        static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
+            FMatrix mX = event.X();
+            ScalarAltMatrix mY(event.Y().transpose() * inner(density.X(), density.X()) * density.Y() * density.S());
+            RealVector mS = RealVector::Ones(mX.size());
+            return Density<FMatrix>(mX, mY, mS, false);
+        }
+        
+        static Density<FMatrix> projectOrthogonal(const Density<FMatrix>& density, const Event<FMatrix> &event) {
+            event.orthornormalize();
+            
+            // Concatenates the vectors
+            FMatrix mX = density.X();
+            mX.add(event.X());
+            
+            // Computes the new linear combination matrix
+            ScalarMatrix _mY(density.X().size() + event.Y().size(), density.S().rows());
+            Index n = event.S().rows();
+            
+            _mY.topRows(density.X().size()) = - (density.Y() * density.S()).eval();
+            _mY.bottomRows(event.X().size()) = - (event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - event.S().cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y())).eval();
+            
+            ScalarAltMatrix mY; 
+            mY.swap_dense(_mY);
+            
+                        
+            // Return
+            return Density<FMatrix>(mX, mY, density.S(), false);
+        }
     };
     
     /**

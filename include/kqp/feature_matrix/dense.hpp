@@ -58,7 +58,7 @@ namespace kqp {
         }
         
         
-        const Index dimension() const {
+        Index dimension() const {
             return matrix.get() ? matrix->rows() : 0;
         }
         
@@ -164,10 +164,10 @@ namespace kqp {
         }
         
         
-        
-    protected:
-        Self _linear_combination(const AltMatrix<Scalar> & mA, Scalar alpha) const {
-            return Self(alpha * (get_matrix() * mA));
+    protected:        
+        Self _linear_combination(const AltMatrix<Scalar> & mA, Scalar alpha, const Self *mY, const kqp::AltMatrix<Scalar> *mB, Scalar beta) const {
+            if (mY == 0) return Self(alpha * (get_matrix() * mA));
+            return Self(alpha * get_matrix() * mA + beta * mY->get_matrix() * *mB);
         }
         
 

@@ -138,6 +138,25 @@ namespace kqp {
         /** 
          * @brief Linear combination of the feature vectors.
          * 
+         * Computes \f$ \alpha XA + \beta Y B  \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
+         */
+        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA, Scalar alpha, const Derived &mY, const kqp::AltMatrix<Scalar> &mB, Scalar beta) const {
+            // Check for correctedness
+            if (mA.rows() != this->size())
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
+            
+            // If we have no columns in A, then return an empty feature matrix
+            if (mA.cols() == 0)
+                return Derived();
+            
+            // Call the derived
+            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha, &mY, &mB, beta);
+        }
+        
+        
+        /** 
+         * @brief Linear combination of the feature vectors.
+         * 
          * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
          */
         inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA, Scalar alpha = (Scalar)1) const {
@@ -150,9 +169,12 @@ namespace kqp {
                 return Derived();
                     
             // Call the derived
-            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha);
+            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha, NULL, NULL, 0);
         }
-                
+
+        
+        
+        
 
         /** Get the number of feature vectors */
         inline Index size() const {
@@ -235,8 +257,11 @@ namespace kqp {
     typedef typename FTraits::Real Real; \
     typedef typename FTraits::RealVector RealMatrix; \
     typedef typename FTraits::RealVector RealVector; \
-    typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; 
-
+    typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; \
+    typedef typename FTraits::GramMatrix & GramMatrix; \
+    typedef typename FTraits::InnerMatrix InnerMatrix;
+  
+    
     /**
      * Feature Vector traits
      */
@@ -270,6 +295,12 @@ namespace kqp {
         //! Inner product matrix
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
 
+        //! Gram matrix type
+        typedef ScalarMatrix& InnerMatrix;
+    
+        //! Gram matrix type
+        typedef ScalarMatrix& GramMatrix;
+        
         //! Matrix used for linear combinations
         typedef kqp::AltMatrix<Scalar> ScalarAltMatrix;
     }; 
