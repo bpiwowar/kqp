@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
 namespace kqp {
 

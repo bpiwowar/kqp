@@ -1,9 +1,9 @@
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
-#include "reduced_set/qp_approach.hpp"
-#include "feature_matrix/dense.hpp"
+#include <kqp/reduced_set/qp_approach.hpp>
+#include <kqp/feature_matrix/dense.hpp>
 #include "tests_utils.hpp"
-#include "kernel_evd/accumulator.hpp"
+#include <kqp/kernel_evd/accumulator.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.reduced-set.qp")
 

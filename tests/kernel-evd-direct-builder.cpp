@@ -16,7 +16,7 @@
  */
 #include "kernel-evd-tests.hpp"
 
-#include "kernel_evd/dense_direct.hpp"
+#include <kqp/kernel_evd/dense_direct.hpp>
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd.direct-builder")
 
 namespace kqp {

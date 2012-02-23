@@ -5,8 +5,8 @@
 
 #include <Eigen/Eigenvalues>
 
-#include "kqp.hpp"
-#include "evd_update.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/evd_update.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.evd-update")
 

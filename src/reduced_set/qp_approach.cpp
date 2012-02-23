@@ -1,8 +1,8 @@
 #include <Eigen/Cholesky> 
 
-#include "coneprog.hpp"
+#include <kqp/coneprog.hpp>
 
-#include "reduced_set/qp_approach.hpp"
+#include <kqp/reduced_set/qp_approach.hpp>
 
 DEFINE_LOGGER(logger, "kqp.qp_approach");
 

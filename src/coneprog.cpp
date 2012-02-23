@@ -15,8 +15,8 @@
 #include "Eigen/Core"
 
 
-#include "kqp.hpp"
-#include "coneprog.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/coneprog.hpp>
 
 DEFINE_LOGGER(logger, "kqp.coneqp")
 

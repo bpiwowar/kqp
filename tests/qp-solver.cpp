@@ -5,9 +5,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 
-#include "kqp.hpp"
-#include "coneprog.hpp"
-#include "reduced_set/qp_approach.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/coneprog.hpp>
+#include <kqp/reduced_set/qp_approach.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 

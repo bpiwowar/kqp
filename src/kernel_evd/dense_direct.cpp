@@ -1,4 +1,4 @@
-#include "dense_direct.hpp"
+#include <kqp/kernel_evd/dense_direct.hpp>
 
 namespace kqp {
     // Instanciation of standard classes

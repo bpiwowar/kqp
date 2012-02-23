@@ -1,18 +1,11 @@
 
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
 namespace kqp {
     
     // Machine zero
     double EPSILON = 1e-15;
         
-    template<typename Scalar> const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& EMPTY<Scalar>::matrix() { 
-        const static Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> matrix;
-        return matrix; 
-    }
-    
-    KQP_FOR_ALL_SCALAR_TYPES(template struct kqp::EMPTY<, >);
-    
 #ifndef NOLOGGING
     // Main KQP logger
     log4cxx::LoggerPtr main_logger(log4cxx::Logger::getLogger("kqp"));

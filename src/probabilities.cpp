@@ -1,4 +1,4 @@
-#include "probabilities.hpp"
+#include <kqp/probabilities.hpp>
 
 using namespace kqp;
 

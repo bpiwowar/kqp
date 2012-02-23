@@ -18,7 +18,7 @@
 #include <iostream>
 #include <ctime>
 
-#include "alt_matrix.hpp"
+#include <kqp/alt_matrix.hpp>
 
 using namespace std;
 using namespace kqp;

@@ -16,11 +16,11 @@
  */
 #include <cassert>
 
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
 #include "kernel-evd-tests.hpp"
 
-#include "kernel_evd/accumulator.hpp"
+#include <kqp/kernel_evd/accumulator.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd.accumulator")
 namespace kqp {

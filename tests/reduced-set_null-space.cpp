@@ -1,7 +1,7 @@
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
-#include "reduced_set/null_space.hpp"
-#include "feature_matrix/dense.hpp"
+#include <kqp/reduced_set/null_space.hpp>
+#include <kqp/feature_matrix/dense.hpp>
 #include "tests_utils.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.reduced-set.null-space")

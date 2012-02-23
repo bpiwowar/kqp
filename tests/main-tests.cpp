@@ -19,8 +19,8 @@
 #include <iostream>
 #include <boost/exception/diagnostic_information.hpp> 
 
-#include "kqp.hpp"
-#include "logging.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
 
 #include <deque>
 #include <cstdlib>

@@ -1,8 +1,8 @@
 // Generated from the script divergence/divergence.m
 #include <deque>
-#include "kqp.hpp"
-#include "probabilities.hpp"
-#include "feature_matrix/dense.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/probabilities.hpp>
+#include <kqp/feature_matrix/dense.hpp>
 
 
 DEFINE_LOGGER(logger, "kqp.test.divergence");

@@ -20,10 +20,10 @@
 
 #include <boost/format.hpp>
 
-#include "kqp.hpp"
+#include <kqp/kqp.hpp>
 
-#include "feature_matrix/dense.hpp"
-#include "trace.hpp"
+#include <kqp/feature_matrix/dense.hpp>
+#include <kqp/trace.hpp>
 
 namespace kqp {
     namespace kevd_tests {

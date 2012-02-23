@@ -7,26 +7,26 @@
 #include <exception>
 #include <complex>
 
-#include "kqp.hpp"
-#include "evd_update.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/evd_update.hpp>
 
 DEFINE_LOGGER(logger, "kqp.evd-update");
 
 namespace kqp {
     
-    // Useful scalar dependant functions
+    // Useful Scalar dependant functions
     
-    inline bool is_real(double f) { return true; } 
-    inline bool is_real(float f) { return true; } 
-    template <typename scalar> inline bool is_real(const std::complex<scalar>& f) { return std::imag(f) == 0.0; } 
+    inline bool is_real(double) { return true; } 
+    inline bool is_real(float) { return true; } 
+    template <typename Scalar> inline bool is_real(const std::complex<Scalar>& f) { return std::imag(f) == 0.0; } 
     
     double real(double f) { return f; } 
     float real(float f) { return f; } 
-    template <typename scalar> inline scalar real(const std::complex<scalar>& f) { return std::real(f); }
+    template <typename Scalar> inline Scalar real(const std::complex<Scalar>& f) { return std::real(f); }
     
     
     
-    EigenList::~EigenList() {}
+    template<typename Scalar> EigenList<Scalar>::~EigenList() {}
     
     /**
      * 
@@ -34,8 +34,10 @@ namespace kqp {
      * 
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <typename scalar> class IndexedValue {
+    template <typename Scalar> class IndexedValue {
     public:
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+
         /**
          * The rank in the matrix
          */
@@ -44,17 +46,17 @@ namespace kqp {
         /**
          * The new corresponding eigenvalue ( >= original)
          */
-        double lambda;
+        Real lambda;
         
         /**
          * The original eigenvalue
          */
-        double d;
+        Real d;
         
         /**
          * The corresponding z
          */
-        scalar z;
+        Scalar z;
         
         /**
          * The status (selection)
@@ -102,7 +104,7 @@ namespace kqp {
         IndexedValue() : position(-1) {
         }
         
-        IndexedValue(size_t position, double d, scalar z) {
+        IndexedValue(size_t position, Real d, Scalar z) {
             this->position = position;
             this->d = d;
             this->z = z;
@@ -118,11 +120,11 @@ namespace kqp {
     };
     
     
-    template<typename scalar>   
+    template<typename Scalar>   
     class LambdaComparator {
     public:
         LambdaComparator() {}
-        bool operator() (const IndexedValue<scalar>* i, const IndexedValue<scalar>* j) { 
+        bool operator() (const IndexedValue<Scalar>* i, const IndexedValue<Scalar>* j) { 
             // Special rule to order after the removed parts
             int z = (i->isRemoved() ? 1 : 0) - (j->isRemoved() ? 1 : 0);
             if (z != 0)
@@ -135,10 +137,10 @@ namespace kqp {
         }
     };
     
-    template<typename scalar> 
+    template<typename Scalar> 
     struct DiagonalComparator {
         DiagonalComparator() {}
-        bool operator() (const IndexedValue<scalar>* i, const IndexedValue<scalar>* j) { 
+        bool operator() (const IndexedValue<Scalar>* i, const IndexedValue<Scalar>* j) { 
             return i->d > j->d;
         } 
     };
@@ -150,19 +152,20 @@ namespace kqp {
      * 
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template<typename scalar> class EigenValues : public EigenList {
+    template<typename Scalar> class EigenValues : public EigenList<typename Eigen::NumTraits<Scalar>::Real> {
     public:
-        std::vector<IndexedValue<scalar>*>& values;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        std::vector<IndexedValue<Scalar>*>& values;
         std::size_t minRemoved;
         std::size_t rank;
         
-        EigenValues(std::vector<IndexedValue<scalar>*>& _values) : values(_values) {
+        EigenValues(std::vector<IndexedValue<Scalar>*>& _values) : values(_values) {
             this->rank = values.size();
             this->minRemoved = values.size();
         }
         
         
-        double get(std::size_t index) const {
+        Real get(std::size_t index) const {
             return values[index]->lambda;
         }
         
@@ -197,7 +200,7 @@ namespace kqp {
     /**
      * @param v
      */
-    template <class Compare, typename scalar> void sortValues(std::vector<IndexedValue<scalar>*>& v, size_t from,
+    template <class Compare, typename Scalar> void sortValues(std::vector<IndexedValue<Scalar>*>& v, size_t from,
                                                               Compare &compare) {
         
         std::sort(v.begin() + from, v.end(), compare);
@@ -205,7 +208,7 @@ namespace kqp {
     
     inline double norm(double x) { return x*x; }
     inline float norm(float x) { return x*x; }
-    template <typename scalar> inline scalar norm(const std::complex<scalar> &z) { return std::norm(z); }
+    template <typename Scalar> inline Scalar norm(const std::complex<Scalar> &z) { return std::norm(z); }
     
     
     /**
@@ -220,14 +223,14 @@ namespace kqp {
      * @param newz
      * @return
      */
-    template <typename scalar> scalar computeZ(const std::vector<IndexedValue<scalar>*>& v, int M,
-                                               double lambda0, int i, const IndexedValue<scalar>& vi, double di,
+    template <typename Scalar> Scalar computeZ(const std::vector<IndexedValue<Scalar>*>& v, int M,
+                                               double lambda0, int i, const IndexedValue<Scalar>& vi, double di,
                                                bool debug) {
         double normZ = -(di - lambda0);
         
         // lambda_j < di
         for (int j = i + 1; j < M; j++) {
-            IndexedValue<scalar> &vj = *v[j];
+            IndexedValue<Scalar> &vj = *v[j];
             normZ *= (di - vj.lambda) / (di - vj.d);
         }
         
@@ -236,7 +239,7 @@ namespace kqp {
         }
         
         // ensures the norm of zi is the same as newz
-        scalar new_z = vi.z * (scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
+        Scalar new_z = vi.z * (Scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
         KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(new_z) << " / old was " << convert(vi.z));
         //        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
         
@@ -245,35 +248,35 @@ namespace kqp {
     
     
     
-    template<typename scalar> class Rotation {
+    template<typename Scalar> class Rotation {
     public:
         // The rotation matrix [ c, s; -s, c ]
-        scalar c, s;
+        Scalar c, s;
         
         // Which is the singular value column we rotated with
-        const IndexedValue<scalar> *vi, *vj;
+        const IndexedValue<Scalar> *vi, *vj;
         
-        Rotation(scalar c, scalar s, const IndexedValue<scalar>* _vi, const IndexedValue<scalar>* _vj): vi(_vi), vj(_vj) {
+        Rotation(Scalar c, Scalar s, const IndexedValue<Scalar>* _vi, const IndexedValue<Scalar>* _vj): vi(_vi), vj(_vj) {
             this->c = c;
             this->s = s;
         }
     };
     
     
-    template<typename scalar>
-    FastRankOneUpdate<scalar>::FastRankOneUpdate() : gamma(10.) {}
+    template<typename Scalar>
+    FastRankOneUpdate<Scalar>::FastRankOneUpdate() : gamma(10.) {}
 
     
     
-    template <typename scalar>
-    void FastRankOneUpdate<scalar>::update(const Eigen::Matrix<Real, Eigen::Dynamic, 1> & D, 
-                                   double rho, const Eigen::Matrix<scalar, Eigen::Dynamic, 1> & z,
-                                   bool computeEigenvectors, const Selector *selector, bool keep,
-                                   EvdUpdateResult<scalar> &result,
-                                   Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> * Z) {
+    template <typename Scalar>
+    void FastRankOneUpdate<Scalar>::update(const Eigen::Matrix<Real, Eigen::Dynamic, 1> & D, 
+                                   double rho, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> & z,
+                                           bool computeEigenvectors, const Selector<typename FastRankOneUpdate<Scalar>::Real> *selector, bool keep,
+                                   EvdUpdateResult<Scalar> &result,
+                                   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> * Z) {
         
-        typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> Vector;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
         
         
         // ---
@@ -282,8 +285,8 @@ namespace kqp {
         
         // The deflated diagonal and corresponding z
         // The matrix we are working on is a (N + 1, N)
-        std::size_t N = z.size();
-        std::size_t rankD = D.rows();
+        Index N = z.size();
+        Index rankD = D.rows();
         
         KQP_LOG_DEBUG_F(logger, "EVD rank-one update in dimension %d", %std::max(rankD,N));
         if (rankD > N)
@@ -301,9 +304,9 @@ namespace kqp {
         
         // Our store for singular values, D, and z
         
-        std::vector<IndexedValue<scalar> > indexedValues(N); // this one is just for memory allocation
+        std::vector<IndexedValue<Scalar> > indexedValues(N); // this one is just for memory allocation
         
-        typedef std::vector<IndexedValue<scalar>*> ScalarPtrVector;
+        typedef std::vector<IndexedValue<Scalar>*> ScalarPtrVector;
         ScalarPtrVector v(N);
         
         // Copy the diagonal entries (possibly inserting zeros if needed)
@@ -315,7 +318,7 @@ namespace kqp {
         bool toSort = false;
         
         for (long i = N; --i >= 0;) {
-            double di = 0;
+            Real di = 0;
             
             if (iprime >= 0 && !is_real(D(iprime))) 
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("Diagonal value is not real"));
@@ -329,7 +332,7 @@ namespace kqp {
             long index = negativeUpdate ? N - 1 - i : i;
             
             // If i' points on the first non negative
-            scalar zpos = 0;
+            Scalar zpos = 0;
             if (iprime < 0 || (offset > 0 && foundNonNegative)) {
                 // di is zero in that part
                 // and zi comes from the end of the z vector
@@ -354,13 +357,13 @@ namespace kqp {
             
             // If the update is negative, we have to reverse the order since
             // we take the opposite of diagonal entries
-            v[index] = &(indexedValues[index] = IndexedValue<scalar>(position, di, ((scalar)sqrt(rho)) * zpos));
+            v[index] = &(indexedValues[index] = IndexedValue<Scalar>(position, di, ((Scalar)sqrt(rho)) * zpos));
         }
         normD = sqrt(normD);
         
         // Sort if needed
         if (toSort) {
-            static const DiagonalComparator<scalar> comparator;
+            static const DiagonalComparator<Scalar> comparator;
             sortValues(v, 0, comparator);
         }
         
@@ -372,18 +375,18 @@ namespace kqp {
         double mzNorm = 0;
         
         // The list of rotations
-        std::vector<Rotation<scalar> > rotations;
+        std::vector<Rotation<Scalar> > rotations;
         
         // Deflate the matrix and order the singular values
-        IndexedValue<scalar> *last;
+        IndexedValue<Scalar> *last;
         for (int i = 0; i < N; i++) {
-            IndexedValue<scalar> &vi = *v[i];
-            scalar zi = vi.z;
+            IndexedValue<Scalar> &vi = *v[i];
+            Scalar zi = vi.z;
             
             if (std::abs(zi) <= tauM2) {
             } else if (M > 0 && (last->d - vi.d <= tauM2)) {
                 double r = sqrt(kqp::norm(last->z) + kqp::norm(zi));
-                rotations.push_back(Rotation<scalar>(last->z / (scalar)r, zi / (scalar)r, last, &vi));
+                rotations.push_back(Rotation<Scalar>(last->z / (Scalar)r, zi / (Scalar)r, last, &vi));
                 last->z = r;
                 vi.z = 0;
             } else {
@@ -403,7 +406,7 @@ namespace kqp {
         int lastFree = -1;
         if (N != M)
             for (int i = 0; i < N; i++) {
-                IndexedValue<scalar> &vi = *v[i];
+                IndexedValue<Scalar> &vi = *v[i];
                 if (!vi.isSelected()) {
                     if (lastFree < 0)
                         lastFree = i;
@@ -426,7 +429,7 @@ namespace kqp {
         double e = gamma * EPSILON * M;
         KQP_LOG_DEBUG(logger, "Computing " << convert(M) << " eigenvalues");
         for (int j = 0; j < M; j++) {
-            IndexedValue<scalar> &svj = *v[j];
+            IndexedValue<Scalar> &svj = *v[j];
             double diagj = svj.d;
             
             double interval = (j == 0 ? mzNorm : v[j - 1]->d - diagj) / 2;
@@ -461,12 +464,12 @@ namespace kqp {
                 
                 // lambda is between diagj and (diagj1 + diagj)/2
                 for (int i = j; i < M; i++) {
-                    IndexedValue<scalar> &vi = *v[i];
+                    IndexedValue<Scalar> &vi = *v[i];
                     psi += kqp::norm(vi.z) / (vi.d - middle - nu);
                 }
                 
                 for (int i = 0; i < j; i++) {
-                    IndexedValue<scalar> &vi = *v[i];
+                    IndexedValue<Scalar> &vi = *v[i];
                     phi += kqp::norm(vi.z) / (vi.d - middle - nu);
                 }
                 
@@ -502,9 +505,9 @@ namespace kqp {
         double lambda0 = v.empty() ? 0 : v[0]->lambda;
         
         for (int i = 0; i < M; i++) {
-            IndexedValue<scalar> vi = *v[i];
+            IndexedValue<Scalar> vi = *v[i];
             double di = vi.d;
-            scalar newz = computeZ(v, M, lambda0, i, vi, di, false);
+            Scalar newz = computeZ(v, M, lambda0, i, vi, di, false);
             
             // Remove z too close to 0
             if (std::abs(newz) < tauM2) {
@@ -526,12 +529,12 @@ namespace kqp {
         // --- Set eigen values (and the rank)
         
         // Select the eigenvalues if needed
-        static const LambdaComparator<scalar> lambdaComparator;
+        static const LambdaComparator<Scalar> lambdaComparator;
         sortValues(v, 0, lambdaComparator);
         
         size_t rank = v.size();
         if (selector) {
-            EigenValues<scalar> list(v);
+            EigenValues<Scalar> list(v);
             selector->selection(list);
             rank = list.rank;
             
@@ -568,7 +571,7 @@ namespace kqp {
             
             // Set the new values: work eigenvector by eigenvector (indexed by j)
             for (int j = 0; j < rank; j++) {
-                IndexedValue<scalar> &vj = *v[j];
+                IndexedValue<Scalar> &vj = *v[j];
                 if (!vj.isSelected()) {
                     Q(vj.position, j) = 1;
                 } else {
@@ -576,10 +579,10 @@ namespace kqp {
                     double columnNorm = 0;
                     int iM = 0;
                     for (int i = 0; i < N && iM < M; i++) {
-                        IndexedValue<scalar> &vi = *v[i];
+                        IndexedValue<Scalar> &vi = *v[i];
                         if (vi.isSelected()) {
                             double di = vi.d;
-                            scalar x = vi.z / (scalar)(di - vj.lambda);
+                            Scalar x = vi.z / (Scalar)(di - vj.lambda);
                             columnNorm += kqp::norm(x);
                             Q(vi.position, j) = x;
                             
@@ -596,15 +599,15 @@ namespace kqp {
             
             // --- Rotate the vectors that need to be rotated
             for (size_t r = 0; r < rotations.size(); r++) {
-                Rotation<scalar> &rot = rotations[r];
+                Rotation<Scalar> &rot = rotations[r];
                 size_t i = rot.vi->position;
                 size_t j = rot.vj->position;
                 // TODO: use Eigen rotation
                 
                 // Rotation only affect the two rows i and j
                 for (int col = 0; col < rank; col++) {
-                    scalar x = Q(i,col);
-                    scalar y = Q(j,col);
+                    Scalar x = Q(i,col);
+                    Scalar y = Q(j,col);
                     Q(i, col) =  x * rot.c - y * rot.s;
                     Q(j, col) = x * rot.s + y * rot.c;
                 }
@@ -635,7 +638,7 @@ namespace kqp {
     }
     
     //explicit instantiation of 
-#define RANK_ONE_UPDATE(scalar) template class FastRankOneUpdate<scalar>;
+#define RANK_ONE_UPDATE(Scalar) template class FastRankOneUpdate<Scalar>; template class EigenList<Scalar>;
     
     RANK_ONE_UPDATE(double);
     RANK_ONE_UPDATE(float);

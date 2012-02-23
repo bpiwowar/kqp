@@ -74,18 +74,28 @@ ENDIF(OPEN_MP MATCHES "ON")
 
 # --- Build kqp library
 
-file(GLOB kqp_SRC "src/*.hpp"  "src/*.cpp")
-file(GLOB kqp_fmatrix_SRC "src/feature_matrix/*.?pp"  "src/feature_matrix.*")
-file(GLOB kqp_kernel_evd_SRC "src/kernel_evd/*.?pp" "src/kernel_evd.*")
-file(GLOB kqp_reduced_set_SRC "src/reduced_set/*.?pp" "src/reduced_set.*")
+
+file(GLOB kqp_kqp_H  "include/kqp/*.hpp")
+file(GLOB kqp_fmatrix_H "include/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
+file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
+file(GLOB kqp_reduced_set_H "include/kqp/reduced_set/*.hpp" "include/kqp/reduced_set.hpp")
+
+file(GLOB kqp_kqp_CPP  "src/*.cpp")
+file(GLOB kqp_fmatrix_CPP "src/feature_matrix/*.cpp"  "src/feature_matrix.cpp")
+file(GLOB kqp_kernel_evd_CPP "src/kernel_evd/*.cpp" "src/kernel_evd.cpp")
+file(GLOB kqp_reduced_set_CPP "src/reduced_set/*.cpp" "src/reduced_set.cpp")
+
+FOREACH(name kqp fmatrix kernel_evd reduced_set)
+	SET(kqp_${name}_SRC ${kqp_${name}_H} ${kqp_${name}_CPP})
+ENDFOREACH(name)
 
 SOURCE_GROUP("Feature matrix" FILES ${kqp_fmatrix_SRC})
 SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
 SOURCE_GROUP("Reduced Set" FILES ${kqp_reduced_set_SRC})
 
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src ${Boost_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-ADD_LIBRARY (kqp ${kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_reduced_set_SRC} "src/Eigen")
+ADD_LIBRARY (kqp ${kqp_kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_reduced_set_SRC} "${CMAKE_CURRENT_SOURCE_DIR}/include/Eigen")
 
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 

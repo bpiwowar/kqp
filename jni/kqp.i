@@ -19,8 +19,8 @@
 
 
 %{
-  #include "feature_matrix/dense.hpp"
-  #include "kernel_evd/dense_direct.hpp"
+  <kqp/kqp.hpp>feature_matrix/dense.hpp"
+  <kqp/kqp.hpp>kernel_evd/dense_direct.hpp"
 %}
 
 #define Index int

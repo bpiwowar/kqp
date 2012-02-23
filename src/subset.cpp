@@ -1,4 +1,4 @@
-#include "subset.hpp"
+#include <kqp/subset.hpp>
 
 DEFINE_LOGGER(logger, "kqp.subset")
 

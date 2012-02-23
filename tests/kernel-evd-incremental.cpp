@@ -15,7 +15,7 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "kernel-evd-tests.hpp"
-#include "kernel_evd/incremental.hpp"
+#include <kqp/kernel_evd/incremental.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd.incremental")
 

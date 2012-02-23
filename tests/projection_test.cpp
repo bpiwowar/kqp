@@ -17,10 +17,10 @@
 
 #include <deque>
 
-#include "probabilities.hpp"
-#include "trace.hpp"
+#include <kqp/probabilities.hpp>
+#include <kqp/trace.hpp>
 
-#include "kernel_evd/dense_direct.hpp"
+#include <kqp/kernel_evd/dense_direct.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.projection")
 

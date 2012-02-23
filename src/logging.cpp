@@ -24,8 +24,8 @@
 #include "log4cxx/propertyconfigurator.h"
 #include "log4cxx/helpers/exception.h"
 
-#include "kqp.hpp"
-#include "logging.hpp"
+#include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
 
 namespace kqp {
     LoggerConfig LOGGER_CONFIG;
