@@ -88,7 +88,7 @@ namespace kqp {
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
         inline void add(const FMatrix &mU) {
-            add(1., mU, ScalarAltMatrix::Identity(mU.size()));
+            add(1., mU, ScalarMatrix::Identity(mU.size(),mU.size()));
         }
 
         /**
@@ -150,7 +150,7 @@ namespace kqp {
                 if (mX.can_linearly_combine()) {
                     // Easy case: we can linearly combine pre-images
                     mX = mX.linear_combination(mY);
-                    mY = ScalarAltMatrix::Identity(mX.size());
+                    mY = ScalarMatrix::Identity(mX.size(), mX.size());
                 } else {
                     // Use QP approach
                     ReducedSetWithQP<FMatrix> qp_rs;
@@ -165,9 +165,9 @@ namespace kqp {
         
         void cleanup(FMatrix& mX, ScalarMatrix &mY, RealVector& mD) const {
             ScalarAltMatrix _mY;
-            _mY.swap_dense(mY);
+            _mY.swap(mY);
             cleanup(mX, _mY, mD);
-            mY.swap(_mY.dense_matrix());
+            _mY.swap(mY);
         }
         
         /**

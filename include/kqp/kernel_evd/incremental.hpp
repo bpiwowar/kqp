@@ -53,10 +53,11 @@ namespace kqp {
             // Compute W = Y^T X^T
             inner(mX, mU, k);
             ScalarMatrix mW;
-            mW.noalias() = mY.transpose() * k * mA;
+            noalias(mW) = mY.transpose() * k * mA;
             
             // Compute V^T V
-            ScalarMatrix vtv = mA.transpose() * mU.inner() * mA - mW.adjoint() * mW;
+            ScalarMatrix vtv = mA.transpose() * mU.inner() * mA;
+            vtv -= mW.adjoint() * mW;
             
             
             // (thin) eigen-value decomposition of V^T V

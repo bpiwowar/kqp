@@ -49,6 +49,7 @@ namespace kqp {
         typedef typename FTraits::FMatrix FMatrix;
         typedef typename FTraits::Scalar Scalar;
         
+        typedef typename FTraits::ScalarAltMatrix ScalarAltMatrix;
 
         /**
          * Returns true if the vectors can be linearly combined
@@ -140,7 +141,7 @@ namespace kqp {
          * 
          * Computes \f$ \alpha XA + \beta Y B  \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
          */
-        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA, Scalar alpha, const Derived &mY, const kqp::AltMatrix<Scalar> &mB, Scalar beta) const {
+        inline Derived linear_combination(const ScalarAltMatrix &mA, Scalar alpha, const Derived &mY, const ScalarAltMatrix &mB, Scalar beta) const {
             // Check for correctedness
             if (mA.rows() != this->size())
                 KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
@@ -159,7 +160,7 @@ namespace kqp {
          * 
          * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
          */
-        inline Derived linear_combination(const kqp::AltMatrix<Scalar> &mA, Scalar alpha = (Scalar)1) const {
+        inline Derived linear_combination(const ScalarAltMatrix &mA, Scalar alpha = (Scalar)1) const {
             // Check for correctedness
             if (mA.rows() != this->size())
                 KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", %mA.rows() %this->size());
@@ -169,7 +170,7 @@ namespace kqp {
                 return Derived();
                     
             // Call the derived
-            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha, NULL, NULL, 0);
+            return static_cast<const Derived*>(this)->Derived::_linear_combination(mA, alpha, nullptr, nullptr, 0);
         }
 
         
@@ -301,8 +302,8 @@ namespace kqp {
         //! Gram matrix type
         typedef ScalarMatrix& GramMatrix;
         
-        //! Matrix used for linear combinations
-        typedef kqp::AltMatrix<Scalar> ScalarAltMatrix;
+        //! Matrix used for linear combinations       
+        typedef typename AltDense<Scalar>::type ScalarAltMatrix;
     }; 
     
 }

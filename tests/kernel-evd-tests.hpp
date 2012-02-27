@@ -74,7 +74,7 @@ namespace kqp {
                     matrix.template selfadjointView<Eigen::Lower>().rankUpdate(m * mA, alpha);
                     
                     
-                    builder.add(alpha, DenseMatrix<Scalar>(m), AltMatrix<Scalar>(mA));
+                    builder.add(alpha, DenseMatrix<Scalar>(m), mA);
                 }
                 
                 // Computing via EVD
@@ -99,7 +99,7 @@ namespace kqp {
                 
                 builder.get_decomposition(mX, mY, mD);
                 
-                typename FTraits::ScalarAltMatrix mUY = FTraits::ScalarAltMatrix::Identity(mU.dimension());
+                typename FTraits::ScalarAltMatrix mUY = FTraits::ScalarMatrix::Identity(mU.dimension(),mU.dimension());
                 
                 KQP_LOG_DEBUG(logger, "=== Decomposition ===");
                 KQP_LOG_DEBUG(logger, "X = " << mX);

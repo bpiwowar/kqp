@@ -22,8 +22,8 @@ mS2 << 0.934148276858481,0.356885131158937;
 
 double epsilon = 0;
 
-Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1, true);
-Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2, true);
+Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);
+Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);
 double divergence = rho.computeDivergence(tau, epsilon);
 // plogp = -0.617241769730341
 // qlogq = -1.46854649056823
@@ -45,8 +45,8 @@ mS2 << 0.934148276858481,0.356885131158937;
 
 double epsilon = 0.001;
 
-Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1, true);
-Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2, true);
+Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);
+Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);
 double divergence = rho.computeDivergence(tau, epsilon);
 // plogp = -0.617241769730341
 // qlogq = -1.46665540747698
@@ -68,8 +68,8 @@ mS2 << 0.0828391201687178,0.0897931593821199,0.163059931446767,0.201099942703649
 
 double epsilon = 0.001;
 
-Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1, true);
-Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2, true);
+Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);
+Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);
 double divergence = rho.computeDivergence(tau, epsilon);
 // plogp = -0.721728683956772
 // qlogq = -1.93588393713167
@@ -91,8 +91,8 @@ mS2 << 0.184275385329949,0.268217079827399,0.319425179898452,0.889982996970842;
 
 double epsilon = 0.001;
 
-Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), kqp::AltMatrix<double>::Identity(mU1.cols()), mS1, true);
-Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), kqp::AltMatrix<double>::Identity(mU2.cols()), mS2, true);
+Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);
+Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);
 double divergence = rho.computeDivergence(tau, epsilon);
 // plogp = -0.721728683956772
 // qlogq = -0.722329056110237

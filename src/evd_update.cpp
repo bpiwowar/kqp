@@ -224,8 +224,7 @@ namespace kqp {
      * @return
      */
     template <typename Scalar> Scalar computeZ(const std::vector<IndexedValue<Scalar>*>& v, int M,
-                                               double lambda0, int i, const IndexedValue<Scalar>& vi, double di,
-                                               bool debug) {
+                                               double lambda0, int i, const IndexedValue<Scalar>& vi, double di) {
         double normZ = -(di - lambda0);
         
         // lambda_j < di
@@ -507,7 +506,7 @@ namespace kqp {
         for (int i = 0; i < M; i++) {
             IndexedValue<Scalar> vi = *v[i];
             double di = vi.d;
-            Scalar newz = computeZ(v, M, lambda0, i, vi, di, false);
+            Scalar newz = computeZ(v, M, lambda0, i, vi, di);
             
             // Remove z too close to 0
             if (std::abs(newz) < tauM2) {

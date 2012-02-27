@@ -42,6 +42,7 @@ namespace kqp {
         //! The type of inner product matrices
         typedef typename FTraits::Matrix Matrix;
         typedef typename FTraits::ScalarMatrix ScalarMatrix;
+        typedef typename FTraits::ScalarAltMatrix ScalarAltMatrix;
         
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() : view_mode(false), column_start(0), _size(0) {}
@@ -165,9 +166,14 @@ namespace kqp {
         
         
     protected:        
-        Self _linear_combination(const AltMatrix<Scalar> & mA, Scalar alpha, const Self *mY, const kqp::AltMatrix<Scalar> *mB, Scalar beta) const {
-            if (mY == 0) return Self(alpha * (get_matrix() * mA));
-            return Self(alpha * get_matrix() * mA + beta * mY->get_matrix() * *mB);
+        Self _linear_combination(const ScalarAltMatrix & mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
+            if (mY == 0) 
+                return Self(ScalarMatrix(alpha * (get_matrix() * mA)));
+            else {
+                ScalarMatrix m(alpha * get_matrix() * mA);
+                m += beta * mY->get_matrix() * *mB;
+             return Self(m);   
+            }
         }
         
 

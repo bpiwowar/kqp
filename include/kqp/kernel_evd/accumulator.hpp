@@ -66,7 +66,9 @@ namespace kqp{
             typename FTraits::Matrix _mY;
             kqp::thinEVD(evd, _mY, mD);
             
-            mY = _mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            ScalarMatrix __mY;
+            __mY.noalias() = _mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            mY.swap(__mY);
             mX = fMatrix;
         }
         
@@ -117,13 +119,12 @@ namespace kqp{
             ScalarMatrix gram_X = fMatrix.inner();
             ScalarMatrix gram(size, size);
             
-            for(size_t i = 0; i < combination_matrices.size(); i++) {
+            for(Index i = 0; i < combination_matrices.size(); i++) {
                 const ScalarAltMatrix &mAi = *combination_matrices[i];
                 for(Index j = 0; j <= i; j++) {
                     const ScalarAltMatrix &mAj = *combination_matrices[j];
                     getBlock(gram, offsets_A, i, j) 
-                            =  (Eigen::internal::conj(alphas[i]) * alphas[j]) 
-                                * (mAi.transpose() *  getBlock(gram_X, offsets_X, i, j)) * mAj;
+                            =  (mAi.transpose() *  ((Eigen::internal::conj(alphas[i]) * alphas[j]) * getBlock(gram_X, offsets_X, i, j))) * mAj;
                 }
             }
             
@@ -140,10 +141,10 @@ namespace kqp{
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {
                 const ScalarAltMatrix &mAi = *combination_matrices[i];
-                __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = alphas[i] * (mAi * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
+                __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = mAi * (alphas[i] * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
-            mY.swap_dense(__mY);
+            mY.swap(__mY);
             mX = fMatrix;
         }
         

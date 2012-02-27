@@ -48,28 +48,20 @@ namespace kqp {
         // Dimension of the problem
         Index N = mY.rows();
         assert(N == mF.size());
-        
-        
-        switch (mY.type()) {
-            case IDENTITY:
-                // Nothing to do
-                return;
-                
-            case DIAGONAL:
-            case DENSE:
-                break;
-                
-            default:
-                KQP_THROW_EXCEPTION(assertion_exception, "Unknown AltMatrix type");
-        }
+
         
         // Removes unused pre-images
-        typename ftraits<FMatrix>::ScalarMatrix m = mY.dense_matrix();
+        typename ftraits<FMatrix>::RealVector v = mY.rowwise().squaredNorm();
         
+        bool change = false;
         std::vector<bool> to_keep(N, true);
         for(Index i = 0; i < N; i++) 
-            if (m.row(i).squaredNorm() < EPSILON) 
+            if (v(i) < EPSILON) {
+                change = true;
                 to_keep[i] = false;
+            }
+        
+        if (!change) return;
         
         select_rows(to_keep.begin(), to_keep.end(), mY, mY);
                                      

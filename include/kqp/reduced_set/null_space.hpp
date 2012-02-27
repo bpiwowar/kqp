@@ -167,7 +167,7 @@ namespace kqp {
         // Y <- (Id A) P Y
         ScalarMatrix mY2(mY);
         mY2= (mP * mY2).topRows(mF.size()) + kernel * (mP * mY2).bottomRows(mY.rows() - mF.size());
-        mY.swap_dense(mY2);
+        mY.swap(mY2);
         
         // Removes unused pre-images
         removeUnusedPreImages<FMatrix>(mF, mY);
@@ -176,9 +176,9 @@ namespace kqp {
     template <class FMatrix>
     void removePreImagesWithNullSpace(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
         typename ftraits<FMatrix>::ScalarAltMatrix _mY;
-        _mY.swap_dense(mY);
+        _mY.swap(mY);
         removePreImagesWithNullSpace(mF, _mY);
-        _mY.swap_dense(mY);
+        _mY.swap(mY);
     }
     
     

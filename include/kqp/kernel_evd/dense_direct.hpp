@@ -44,7 +44,7 @@ namespace kqp {
         }
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
-            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(mX.get_matrix() * mA, alpha);
+            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.get_matrix() * mA), alpha);
         }
         
     protected:
@@ -55,7 +55,7 @@ namespace kqp {
             kqp::thinEVD(evd, _mX, mD);  
             mX.swap(_mX);
             
-            mY = ScalarAltMatrix::Identity(mX.size());
+            mY = ScalarMatrix::Identity(mX.size(), mX.size());
         }
         
     public:

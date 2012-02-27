@@ -32,8 +32,9 @@ namespace kqp {
     double squaredNorm(const FeatureMatrix<Derived> &mX, 
                           const typename ftraits<Derived>::ScalarAltMatrix  &mY,
                           const typename ftraits<Derived>::RealVector &mD) {
-        
-        return (mD.asDiagonal() * mY.transpose() * mX.inner() * mY * mD.asDiagonal()).squaredNorm();
+        typename ftraits<Derived>::ScalarMatrix m;
+        noalias(m) = mD.asDiagonal() * mY.transpose() * mX.inner() * mY * mD.asDiagonal();
+        return m.squaredNorm();
     }
     
     /**
@@ -54,7 +55,7 @@ namespace kqp {
         typename ftraits<Derived>::Matrix m;
         inner<Derived>(mX1.derived(), mX2.derived(),m);
         
-        m = (mY1.transpose() * m * mY2).eval();
+        m = mY1.transpose() * m * mY2;
         
         double trace = 0;
         for(Index i = 0; i < m.rows(); i++) {

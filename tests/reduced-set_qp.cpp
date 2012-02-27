@@ -34,10 +34,12 @@ namespace kqp {
 
         // Computes the EVD
         AccumulatorKernelEVD<FMatrix, false> kEVD;
-        kEVD.add(1, FMatrix(_mF), _mY * _mD.cwiseSqrt().asDiagonal());
+        ScalarMatrix m;
+        noalias(m) = _mY * _mD.cwiseSqrt().asDiagonal();
+        kEVD.add(1, FMatrix(_mF), m);
 
         FMatrix mF;
-        AltMatrix<Scalar> mY;
+        AltDense<Scalar>::type mY;
         RealVector mD;
         kEVD.get_decomposition(mF, mY, mD, false);
 
