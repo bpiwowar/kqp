@@ -28,7 +28,7 @@
 
 namespace kqp {
     
-    
+    //! Helper class for linear combination
     template<typename FMatrix, class Enable = void> struct LinearCombination;
     
     template<typename FMatrix>
@@ -132,7 +132,7 @@ namespace kqp {
             return mS;
         }
         
-        void orthornormalize() const {
+        void orthonormalize() const {
             const_cast<KernelOperator*>(this)->_orthonormalize();
         }
         
@@ -181,25 +181,27 @@ namespace kqp {
         
     protected:
         
-        
+        //! Orthonormalize the decomposition (non const version)
         void _orthonormalize() {
-            // TODO: Eigen should only the needed part
-            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
-            
-            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
-            
-            ScalarMatrix _mY;
-            kqp::thinEVD(evd, _mY, mS);
-            
-            mS.array() = mS.array().cwiseAbs().cwiseSqrt();
-            _mY *= mS.cwiseInverse().asDiagonal();
-            
-            if (LinearCombination<FMatrix>::run(mX, mX, mY, 1))
-                mY = ScalarMatrix::Identity(mX.size(),mX.size());
-            
-            else mY.swap(_mY);
-            
-            
+            if (!orthonormal) {
+                // TODO: Eigen should only the needed part
+                Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
+                
+                Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
+                
+                ScalarMatrix _mY;
+                kqp::thinEVD(evd, _mY, mS);
+                
+                mS.array() = mS.array().cwiseAbs().cwiseSqrt();
+                _mY *= mS.cwiseInverse().asDiagonal();
+                
+                if (LinearCombination<FMatrix>::run(mX, mX, mY, 1))
+                    mY = ScalarMatrix::Identity(mX.size(),mX.size());
+                
+                else mY.swap(_mY);
+                
+                orthonormal = true;
+            }
         }
 
         
@@ -310,7 +312,7 @@ namespace kqp {
         
         static Density<FMatrix> projectOrthogonal(const Density<FMatrix>& density, const Event<FMatrix> &event) {
             // We need the event to be in an orthonormal form
-            event.orthornormalize();
+            event.orthonormalize();
                         
             Index n = event.S().rows();
             
@@ -348,7 +350,7 @@ namespace kqp {
         }
         
         static Density<FMatrix> projectOrthogonal(const Density<FMatrix>& density, const Event<FMatrix> &event) {
-            event.orthornormalize();
+            event.orthonormalize();
             
             // Concatenates the vectors
             FMatrix mX = density.X();
@@ -412,6 +414,13 @@ namespace kqp {
         }
 
         
+        //! Computes the entropy
+        Real entropy() const {
+            this->orthonormalize();
+            
+            return (2 * this->S().array().log() * this->S().array().abs2()).sum();
+        }
+        
         /**
          * @brief Computes the divergence with another density
          *
@@ -419,12 +428,15 @@ namespace kqp {
          * "Conditional expectation in an operator algebra. IV. Entropy and information" by H. Umegaki (1962),
          * at page 69. The formula is:
          * \f[ J(\rho || \tau) = tr(\rho \log (\rho) - \rho \log(\tau))) \f]
-         *
-         * Expects both decomposition to be in an orthonormal form
          */
         Real computeDivergence(const Density<FMatrix> &tau, Real epsilon = EPSILON) const {
-            // --- Notation
             const Density<FMatrix> &rho = *this;
+
+            // --- Requires orthonormal decompositions
+            rho.orthonormalize();
+            tau.orthonormalize();
+            
+            // --- Notation
             
             ScalarMatrix inners = inner(rho.X(), tau.X());
             noalias(inners) = rho.Y().transpose() * inners * tau.Y() * tau.S().asDiagonal();
@@ -435,41 +447,22 @@ namespace kqp {
             Index dimension = rho.X().dimension();
             
 			// The background density span the subspace 
-			Scalar alpha = 1. / (Scalar)(dimension);
-			Scalar alpha_noise = epsilon * alpha;
+			Real alpha = 1. / (Real)(dimension);
+			Real alpha_noise = epsilon * alpha;
             
-			// Smoothing probability
+			// Includes the smoothing probability if not too small
             if (epsilon >= EPSILON) 
                 plogq = log(alpha_noise) * (1. - inners.squaredNorm());
             
 			
 			// Main computation
 			RealVector mD(tau.S().rows());
-			
-			for(int j = 0; j < tau.S().rows(); j++) {
-				Scalar sj = tau.S()(j) * tau.S()(j);
-				
-				Scalar x = -log(((Scalar)1 - epsilon) * sj + alpha_noise);
-				if (x < 0)
-					if (x > - EPSILON) x = 0;
-					else KQP_THROW_EXCEPTION_F(arithmetic_exception, "%g is not greather than 0. Note: S[%d] = %g", %x %j %tau.S()(j,j));
-				
-				mD(j) = sqrt(x);
-			}
-			
             
-            
-			plogq -= (inners * mD.asDiagonal()).squaredNorm();
+            plogq -= (inners * (-((1 - epsilon) * tau.S().array().abs2() + alpha_noise).log())  .sqrt().matrix().asDiagonal()).squaredNorm();
             
             
             // --- Compute tr(p log p)
-            Scalar plogp = 0;
-            for (int i = 0; i < rho.S().rows(); i++) {
-                Scalar x = rho.S()(i) * rho.S()(i);
-                plogp +=  x * log(x);
-            }
-            
-            return plogp - plogq;        
+            return this->entropy() - plogq;        
             
 		}
         

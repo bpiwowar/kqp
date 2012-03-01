@@ -43,14 +43,15 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_pre_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<kqp::scalar<Lhs>, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef typename kqp::scalar<Lhs>::type Scalar;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
         
         std::cerr << "Alt(" << KQP_DEMANGLE(mA) << ") x " << KQP_DEMANGLE(mB) << " : ";
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mA);
         
         ScalarMatrix alt_mB = alt * mB;
         
-        typename NumTraits<typename Lhs::Scalar>::Real 
+        typename NumTraits<Scalar>::Real 
         error = (alt_mB - ScalarMatrix(mA * mB)).squaredNorm();        
         std::cerr << "Error: " << error << std::endl;        
         return error < EPSILON;
@@ -58,13 +59,14 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_post_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<kqp::scalar<Lhs>, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef typename kqp::scalar<Lhs>::type Scalar;
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
         
         std::cerr << KQP_DEMANGLE(mA)  << " x Alt(" << KQP_DEMANGLE(mB)  << "): " ;
-        typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mB);
+        typename AltDenseDiagonal<Scalar>::type alt(mB);
         
         ScalarMatrix mA_alt = mA * alt;
-        typename NumTraits<typename Lhs::Scalar>::Real 
+        typename NumTraits<Scalar>::Real 
         error = (mA_alt - ScalarMatrix(mA * mB)).squaredNorm(),
         error2 = (ScalarMatrix(mA * alt) - ScalarMatrix(mA * mB)).squaredNorm();
         std::cerr << "Error: " << error << " [" << error2 << "]" << std::endl;        
