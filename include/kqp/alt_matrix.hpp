@@ -17,7 +17,6 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
-#include <boost/type_traits/is_arithmetic.hpp> 
 #include <kqp/kqp.hpp>
 #include <Eigen/Core>
 
@@ -30,7 +29,18 @@ namespace kqp {
     template<typename T1, typename T2> class AltMatrix;
     template<typename _AltMatrix> class AltBlock;
     template<typename _AltMatrix> class RowWise;
+    template<typename Derived> struct scalar;
     
+    
+    // Returns the associated scalar
+    template<typename Derived> struct scalar { typedef typename Eigen::internal::traits<Derived>::Scalar type; };
+    template<> struct scalar<double> { typedef double type; };
+    template<> struct scalar<float> { typedef float type; };
+    template<> struct scalar<std::complex<double>> { typedef std::complex<double> type; };
+    template<> struct scalar<std::complex<float>> { typedef std::complex<float> type; };
+    
+    
+    // ---- Predefined Alt-based matrices
     
     //! Diagonal or Identity matrix
     template<typename Scalar> struct AltDiag {
@@ -42,15 +52,19 @@ namespace kqp {
     };
     
     
-    // Dense or Identity matrix
+    //! Dense or Identity matrix
     template<typename Scalar> struct AltDense {
         typedef AltMatrix< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> , typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType > type;
+        
+        static  inline type Identity(Index n) { 
+            return Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>::Identity(n,n); 
+        }
     };    
     
     //! Storage type for AltMatrix
     struct AltMatrixStorage {};
     
-    //! Base class for any operation
+    //! Base class for any AltMatrix expression
     template<typename Derived> 
     class AltMatrixBase : public Eigen::EigenBase<Derived> {
     };
@@ -179,7 +193,7 @@ namespace kqp {
         typename Eigen::internal::traits<Derived>::Scalar operator()(Index i, Index j) const {
             return m_value(i,j);
         }
-
+        
     };
     
     // Storage for a diagonal wrapper
@@ -210,7 +224,7 @@ namespace kqp {
         typename Eigen::internal::traits<Derived>::Scalar operator()(Index i, Index j) const {
             return i == j ? m_value(i) : 0;
         }
-
+        
     };
     
     // Storage for the identity
@@ -260,6 +274,7 @@ namespace kqp {
         
     public:
         typedef typename Eigen::internal::traits<T1>::Scalar Scalar;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
         typedef const AltMatrix& Nested;
         
         AltMatrix() : m_isT1(true) {}
@@ -269,6 +284,10 @@ namespace kqp {
         
         Index rows() const { return m_isT1 ? m_t1.rows() : m_t2.rows(); }
         Index cols() const { return m_isT1 ? m_t1.cols() : m_t2.cols(); }
+        
+        Real squaredNorm() const { return m_isT1 ? m_t1.squaredNorm() : m_t2.squaredNorm(); }
+        Scalar trace() const { return m_isT1 ? m_t1.trace() : m_t2.trace(); }
+        
         
         bool isT1() const { return m_isT1; }
         
@@ -490,92 +509,11 @@ namespace kqp {
     };
     
     
-    // --- Alt * Dense
-    template<typename Lhs, typename Rhs>
-    class AltEigenProduct<Lhs,Rhs,Eigen::OnTheLeft> : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltEigenProduct<Lhs,Rhs,Eigen::OnTheLeft> >
+    // --- Multiplication between an Alt matrix and anything
+    
+    template<typename Lhs, typename Rhs, int Side>
+    class AltEigenProduct : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltEigenProduct<Lhs,Rhs,Side> >
     {
-    private:        
-        typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, true> HolderT1;
-        typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, false> HolderT2;
-        
-        typedef typename HolderT1::Expression ExprIfT1;
-        typedef typename HolderT2::Expression  ExprIfT2;
-        
-        union {
-            HolderT1 *_t1;
-            HolderT2 *_t2;
-        };
-        
-        bool m_isT1;
-        
-    public:
-        
-        typedef typename Eigen::internal::traits<Lhs>::Scalar Scalar;        
-        
-        void init(const Lhs &lhs, const Rhs &rhs);
-        
-        AltEigenProduct(const Lhs& lhs, const Rhs& rhs) {
-            m_isT1 = lhs.isT1();
-            if (m_isT1) 
-                _t1 = new HolderT1(lhs.t1(), rhs);
-            else
-                _t2 = new HolderT2(lhs.t2(), rhs); 
-        }
-        
-        AltEigenProduct() {
-            if (m_isT1) delete _t1; else delete _t2;
-        }
-        
-        Index rows() const { return m_isT1 ? _t1->expression.rows() : _t2->expression.rows(); }
-        Index cols() const {return m_isT1 ? _t1->expression.rows() : _t2->expression.rows();  }
-        
-        bool isT1() const { return m_isT1; }
-        
-        
-        inline const ExprIfT1 & t1() const { return _t1->expression; }
-        inline const ExprIfT2 & t2() const { return _t2->expression; }
-        
-        template<typename Dest> void evalTo(Dest& dest) const {
-            if (m_isT1) 
-                dest = t1();
-            else 
-                dest = t2();
-        }
-        
-        
-        template<typename Dest> void lazyAssign(Dest& dest) const {
-            if (m_isT1) 
-                noalias(dest) = t1();
-            else 
-                noalias(dest) = t2();
-        }
-        
-        
-        void printExpression(std::ostream &out) const {
-            out << "alt_dense[";
-            if (m_isT1) 
-                kqp::printExpression(out, t1());
-            else 
-                kqp::printExpression(out, t2());
-            out << "]";
-        }
-    };
-    
-    
-    
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
-    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::MatrixBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>(a.derived(), b.derived());
-    }
-    
-    // --- Dense * Alt
-    template<typename Lhs, typename Rhs>
-    class AltEigenProduct<Lhs,Rhs,Eigen::OnTheRight> : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltEigenProduct<Lhs,Rhs,Eigen::OnTheRight> >
-    {
-    private:
-        enum { Side = Eigen::OnTheRight };
-        
         typedef MultExpression<Lhs, Rhs, Side, true> HolderT1;
         typedef MultExpression<Lhs, Rhs, Side, false> HolderT2;
         
@@ -590,22 +528,40 @@ namespace kqp {
         bool m_isT1;
         
     public:
+        typedef typename kqp::scalar<Lhs>::type Scalar;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
-        typedef typename Eigen::internal::traits<Lhs>::Scalar Scalar;        
-        
-        AltEigenProduct(const Lhs& lhs, const Rhs& rhs) : m_isT1(rhs.isT1()) {
-            if (m_isT1) 
-                _t1 = new HolderT1(lhs, rhs.t1());
-            else
-                _t2 = new HolderT2(lhs, rhs.t2());
+        // Initialisation when the Alt is on the left
+        friend void initAltEigenProduct(AltEigenProduct<Lhs, Rhs, Eigen::OnTheLeft> &product, const Lhs &lhs, const Rhs &rhs) {
+            typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, true> HolderT1;
+            typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, false> HolderT2;
+            if ((product.m_isT1 = lhs.isT1()))  product._t1 = new HolderT1(lhs.t1(), rhs);
+            else                                product._t2 = new HolderT2(lhs.t2(), rhs); 
         }
         
-        ~AltEigenProduct() {
+        // Initialisation when the Alt is on the right
+        friend void initAltEigenProduct(AltEigenProduct<Lhs, Rhs, Eigen::OnTheRight> &product, const Lhs &lhs, const Rhs &rhs) {
+            typedef MultExpression<Lhs, Rhs, Eigen::OnTheRight, true> HolderT1;
+            typedef MultExpression<Lhs, Rhs, Eigen::OnTheRight, false> HolderT2;
+            if ((product.m_isT1 = rhs.isT1()))  product._t1 = new HolderT1(lhs, rhs.t1());
+            else                                product._t2 = new HolderT2(lhs, rhs.t2()); 
+        }
+        
+        
+        AltEigenProduct(const Lhs& lhs, const Rhs& rhs) {
+            initAltEigenProduct(*this, lhs, rhs);
+        }
+        
+        AltEigenProduct() {
             if (m_isT1) delete _t1; else delete _t2;
         }
         
         Index rows() const { return m_isT1 ? _t1->expression.rows() : _t2->expression.rows(); }
         Index cols() const {return m_isT1 ? _t1->expression.rows() : _t2->expression.rows();  }
+        
+        Real squaredNorm() const { return m_isT1 ? _t1->expression.squaredNorm() : _t2->expression.squaredNorm();  }
+        Scalar trace() const { return m_isT1 ? _t1->expression.trace() : _t2->expression.trace();  }
+        
         
         bool isT1() const { return m_isT1; }
         
@@ -620,6 +576,7 @@ namespace kqp {
                 dest = t2();
         }
         
+        
         template<typename Dest> void lazyAssign(Dest& dest) const {
             if (m_isT1) 
                 noalias(dest) = t1();
@@ -627,8 +584,9 @@ namespace kqp {
                 noalias(dest) = t2();
         }
         
+        
         void printExpression(std::ostream &out) const {
-            out << "alt_dense[";
+            out << "altx[";
             if (m_isT1) 
                 kqp::printExpression(out, t1());
             else 
@@ -636,6 +594,14 @@ namespace kqp {
             out << "]";
         }
     };
+    
+    
+    // --- Alt * Dense
+    template<class Derived,class OtherDerived>
+    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
+    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::MatrixBase<OtherDerived> &b) {
+        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>(a.derived(), b.derived());
+    }
     
     // --- Dense * Alt
     template<class Derived,class OtherDerived>
@@ -668,85 +634,17 @@ namespace kqp {
     }
     
     // --- Scalar * AltMatrix
-    
-    template<typename CoeffScalar, typename Derived>
-    class AltScalarProduct : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltScalarProduct<CoeffScalar, Derived> > {
-    private:
-        
-        typedef MultExpression<CoeffScalar, Derived, Eigen::OnTheRight, true> HolderT1;
-        typedef MultExpression<CoeffScalar, Derived, Eigen::OnTheRight, false> HolderT2;
-        
-        typedef typename HolderT1::Expression ExprIfT1;
-        typedef typename HolderT2::Expression ExprIfT2;
-        
-        union {
-            HolderT1 *_t1;
-            HolderT2 *_t2;
-        };
-        
-        bool m_isT1;
-        
-    public:
-        
-        typedef typename Eigen::internal::traits<Derived>::Scalar Scalar;        
-        
-        AltScalarProduct(CoeffScalar alpha, const Derived& rhs) : m_isT1(rhs.isT1()) {
-            if (m_isT1) 
-                _t1 = new HolderT1(alpha, rhs.t1());
-            else
-                _t2 = new HolderT2(alpha, rhs.t2());
-        }
-        
-        ~AltScalarProduct() {
-            if (m_isT1) delete _t1; else delete _t2;
-        }
-        
-        Index rows() const { return m_isT1 ? _t1->expression.rows() : _t2->expression.rows(); }
-        Index cols() const {return m_isT1 ? _t1->expression.rows() : _t2->expression.rows();  }
-        
-        bool isT1() const { return m_isT1; }
-        
-        
-        inline const ExprIfT1 & t1() const { return _t1->expression; }
-        inline const ExprIfT2 & t2() const { return _t2->expression; }
-        
-        template<typename Dest> void evalTo(Dest& dest) const {
-            if (m_isT1) 
-                dest = t1();
-            else 
-                dest = t2();
-        }
-        
-        template<typename Dest> void lazyAssign(Dest& dest) const {
-            if (m_isT1) 
-                noalias(dest) = t1();
-            else 
-                noalias(dest) = t2();
-        }
-        
-        void printExpression(std::ostream &out) const {
-            out << "alt_dense[";
-            if (m_isT1) 
-                kqp::printExpression(out, t1());
-            else 
-                kqp::printExpression(out, t2());
-            out << "]";
-        }
-    };
-    
-    
     template<class Derived>
-    inline AltScalarProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived>
+    inline AltEigenProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>
     operator*(typename Eigen::internal::traits<Derived>::Scalar alpha, const kqp::AltMatrixBase<Derived> &a) {
-        return AltScalarProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived>(alpha, a.derived());
+        return AltEigenProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>(alpha, a.derived());
     }  
-
+    
 }
 
 namespace Eigen {
     
     // --- Multiplication of two diagonal wrappers
-    
     template<typename Derived, typename OtherDerived>
     auto operator*(const DiagonalWrapper<Derived> &a, const DiagonalWrapper<OtherDerived> &b) 
     -> decltype(a.diagonal().cwiseProduct(b.diagonal()).asDiagonal()) {
@@ -815,13 +713,14 @@ namespace Eigen {
             };
         };
         
+        
         // Alt * Eigen
         template<typename Lhs, typename Rhs, int Side>
         struct traits< kqp::AltEigenProduct<Lhs, Rhs, Side> > {
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename MatrixXd::Index Index;
             
-            typedef typename scalar_product_traits<typename traits<Lhs>::Scalar, typename traits<Rhs>::Scalar>::ReturnType Scalar;
+            typedef typename scalar_product_traits<typename kqp::scalar<Lhs>::type, typename kqp::scalar<Rhs>::type>::ReturnType Scalar;
             enum {
                 Flags = 0,
                 RowsAtCompileTime = Eigen::Dynamic,
@@ -829,19 +728,6 @@ namespace Eigen {
             };
         };
         
-        // scalar * Alt 
-        template<typename CoeffScalar, typename Derived>
-        struct traits< kqp::AltScalarProduct<CoeffScalar, Derived> > {
-            typedef kqp::AltMatrixStorage StorageKind;
-            typedef typename MatrixXd::Index Index;
-            
-            typedef typename scalar_product_traits<CoeffScalar, typename traits<Derived>::Scalar>::ReturnType Scalar;
-            enum {
-                Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
-            };
-        };
         
     }
 }

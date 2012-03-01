@@ -287,7 +287,7 @@ namespace kqp {
         
         //! Vector with reals
         typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
-        
+               
         /** Inner product matrix.
          * @deprecated
          */

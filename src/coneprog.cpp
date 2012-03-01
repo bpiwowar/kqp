@@ -353,7 +353,7 @@ namespace kqp { namespace cvxopt {
         //
         // where yk = (l0, l1) and a = l0^2 - l1'*l1.
         
-        int ind = mnl + dims.l;
+//        int ind = mnl + dims.l;
         for(size_t i = 0; i < dims.q.size(); i++) { int m = dims.q[i];
             KQP_NOT_IMPLEMENTED; (void)m;
             //        aa = jnrm2(y, n = m, offset = ind)**2
@@ -373,7 +373,7 @@ namespace kqp { namespace cvxopt {
         //
         // where gammaij = .5 * (yk_i + yk_j).
         
-        int ind2 = ind;
+//        int ind2 = ind;
         for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
             KQP_NOT_IMPLEMENTED; (void)m;
             //        for j in xrange(m):
@@ -451,7 +451,7 @@ namespace kqp { namespace cvxopt {
     public:
         f4_class(int refinement, bool DEBUG, const f4_no_ir_class<Scalar> &f4_no_ir, const ScalingMatrix<Scalar> &W, const KQP_VECTOR(Scalar) &lmbda, const Dimensions &dims,
                  const QPMatrix<Scalar> &P, const KQP_MATRIX(Scalar) &A, const QPMatrix<Scalar> &G) 
-        : refinement(refinement), DEBUG(DEBUG), f4_no_ir(f4_no_ir), W(W), lmbda(lmbda), dims(dims), P(P), A(A), G(G)
+        : refinement(refinement), DEBUG(DEBUG), f4_no_ir(f4_no_ir), W(W), lmbda(lmbda), dims(dims), A(A), P(P), G(G)
         {
             
         }
@@ -892,9 +892,9 @@ namespace kqp { namespace cvxopt {
      only the diagonals of x and y are stored.     
      */
     template<typename Scalar>
-    void ssqr(KQP_VECTOR(Scalar) &x, const KQP_VECTOR(Scalar) &y, const Dimensions &dims, int mnl = 0) {
+    void ssqr(KQP_VECTOR(Scalar) &x, const KQP_VECTOR(Scalar) &y, const Dimensions &dims, int /*mnl*/ = 0) {
         x = y.array() * y.array();
-        int ind = mnl + dims.l;
+//        int ind = mnl + dims.l;
         
         if (!dims.q.empty() || !dims.s.empty())
             // see below
@@ -916,7 +916,7 @@ namespace kqp { namespace cvxopt {
      diagonal and only the diagonal is stored.
      */
     template<typename Scalar>
-    void sprod(KQP_VECTOR(Scalar) &x, const KQP_VECTOR(Scalar) &y, const Dimensions &dims, int mnl = 0, bool diag = false) {
+    void sprod(KQP_VECTOR(Scalar) &x, const KQP_VECTOR(Scalar) &y, const Dimensions &dims, int mnl = 0, bool /*diag*/ = false) {
         
         // For the nonlinear and 'l' blocks:  
         //
@@ -1545,8 +1545,9 @@ namespace kqp { namespace cvxopt {
                 if (iters == 0)
                     BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
                 else {
-                    int ind = dims.l + dimsq;
-                    for(size_t i = 0; i < dims.s.size(); i++) { int m = dims.s[i];
+//                    int ind = dims.l + dimsq;
+                    for(size_t i = 0; i < dims.s.size(); i++) { 
+//                        int m = dims.s[i];
                         KQP_NOT_IMPLEMENTED;
                         //                    misc.symm(s, m, ind)
                         //                    misc.symm(z, m, ind)
@@ -1616,8 +1617,9 @@ namespace kqp { namespace cvxopt {
                     ds[ind] += sigma*mu;
                     ind += m;
                 }
-                int ind2 = ind;
-                for(size_t j = 0; j < dims.s.size(); j++) { int m = dims.s[j];
+//                int ind2 = ind;
+                for(size_t j = 0; j < dims.s.size(); j++) { 
+//                    int m = dims.s[j];
                     KQP_NOT_IMPLEMENTED;
                     //                blas.axpy(lmbdasq, ds, n = m, offsetx = ind2, offsety =  
                     //                    ind, incy = m + 1, alpha = -1.0)
@@ -1643,7 +1645,8 @@ namespace kqp { namespace cvxopt {
                         BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
                     
                     ind =dims.l + dimsq;
-                    for(size_t j = 0; j < dims.s.size(); j++) { int m = dims.s[j];
+                    for(size_t j = 0; j < dims.s.size(); j++) {
+//                        int m = dims.s[j];
                         KQP_NOT_IMPLEMENTED;
                         //                        misc.symm(s, m, ind)
                         //                        misc.symm(z, m, ind)
@@ -1747,8 +1750,8 @@ namespace kqp { namespace cvxopt {
             // dsk := Ls = dsk * sqrt(sigs).
             // dzk := Lz = dzk * sqrt(sigz).
             int ind2 = dims.l + dimsq;
-            int ind3 = 0;
-            for(int k = 0; k < dims.s.size(); k++) {
+//            int ind3 = 0;
+            for(size_t k = 0; k < dims.s.size(); k++) {
                 KQP_NOT_IMPLEMENTED;
                 //            m = dims['s'][k]
                 //            for i in xrange(m):

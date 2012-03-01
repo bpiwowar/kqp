@@ -114,16 +114,19 @@ COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
 endif(DOXYGEN_FOUND)
 
-# --- Benchmark
-
-add_subdirectory(benchmark)
-
 # --- Tests
 
 ENABLE_TESTING()
 add_subdirectory(tests)
 
 
-# --- JNI Java library
+# --- Subprojects: examples, benchmark 
 
+# Examples
+add_subdirectory(examples)
+
+# Benchmark
+add_subdirectory(benchmark)
+
+#  Wrappers
 add_subdirectory(jni)

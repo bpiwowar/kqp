@@ -284,8 +284,8 @@ namespace kqp {
         
         // The deflated diagonal and corresponding z
         // The matrix we are working on is a (N + 1, N)
-        Index N = z.size();
-        Index rankD = D.rows();
+        size_t N = z.size();
+        size_t rankD = D.rows();
         
         KQP_LOG_DEBUG_F(logger, "EVD rank-one update in dimension %d", %std::max(rankD,N));
         if (rankD > N)
@@ -327,8 +327,8 @@ namespace kqp {
             if (iprime >= 0 && offset > 0 && !foundNonNegative)
                 foundNonNegative = kqp::real(D(iprime)) >= 0;
             
-            long position = 0;
-            long index = negativeUpdate ? N - 1 - i : i;
+            size_t position = 0;
+            size_t index = negativeUpdate ? size_t(N - 1 - i) : size_t(i);
             
             // If i' points on the first non negative
             Scalar zpos = 0;
@@ -531,7 +531,7 @@ namespace kqp {
         static const LambdaComparator<Scalar> lambdaComparator;
         sortValues(v, 0, lambdaComparator);
         
-        Index rank = v.size();
+        size_t rank = v.size();
         if (selector) {
             EigenValues<Scalar> list(v);
             selector->selection(list);

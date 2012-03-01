@@ -43,7 +43,7 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_pre_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<typename Lhs::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<kqp::scalar<Lhs>, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
         
         std::cerr << "Alt(" << KQP_DEMANGLE(mA) << ") x " << KQP_DEMANGLE(mB) << " : ";
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mA);
@@ -58,7 +58,7 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_post_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<typename Lhs::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<kqp::scalar<Lhs>, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
         
         std::cerr << KQP_DEMANGLE(mA)  << " x Alt(" << KQP_DEMANGLE(mB)  << "): " ;
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mB);
@@ -143,21 +143,24 @@ namespace {
     }
 }
 
-namespace kqp {
-    int altmatrix_test (std::deque<std::string> &) {
-        
 #define RANDOM_M(scalar, rows, cols) Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>::Random(rows,cols).eval()
 #define RANDOM_V(scalar, size) Eigen::Matrix<scalar, Eigen::Dynamic, 1>::Random(size).eval()
 #define RANDOM_D(scalar, size) RANDOM_V(scalar,size).asDiagonal()
-        
-        
+
+
 #define test_all(x, y) \
 test_pre_product(x,y); \
 test_post_product(x,y); \
 test_adjoint_pre_product(x,y); \
 test_adjoint_post_product(x,y);
+
+
+namespace kqp {
+    int altmatrix_test (std::deque<std::string> &) {
         
         int code = 0;
+        
+        code |= test_post_product(5.2, RANDOM_M(double,4,6));
         
         code |= test_all(RANDOM_M(double,4,6), RANDOM_M(double,6,4));
         

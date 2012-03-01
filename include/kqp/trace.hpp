@@ -29,13 +29,25 @@ namespace kqp {
      * Computes tr( X Y D^2 Y^T X^T X Y D^2 Y^T X^T) = tr( [D Y^T X^T X Y D] [D Y^T X^T X Y D] ) = || D Y^T X^T X Y D ||^2
      */
     template<class Derived>
-    double squaredNorm(const FeatureMatrix<Derived> &mX, 
+    typename ftraits<Derived>::Real squaredNorm(const FeatureMatrix<Derived> &mX, 
                           const typename ftraits<Derived>::ScalarAltMatrix  &mY,
                           const typename ftraits<Derived>::RealVector &mD) {
         typename ftraits<Derived>::ScalarMatrix m;
-        noalias(m) = mD.asDiagonal() * mY.transpose() * mX.inner() * mY * mD.asDiagonal();
-        return m.squaredNorm();
+        return (mD.asDiagonal() * mY.transpose() * mX.inner() * mY * mD.asDiagonal()).squaredNorm();
     }
+    
+    /**
+     * @brief Computes trace( X Y D Y^T X^T )
+     *
+     */
+    template<typename Derived, typename OtherDerived>
+    typename ftraits<Derived>::Scalar trace(const FeatureMatrix<Derived> &mX, 
+                 const typename ftraits<Derived>::ScalarAltMatrix  &mY,
+                 const Eigen::MatrixBase<OtherDerived> &mD) {
+        typename ftraits<Derived>::ScalarMatrix m;
+        return (mY.transpose() * mX.inner() * mY * mD.asDiagonal()).trace();
+    }
+    
     
     /**
      * Computes tr( X1 Y1 D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T)

@@ -70,7 +70,7 @@ namespace kqp {
         
         // Sort        
         const Index pre_images_count = kernel.rows();
-        const Index remove_size = kernel.cols();
+        const std::size_t remove_size = kernel.cols();
         const Index keep_size = mF.size() - remove_size;
         
         mP = Permutation(mF.size());

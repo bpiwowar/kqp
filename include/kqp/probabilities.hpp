@@ -139,10 +139,17 @@ namespace kqp {
         /**
          * Compute the squared norm of the operator
          */
-        double squaredNorm() {
+        Real squaredNorm() {
             if (orthonormal) return mS.squaredNorm();
             
             return kqp::squaredNorm(X(), Y(), S());
+        }
+        
+        //! Computes the trace of the operator
+        Real trace() {
+            Scalar tr = kqp::trace(X(), Y(), S().cwiseAbs2());
+            // TODO: check if really real
+            return (Real)tr;
         }
         
         //! Multiply the operator by a positive real
@@ -155,23 +162,8 @@ namespace kqp {
         
         
         /**
-         * @brief Pre-computation of a probability. 
-         * 
-         * <p>
-         * Given the subspace representation \f$ S U \f$ and the density
-         * \f$ S^\prime U^\prime \f$, computes \f$ U^\top U^\prime S^\prime \f$ (crisp
-         * subspace) or \f$ S U^\top U^\prime S^\prime\f$ (fuzzy subspace). The sum of
-         * the squares of the matrix correspond to the probability of observing the
-         * subspace given the density.
-         * </p>
-         * 
-         * <p>
-         * Each row of the resulting matrix correspond to the probability associated
-         * with one of the dimension of the subspace. Similarly, each column is
-         * associated to a dimension of the density.
-         * </p>
-         * 
-         * @param subspace The subspace
+         * @brief Compute the inner products of the scaled basis of the operators 
+         * @param that The other operator
          * @return A matrix where each row correspond to one dimension of the density, 
          *         and each column to one dimension of the subspace
          */
@@ -187,7 +179,6 @@ namespace kqp {
             return X().linear_combination(ScalarMatrix(mY * mS));
         }
         
-    // We keep those private in case of re-factorisation
     protected:
         
         
@@ -266,12 +257,15 @@ namespace kqp {
          * {@linkplain KernelEigenDecomposition#KernelEigenDecomposition(KernelEVD, bool)}
          * @param evd The kernel EVD decomposition
          */
-        Event(const KernelEVD<FMatrix> &evd) : KernelOperator<FMatrix>(evd), useLinearCombination(ftraits<FMatrix>::can_linearly_combine) {       
+        Event(const KernelEVD<FMatrix> &evd, bool fuzzy = false) 
+            : KernelOperator<FMatrix>(evd), 
+              useLinearCombination(ftraits<FMatrix>::can_linearly_combine) {       
             init();
+                  if (fuzzy) this->mS = Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>::Identity(this->X().size(), this->X().size());
         }
         
         /** Construct an event from a basis */
-        Event(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarAltMatrix::Identity(mX.rows()), RealVector::Ones(mX.size()), orthonormal){
+        Event(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarAltMatrix::Identity(mX.rows()), RealVector::Ones(mX.size()), orthonormal) {
             init();
         }
 
@@ -284,10 +278,10 @@ namespace kqp {
         /**
          * @brief Project onto a subspace.
          *
-         * The resulting density will <b>not</b> normalised 
+         * The resulting density will <b>not</b> normalized 
          */
         
-        Density<FMatrix> project(const Density<FMatrix>& density, bool orthogonal) {
+        Density<FMatrix> project(const Density<FMatrix>& density, bool orthogonal = false) {
             if (orthogonal) 
                 return useLinearCombination ? ProjectionWithLC<FMatrix>::projectOrthogonal(density, *this) : Projection<FMatrix>::projectOrthogonal(density, *this);
             
@@ -400,38 +394,23 @@ namespace kqp {
         Density(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarMatrix::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
+        //! Normalise the density
+        Density &normalize() {
+            this->multiplyBy((Scalar)1 / this->trace());
+            return *this;
+        }
         
         /**
          * Compute the probability of an event
          * 
-         * @param subspace
+         * @param event The event for which the probability is computed
          *            The event
-         * @param fuzzyEvent
-         *            The event should be considered as "fuzzy" -- i.e. each
-         *            dimension is weighted by the corresponding sigma
          * @return The probability
          */
-        Real computeProbability(const Event<FMatrix>& subspace) const {
-            ScalarMatrix result = getProbabilityMatrix(subspace);
-            
-            if (result.rows() == 0) return 0;
-            
-            return result.squared_norm();
+        Real probability(const Event<FMatrix>& event) const {
+            return (event.S().asDiagonal() * event.Y() * inner(event.X(),this->X()) * this->Y() * this->S().asDiagonal()).squaredNorm();            
         }
 
-        
-        /**
-         * Get the matrix V^T * (U x S) where U is the basis and S is the square
-         * root of the eigenvalues. The Froebenius norm of the resulting matrix is
-         * the probability of the event defined by v x v^t
-         * 
-         * @param vector
-         *            The vector v
-         * @return
-         */
-        ScalarMatrix getProbabilityMatrix(const FMatrix& fmatrix) const {
-            return this->mX.computeInnerProducts(fmatrix) * this->mY * this->mS;
-        }
         
         /**
          * @brief Computes the divergence with another density
@@ -447,8 +426,7 @@ namespace kqp {
             // --- Notation
             const Density<FMatrix> &rho = *this;
             
-            ScalarMatrix inners;
-            kqp::inner(rho.X(), tau.X(), inners);
+            ScalarMatrix inners = inner(rho.X(), tau.X());
             noalias(inners) = rho.Y().transpose() * inners * tau.Y() * tau.S().asDiagonal();
 
             // --- Compute tr(p log q)
