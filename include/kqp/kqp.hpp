@@ -31,6 +31,14 @@
 #include "log4cxx/logger.h"
 #endif
 
+// GCC specifics
+#if defined(__GNUC__)
+#define KQP_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#if KQP_GCC_VERSION < 407000
+#define override
+#endif // GCC < 4.7
+#endif // GCC
+
 
 namespace kqp {
     

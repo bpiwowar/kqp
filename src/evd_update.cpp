@@ -156,8 +156,8 @@ namespace kqp {
     public:
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         std::vector<IndexedValue<Scalar>*>& values;
-        std::size_t minRemoved;
-        std::size_t rank;
+        Index minRemoved;
+        Index rank;
         
         EigenValues(std::vector<IndexedValue<Scalar>*>& _values) : values(_values) {
             this->rank = values.size();
@@ -165,12 +165,12 @@ namespace kqp {
         }
         
         
-        Real get(std::size_t index) const {
+        Real get(Index index) const {
             return values[index]->lambda;
         }
         
         
-        void remove(std::size_t index) {
+        void remove(Index index) {
             if (!values[index]->isRemoved()) {
                 minRemoved = std::min(index, minRemoved);
                 values[index]->setRemoved(true);
@@ -179,7 +179,7 @@ namespace kqp {
         }
         
         
-        std::size_t size() const {
+        Index size() const {
             return values.size();
         }
         
@@ -189,7 +189,7 @@ namespace kqp {
         }
         
         
-        std::size_t getRank() const {
+        Index getRank() const {
             return rank;
         }
         
@@ -284,8 +284,8 @@ namespace kqp {
         
         // The deflated diagonal and corresponding z
         // The matrix we are working on is a (N + 1, N)
-        size_t N = z.size();
-        size_t rankD = D.rows();
+        Index N = z.size();
+        Index rankD = D.rows();
         
         KQP_LOG_DEBUG_F(logger, "EVD rank-one update in dimension %d", %std::max(rankD,N));
         if (rankD > N)
@@ -309,14 +309,14 @@ namespace kqp {
         ScalarPtrVector v(N);
         
         // Copy the diagonal entries (possibly inserting zeros if needed)
-        std::size_t offset = N - rankD;
+        Index offset = N - rankD;
         
         // i' is the position on the D diagonal
         long iprime = rankD - 1;
         bool foundNonNegative = false;
         bool toSort = false;
         
-        for (long i = N; --i >= 0;) {
+        for (Index i = N; --i >= 0;) {
             Real di = 0;
             
             if (iprime >= 0 && !is_real(D(iprime))) 
@@ -328,7 +328,7 @@ namespace kqp {
                 foundNonNegative = kqp::real(D(iprime)) >= 0;
             
             size_t position = 0;
-            size_t index = negativeUpdate ? size_t(N - 1 - i) : size_t(i);
+            size_t index = negativeUpdate ? N - 1 - i : i;
             
             // If i' points on the first non negative
             Scalar zpos = 0;
@@ -531,7 +531,7 @@ namespace kqp {
         static const LambdaComparator<Scalar> lambdaComparator;
         sortValues(v, 0, lambdaComparator);
         
-        size_t rank = v.size();
+        Index rank = v.size();
         if (selector) {
             EigenValues<Scalar> list(v);
             selector->selection(list);
@@ -549,7 +549,7 @@ namespace kqp {
         int nbNaN = 0;
         KQP_LOG_DEBUG_F(logger, "Final rank is %d", %rank);
         result.mD = RealVector(rank);
-        for (size_t i = 0; i < rank; i++) {
+        for (Index i = 0; i < rank; i++) {
             v[i]->newPosition = i;
             result.mD(i) = v[i]->lambda;
             if (v[i]->isSelected())
@@ -577,7 +577,7 @@ namespace kqp {
                     // Compute the new vector
                     double columnNorm = 0;
                     int iM = 0;
-                    for (int i = 0; i < N && iM < M; i++) {
+                    for (Index i = 0; i < N && iM < M; i++) {
                         IndexedValue<Scalar> &vi = *v[i];
                         if (vi.isSelected()) {
                             double di = vi.d;

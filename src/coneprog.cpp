@@ -1101,14 +1101,14 @@ namespace kqp { namespace cvxopt {
         
         
         // -- Choose the KKT Solver if not set
-        if (kktpresolver == NULL) 
+        if (kktpresolver == NULL) {
             if (dims.q.size() > 0 || dims.s.size() > 0 )
                 //kktsolver = 'chol';
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("chol solver not avaible"));
             else 
                 //kktsolver = 'chol2';
                 BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("chol2 solver not avaible"));
-        
+        }
         
         if (q.cols() != 1)
             BOOST_THROW_EXCEPTION(illegal_argument_exception() << errinfo_message("'q' must be a matrix with one column"));
@@ -1245,9 +1245,8 @@ namespace kqp { namespace cvxopt {
             // KQP_VECTOR(Scalar) ry = A * x - b;
             //Scalar pres = ry.norm() / resy0;
             
-            Scalar relgap;
-            if (pcost == 0.0) relgap = NAN;
-            else  relgap = 0.0;
+            if (pcost == 0.0) r.relative_gap = NAN;
+            else  r.relative_gap = 0.0;
             
             r.status = OPTIMAL;
             r.primal_objective = r.dual_objective = pcost;
@@ -1749,7 +1748,7 @@ namespace kqp { namespace cvxopt {
             
             // dsk := Ls = dsk * sqrt(sigs).
             // dzk := Lz = dzk * sqrt(sigz).
-            int ind2 = dims.l + dimsq;
+            // int ind2 = dims.l + dimsq;
 //            int ind3 = 0;
             for(size_t k = 0; k < dims.s.size(); k++) {
                 KQP_NOT_IMPLEMENTED;
@@ -1773,7 +1772,7 @@ namespace kqp { namespace cvxopt {
             
             s.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
             ind =dims.l + dimsq;
-            ind2 = ind;
+            //ind2 = ind;
             for(IntIterator m = dims.s.begin(); m != dims.s.end(); m++) {
                 KQP_NOT_IMPLEMENTED;
                 //            blas.scal(0.0, s, offset = ind2)
@@ -1787,7 +1786,7 @@ namespace kqp { namespace cvxopt {
             
             z.topRows(dims.l + dimsq) = lmbda.topRows(dims.l + dimsq);
             ind =dims.l + dimsq;
-            ind2 = ind;
+            //ind2 = ind;
             for(IntIterator m = dims.s.begin(); m != dims.s.end(); m++) {
                 KQP_NOT_IMPLEMENTED;
                 //            blas.scal(0.0, z, offset = ind2)

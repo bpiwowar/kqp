@@ -26,7 +26,7 @@ namespace kqp {
      * @param nzeroD Number of zero entries in diagonal matrix
      * @param nzeroZ Number of zero entries in vector
      */
-    template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int nzeroD, int nzeroZ, bool use_update = false) {
+    template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int /*nzeroD*/, int /*nzeroZ*/, bool use_update = false) {
         typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef typename Eigen::NumTraits<scalar>::Real Real;
         typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
@@ -40,7 +40,7 @@ namespace kqp {
         
         int i = 0;
         Matrix mQ;
-        
+                
         while (rhos[i++] != 0) {
             FastRankOneUpdate<scalar> updater;
 

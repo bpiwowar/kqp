@@ -33,22 +33,22 @@ namespace kqp {
         /**
          * Select an eigenvalue
          */
-        virtual Scalar get(size_t i) const = 0;
+        virtual Scalar get(Index i) const = 0;
         
         /**
          * Remove this eigenvalue from the selection
          */
-        virtual void remove(size_t i) = 0;
+        virtual void remove(Index i) = 0;
         
         /**
          * The original number of eigenvalues
          */
-        virtual size_t size() const = 0;
+        virtual Index size() const = 0;
         
         /**
          * The current number of selected
          */
-        virtual size_t getRank() const = 0;
+        virtual Index getRank() const = 0;
         
         /**
          * Check if an eigenvalue is currently selected or not
@@ -71,14 +71,14 @@ namespace kqp {
         /**
          * Select an eigenvalue
          */
-        virtual Scalar get(size_t i) const {
+        virtual Scalar get(Index i) const override {
             return eigenvalues[i];
         }
         
         /**
          * Remove this eigenvalue from the selection
          */
-        virtual void remove(size_t i) {
+        virtual void remove(Index i) override {
             if (selected[i]) {
                 selected[i] = false;
                 rank--;
@@ -88,25 +88,25 @@ namespace kqp {
         /**
          * The original number of eigenvalues
          */
-        virtual size_t size() const {
+        virtual Index size() const override {
             return eigenvalues.size();
         }
         
         /**
          * The current number of selected
          */
-        virtual size_t getRank() const {
+        virtual Index getRank() const override {
             return rank;
         }
         
         /**
          * Check if an eigenvalue is currently selected or not
          */
-        virtual bool isSelected(size_t i) const { 
+        virtual bool isSelected(size_t i) const override { 
             return selected[i];
         }
         
-        const std::vector<bool> &getSelected() const {
+        const std::vector<bool> &getSelected() const override {
             return selected;
         }
         
@@ -114,7 +114,7 @@ namespace kqp {
         
         Vector eigenvalues;
         std::vector<bool> selected;
-        size_t rank;
+        Index rank;
     };
     
         

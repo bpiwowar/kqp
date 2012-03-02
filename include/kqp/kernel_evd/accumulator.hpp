@@ -119,9 +119,9 @@ namespace kqp{
             ScalarMatrix gram_X = fMatrix.inner();
             ScalarMatrix gram(size, size);
             
-            for(Index i = 0; i < combination_matrices.size(); i++) {
+            for(size_t i = 0; i < combination_matrices.size(); i++) {
                 const ScalarAltMatrix &mAi = *combination_matrices[i];
-                for(Index j = 0; j <= i; j++) {
+                for(size_t j = 0; j <= i; j++) {
                     const ScalarAltMatrix &mAj = *combination_matrices[j];
                     getBlock(gram, offsets_A, i, j) 
                             =  (mAi.transpose() *  ((Eigen::internal::conj(alphas[i]) * alphas[j]) * getBlock(gram_X, offsets_X, i, j))) * mAj;
@@ -149,7 +149,7 @@ namespace kqp{
         }
         
     private:
-        static inline Eigen::Block<ScalarMatrix> getBlock(ScalarMatrix &m, const std::vector<Index> &offsets, Index i, Index j) {
+        static inline Eigen::Block<ScalarMatrix> getBlock(ScalarMatrix &m, const std::vector<Index> &offsets, size_t i, size_t j) {
             return m.block(offsets[i], offsets[j], offsets[i+1] - offsets[i], offsets[j+1]-offsets[j]);
         }
         

@@ -24,9 +24,9 @@
 
 namespace kqp {
     /**
-     * @brief Computes || X Y D^2 Y^T X^T ||^2.
+     * @brief Computes \f$ \vert X Y D^2 Y^\dagger X^\dagger \f$.
      *
-     * Computes tr( X Y D^2 Y^T X^T X Y D^2 Y^T X^T) = tr( [D Y^T X^T X Y D] [D Y^T X^T X Y D] ) = || D Y^T X^T X Y D ||^2
+     * Computes \f$ tr( X Y D^2 Y^\dagger X^\dagger X Y D^2 Y^\dagger X^\dagger) = tr( [D Y^\dagger X^\dagger X Y D] [D Y^\dagger X^\dagger X Y D] ) = \vert D Y^\dagger X^\dagger X Y D \vert^2 \f$
      */
     template<class Derived>
     typename ftraits<Derived>::Real squaredNorm(const FeatureMatrix<Derived> &mX, 
@@ -37,7 +37,9 @@ namespace kqp {
     }
     
     /**
-     * @brief Computes trace( X Y D Y^T X^T )
+     * @brief Computes the trace of an operator.
+     *
+     * Computes \f$ tr( X Y D Y^\dagger X^\dagger) \f$
      *
      */
     template<typename Derived, typename OtherDerived>
@@ -50,41 +52,28 @@ namespace kqp {
     
     
     /**
-     * Computes tr( X1 Y1 D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T)
-     * 
-     * as
-     *  tr( D1 Y1^T X1^T  X2 Y2 D2 Y2^T X2^T Y1^T X1^T )
+     * Computes \f$ tr( X_1 Y_1 D_1 Y_1^\dagger X1^\dagger  X_2 Y_2 D_2 Y_2^\dagger X_2^\dagger) \f$
+     *
      */
     template<class Derived>
-    double trace_function(const FeatureMatrix<Derived> &mX1, 
+    typename ftraits<Derived>::Scalar trace_function(const FeatureMatrix<Derived> &mX1, 
                           const typename ftraits<Derived>::ScalarAltMatrix  &mY1,
                           const typename ftraits<Derived>::RealVector &mD1,
                           
                           const FeatureMatrix<Derived> &mX2, 
                           const typename ftraits<Derived>::ScalarAltMatrix  &mY2,
                           const typename ftraits<Derived>::RealVector &mD2) {
-        typedef typename ftraits<Derived>::ScalarVector Vector;
-        typename ftraits<Derived>::Matrix m;
-        inner<Derived>(mX1.derived(), mX2.derived(),m);
         
-        m = mY1.transpose() * m * mY2;
+        typename ftraits<Derived>::ScalarMatrix m = mY1.transpose() * inner<Derived>(mX1.derived(), mX2.derived()) * mY2;
         
-        double trace = 0;
-        for(Index i = 0; i < m.rows(); i++) {
-            Vector x = m.row(i).adjoint().cwiseProduct(mD2);
-            Vector y = m.row(i).adjoint();
-            
-            trace += mD1[i] * x.dot(y);
-        }
-        
-        return trace;
+        return (m.adjoint() * mD1.asDiagonal() * m * mD2.asDiagonal()).trace();
     }
     
     /**
-     * Computes the difference between two operators
+     * Computes the difference between two operators using trace functions
      */
     template<class Derived>
-    double difference(const FeatureMatrix<Derived> &mX1, 
+    typename ftraits<Derived>::Scalar difference(const FeatureMatrix<Derived> &mX1, 
                           const typename ftraits<Derived>::ScalarAltMatrix  &mY1,
                           const typename ftraits<Derived>::RealVector &mD1,
                           

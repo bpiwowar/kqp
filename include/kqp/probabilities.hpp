@@ -119,7 +119,7 @@ namespace kqp {
             if (orthonormal) return mS.size();
         }
         
-        // Get the feature matrix
+        //! Get the feature matrix
         inline const FMatrix &X() const {
             return mX;
         }
