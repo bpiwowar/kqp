@@ -8,11 +8,38 @@ INSTALLING
 
 --- Dependencies
 
-* A c++ compiler (gcc >= 4.2, clang >= 3.0)
+* A c++ compiler (gcc >= 4.4, clang >= 3.0)
 * CMake
 * Boost libraries
 * log4cxx
+* Swig (for wrappers)
 
 --- Compiling
 
-[Remember to enable OpenMP (-fopenmp in most compilers) in order to benefit from multithreading...]
+We assume that there are two directories:
+- $KQP_SRCDIR that contains the sources
+- $KQP_BUILDDIR that will contain the compiled code
+
+
+* To build an optimized version of the library
+
+cd $KQP_BUILDDIR
+cmake $KQP_SRCDIR
+
+
+--- Developing
+
+* To build a debug version of the library
+
+cd $KQP_BUILDIR
+cmake -DCMAKE_BUILD_TYPE=Debug $KQP_SRCDIR
+
+* With Xcode
+
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_XCODE_ATTRIBUTE_GCC_VERSION=com.apple.compilers.llvm.clang.1_0 -GXcode $KQP_SRCDIR
+
+* If the default compiler is not 
+
+CC=PATH_TO_CC CXX=PATH_TO_CXX cmake -DCMAKE_BUILD_TYPE=Debug $KQP_SRCDIR
+
+
