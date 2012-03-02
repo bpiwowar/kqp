@@ -15,11 +15,17 @@
  
  
 cmake_minimum_required (VERSION 2.6)
-project (kqp) 
+
+# --- Main options
+
+# Project name and version
+PROJECT (kqp) 
+SET (libkqp_VERSION "0.0.1")
+
+# Build by default a release version of the library
+SET(CMAKE_BUILD_TYPE "Release")
 
 # --- Version number
-
-SET (libkqp_VERSION "0.0.1")
 
 STRING (REGEX MATCHALL "[0-9]" libkqp_VERSION_PARTS "${libkqp_VERSION}")
 
@@ -129,4 +135,4 @@ add_subdirectory(examples)
 add_subdirectory(benchmark)
 
 #  Wrappers
-add_subdirectory(jni)
+add_subdirectory(swig)
