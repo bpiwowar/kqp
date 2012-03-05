@@ -227,7 +227,7 @@ namespace kqp {
             // No need to compute anything - we just resize for consistency
             _result.derived().resize(mA.size(), mB.size());
         else
-            static_cast<const Derived&>(mA).inner<DerivedMatrix>(static_cast<const Derived&>(mB), _result);
+            mA.derived().inner<DerivedMatrix>(mB.derived(), _result);
     }
 
     /// Compute the inner product between two feature matrices and return
@@ -243,7 +243,7 @@ namespace kqp {
             result.resize(mA.size(), mB.size());
         else
             // Compute
-            static_cast<const Derived&>(mA).inner<ScalarMatrix>(static_cast<const Derived&>(mB), result);
+            mA.derived().inner<ScalarMatrix>(mB.derived(), result);
 
         return result;
     }

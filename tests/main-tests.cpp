@@ -115,7 +115,11 @@ int main(int argc, const char **argv) {
             std::cerr << boost::diagnostic_information(e) << std::endl;
             throw;
         }
-        std::cerr << "No test with name [" << name << "]" << std::endl;
+        
+        std::cerr << "No test with name [" << name << "]" << std::endl << std::endl;
+        std::cerr << "Available tests:" << std::endl;
+        for(auto i = tests.begin(); i != tests.end(); i++) 
+            std::cerr << i->first << std::endl;
     } catch(exception &e) {
 
         std::cerr << e.what() << std::endl;

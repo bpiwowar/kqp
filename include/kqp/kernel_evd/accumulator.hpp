@@ -38,7 +38,7 @@ namespace kqp{
     template <class FMatrix, bool can_linearly_combine = (bool)ftraits<FMatrix>::can_linearly_combine >
     class AccumulatorKernelEVD : public KernelEVD<FMatrix> {};
     
-    
+    // Specialisation when we know how to combine linearly
     template <class FMatrix> class AccumulatorKernelEVD<FMatrix, true> : public KernelEVD<FMatrix> {
     public:
         enum {
@@ -80,7 +80,7 @@ namespace kqp{
     
     
     
-    // Specialisation when we know how to combine linearly
+    // Specialisation when we don't know how to combine linearly
     template <class FMatrix> class AccumulatorKernelEVD<FMatrix, false> : public KernelEVD<FMatrix> {
     public:
         enum {
@@ -94,7 +94,8 @@ namespace kqp{
             offsets_A.push_back(0);
         }
         
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {           
+    protected:
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
             // If there is nothing to add            
             if (mA.cols() == 0)
                 return;
@@ -108,9 +109,8 @@ namespace kqp{
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
-    protected:
         //! Actually performs the computation
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
+        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const override {
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
