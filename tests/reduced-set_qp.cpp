@@ -31,6 +31,9 @@ namespace kqp {
         Eigen::VectorXd _mD(n);
         for(Index i=0; i < n; i++)
             _mD[i] = Eigen::internal::random(1, 10);
+        
+        // Ensures we find a solution
+        _mY.row(2).setZero();
 
         // Computes the EVD
         AccumulatorKernelEVD<FMatrix, false> kEVD;

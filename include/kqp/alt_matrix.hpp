@@ -431,7 +431,7 @@ namespace kqp {
     // --- Lazy evaluation
     template<typename Derived> 
     struct NoAlias {
-        Derived m;
+        Derived &m;
         
         NoAlias(Derived &m) : m(m) {}
         

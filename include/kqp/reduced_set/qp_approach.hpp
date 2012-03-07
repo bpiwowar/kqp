@@ -131,11 +131,11 @@ namespace kqp {
                 Scalar maxa = 0;
                 Scalar delta = 0;
                 for(Index i = 0; i < n; i++) {
-                    Scalar x = mY(i,j); 
+                    Scalar x = Eigen::internal::abs2(mY(i,j)); 
                     delta += x;
-                    maxa = std::max(maxa, std::abs(x));
+                    maxa = std::max(maxa, std::sqrt(x));
                 }
-                errors.push_back(LambdaError<Scalar>(delta*gram(j,j), maxa, j));
+                errors.push_back(LambdaError<Scalar>(delta * Eigen::internal::abs2(gram(j,j)), maxa, j));
             }
             
             typedef typename LambdaError<Scalar>::Comparator LambdaComparator;

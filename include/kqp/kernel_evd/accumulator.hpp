@@ -116,6 +116,14 @@ namespace kqp{
             
             Index size = offsets_A.back();
             
+            // Nothing to do
+            if (size == 0) {
+                mX = FMatrix();
+                mY.resize(0,0);
+                mD.resize(0);
+                return;
+            }
+            
             ScalarMatrix gram_X = fMatrix.inner();
             ScalarMatrix gram(size, size);
             

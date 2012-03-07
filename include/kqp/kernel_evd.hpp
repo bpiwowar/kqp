@@ -136,7 +136,7 @@ namespace kqp {
             // --- Rank selection   
             
             DecompositionList<Real> list(mD);
-            selector->selection(list);
+            if (selector) selector->selection(list);
             
             // Remove corresponding entries
             select_rows(list.getSelected(), mD, mD);

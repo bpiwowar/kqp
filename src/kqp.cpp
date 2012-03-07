@@ -25,7 +25,7 @@ namespace kqp {
  or events (subspaces). It provides tools to compute quantum probabilities and update densities (conditionalisation), and 
  supports the use of kernels to implicitely define the space, thus allowing working in very high dimensional spaces. 
  
- This project is <a href="http://sourceforge.net/projects/kqp/">hosted on SourceForge</a>.
+ This project is <a href="https://github.com/bpiwowar/kqp">hosted on Github</a>.
  */
 
 
