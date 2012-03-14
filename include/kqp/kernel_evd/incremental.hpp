@@ -21,6 +21,7 @@
 #include <iostream>
 #include <limits>
 
+#include <kqp/cleanup.hpp>
 #include <kqp/evd_update.hpp>
 #include <kqp/kernel_evd.hpp>
 #include <kqp/alt_matrix.hpp>
@@ -33,7 +34,7 @@ namespace kqp {
      * @brief Uses other operator builders and combine them.
      * @ingroup KernelEVD
      */
-    template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix> {
+    template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix>, public Cleaner<FMatrix> {
     public:
         KQP_FMATRIX_TYPES(FMatrix);
         
@@ -46,8 +47,10 @@ namespace kqp {
             }
         };
         
+        IncrementalKernelEVD() {}
+        
                
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) {
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
             // --- Pre-computations
             
             // Compute W = Y^T X^T
@@ -91,14 +94,14 @@ namespace kqp {
                 v.tail(m.rows() - mZ.cols()) = m.col(i).tail(m.rows() - mZ.cols());
                 
                 
-                evdRankOneUpdate.update(mD, alpha, v, false, this->selector.get(), false, result, &mZ);
+                evdRankOneUpdate.update(mD, alpha, v, false, m_cleaner.get() ? m_cleaner->selector.get() : nullptr, false, result, &mZ);
                 // Take the new diagonal
                 mD = result.mD;
             }
             
             // Update X and Y if the rank has changed
             if (rank_Q > 0) {
-                // Add the pre-images
+                // Add the pre-images from U
                 mX.add(mU);
                 
                 // Update mY
@@ -113,28 +116,69 @@ namespace kqp {
             }
                               
             // (4) Clean-up
-            this->cleanup(mX, mY, mD);
 
+            // First, tries to remove unused pre-images images
+            removePreImagesWithNullSpace(mX, mY);
+            
+            // --- Ensure we have a small enough number of pre-images
+            if (mX.size() > (this->preImageRatios.second * mD.rows())) {
+                
+                // Get rid of Z
+                mY = mY * mZ;
+                mZ = ScalarMatrix::Identity(mX.size(), mX.size());
+
+                if (mX.can_linearly_combine()) {
+                    // Easy case: we can linearly combine pre-images
+                    mX = mX.linear_combination(mY);
+                    mY = ScalarMatrix::Identity(mX.size(), mX.size());
+                } else {
+                    // Use QP approach
+                    ReducedSetWithQP<FMatrix> qp_rs;
+                    qp_rs.run(this->preImageRatios.first * mD.rows(), mX, mY, mD);
+                    
+                    // Get the decomposition
+                    mX = qp_rs.getFeatureMatrix();
+                    mY = qp_rs.getMixtureMatrix();
+                    mD = qp_rs.getEigenValues();
+                    
+                    // The decomposition is not orthonormal anymore
+                    kqp::orthonormalize(mX, mY, mD);
+                }
+                
+                
+            }
+            
         }
         
-        
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
-            mX = this->mX;
-            if (mZ.rows() > 0) {
-                this->mY = this->mY * mZ;
-                mZ.resize(0,0);
-            }
-            mY = ScalarAltMatrix(this->mY);
-            mD = this->mD;
+        // Gets the decomposition
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+            Decomposition<FMatrix> d;
             
+            d.mX = this->mX;
+            
+            const_cast<ScalarMatrix&>(this->mY) = this->mY * this->mZ;
+            const_cast<ScalarMatrix&>(this->mZ) = ScalarMatrix::Identity(mY.rows(), mY.rows());
+            
+            d.mY = ScalarAltMatrix(this->mY);
+            
+            d.mD = this->mD;
+            
+            return d;
         }
         
         
     private:
-        mutable FMatrix mX;
-        mutable ScalarMatrix mY;
-        mutable ScalarMatrix mZ;
-        typename FTraits::RealVector mD;
+        //! The feature matrix with n pre-images
+        FMatrix mX;
+        
+        //! The n x r matrix such that \f$X Y\f$ is orthonormal
+        ScalarMatrix mY;
+        
+        //! A unitary r x r matrix
+        ScalarMatrix mZ;
+        
+        //! A diagonal matrix (vector representation)
+        RealVector mD;
         
         // Rank-one EVD update
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
@@ -143,6 +187,8 @@ namespace kqp {
         mutable ScalarMatrix k;
         
         
+        
+        boost::shared_ptr<Cleaner<FMatrix>> m_cleaner;
     };
     
     KQP_KERNEL_EVD_INSTANCIATION(extern, IncrementalKernelEVD);

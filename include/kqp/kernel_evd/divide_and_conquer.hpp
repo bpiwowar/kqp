@@ -27,6 +27,10 @@ namespace kqp {
      */
     template <class FMatrix> class DivideAndConquerBuilder : public KernelEVD<FMatrix> {
     public:
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+            Decomposition<FMatrix> d;
+            return d;
+        }
     };
 }
 

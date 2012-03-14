@@ -41,14 +41,15 @@ namespace kqp {
         noalias(m) = _mY * _mD.cwiseSqrt().asDiagonal();
         kEVD.add(1, FMatrix(_mF), m);
 
-        FMatrix mF;
-        AltDense<Scalar>::type mY;
-        RealVector mD;
-        kEVD.get_decomposition(mF, mY, mD, false);
+//        FMatrix mF;
+//        AltDense<Scalar>::type mY;
+//        RealVector mD;
+        Decomposition<DenseMatrix<double>> d = kEVD.getDecomposition();
+//        mF, mY, mD, false);
 
         // Reduced set computation
         ReducedSetWithQP<FMatrix> qp_rs;
-        qp_rs.run(r_target, mF, mY, mD);
+        qp_rs.run(r_target, d.mX, d.mY, d.mD);
         
         // Compare
         

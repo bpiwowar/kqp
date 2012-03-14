@@ -196,7 +196,7 @@ namespace kqp {
          * @brief Computes the Gram matrix of this feature matrix
          * @return A dense self-adjoint matrix
          */
-        const typename FTraits::Matrix & inner() const {
+        const typename FTraits::ScalarMatrix & inner() const {
             return static_cast<const Derived*>(this)->Derived::inner();
         }
         
@@ -259,6 +259,7 @@ namespace kqp {
     typedef typename FTraits::RealVector RealMatrix; \
     typedef typename FTraits::RealVector RealVector; \
     typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; \
+    typedef typename FTraits::RealAltVector  RealAltVector; \
     typedef typename FTraits::GramMatrix & GramMatrix; \
     typedef typename FTraits::InnerMatrix InnerMatrix;
   
@@ -287,12 +288,7 @@ namespace kqp {
         
         //! Vector with reals
         typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
-               
-        /** Inner product matrix.
-         * @deprecated
-         */
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        
+                       
         //! Inner product matrix
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
 
@@ -304,6 +300,9 @@ namespace kqp {
         
         //! Matrix used for linear combinations       
         typedef typename AltDense<Scalar>::type ScalarAltMatrix;
+        
+        //! Matrix used as a diagonal
+        typedef typename AltVector<Real>::type RealAltVector;
     }; 
     
 }

@@ -93,24 +93,21 @@ namespace kqp {
                 // Comparing the results
                 
                 KQP_LOG_INFO(logger, "Retrieving the decomposition");
-                typename FTraits::FMatrix mX;
-                typename FTraits::ScalarAltMatrix mY;
-                typename FTraits::RealVector mD;
                 
-                builder.get_decomposition(mX, mY, mD);
+                auto kevd = builder.getDecomposition();
                 
                 typename FTraits::ScalarAltMatrix mUY = FTraits::ScalarMatrix::Identity(mU.dimension(),mU.dimension());
                 
                 KQP_LOG_DEBUG(logger, "=== Decomposition ===");
-                KQP_LOG_DEBUG(logger, "X = " << mX);
-                KQP_LOG_DEBUG(logger, "Y = " << mY);
-                KQP_LOG_DEBUG(logger, "D = " << mD.adjoint());
+                KQP_LOG_DEBUG(logger, "X = " << kevd.mX);
+                KQP_LOG_DEBUG(logger, "Y = " << kevd.mY);
+                KQP_LOG_DEBUG(logger, "D = " << kevd.mD);
                 
                 
                 // Computing the difference between operators || U1 - U2 ||^2
                 
                 KQP_LOG_INFO(logger, "Comparing the decompositions");
-                double error = kqp::difference(mX, mY, mD, mU, mUY, mU_d);
+                double error = kqp::difference(kevd.mX, kevd.mY, kevd.mD, mU, mUY, mU_d);
                 
                 KQP_LOG_INFO_F(logger, "Squared error is %e", %error);
                 return error < tolerance ? 0 : 1;

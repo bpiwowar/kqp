@@ -20,18 +20,14 @@
 
 #include <utility>
 
+#include <kqp/decomposition.hpp>
 #include <kqp/feature_matrix.hpp>
 #include <kqp/rank_selector.hpp>
 
-#include <kqp/reduced_set/unused.hpp>
-#include <kqp/reduced_set/null_space.hpp>
-#include <kqp/reduced_set/qp_approach.hpp>
 
 
 namespace kqp {
-    
 
-    
     /**
      * @brief Builds a compact representation of an hermitian operator. 
      *
@@ -50,21 +46,10 @@ namespace kqp {
     public:
         KQP_FMATRIX_TYPES(FMatrix);        
         
-        KernelEVD() : preImageRatios(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()) {
-            
+        KernelEVD()  {
         }
         
-        /**
-         * @brief Set constraints on the number of pre-images
-         */
-        void set_pre_images_per_rank(float minimum, float maximum) {
-            this->preImageRatios = std::make_pair(minimum, maximum);
-        }
 
-        void set_selector(const boost::shared_ptr< const Selector<Scalar> > &selector) {
-            this->selector = selector;
-        }
-        
         //! Virtual destructor to build the vtable
         ~KernelEVD() {}
                
@@ -93,29 +78,11 @@ namespace kqp {
 
         /**
          * Get the current decomposition
-         * @param mX the pre-images
-         * @param mY is used to get a basis from pre-images
-         * @param mD is a diagonal matrix
-         * @param cleanup Try to reduce the size of the decomposition
          */
-        virtual void get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD, bool do_cleanup = true) const {
-            // Get the decomposition from the instance of Kernel EVD
-            _get_decomposition(mX, mY, mD);
+        virtual Decomposition<FMatrix> getDecomposition() const = 0;
 
-            if (do_cleanup) 
-                cleanup(mX, mY, mD);
-        }
-
-        
+    
     protected:
-        /**
-         * Get the current decomposition
-         * @param mX the pre-images
-         * @param mY is used to get a basis from pre-images
-         * @param mD is a diagonal matrix
-         */
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const = 0;
-
         /**
          * @brief Rank-n update.
          *
@@ -128,64 +95,17 @@ namespace kqp {
          */
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
 
-        
-        /**
-         * @brief Ensures the decomposition has the right rank and number of pre-images 
-         */
-        void cleanup(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const {
-            // --- Rank selection   
-            
-            DecompositionList<Real> list(mD);
-            if (selector) selector->selection(list);
-            
-            // Remove corresponding entries
-            select_rows(list.getSelected(), mD, mD);
-            select_columns(list.getSelected(), mY, mY);
-            
-            // --- Remove null space
-            removePreImagesWithNullSpace(mX, mY);
-            
-            // --- Ensure we have a small enough number of pre-images
-            if (mX.size() > (preImageRatios.second * mD.rows())) {
-                if (mX.can_linearly_combine()) {
-                    // Easy case: we can linearly combine pre-images
-                    mX = mX.linear_combination(mY);
-                    mY = ScalarMatrix::Identity(mX.size(), mX.size());
-                } else {
-                    // Use QP approach
-                    ReducedSetWithQP<FMatrix> qp_rs;
-//                    qp_rs.run(preImageRatios.first * mD.rows(), mX, mY, mD);
-                    mX = qp_rs.getFeatureMatrix();
-                    mY = qp_rs.getMixtureMatrix();
-                    mD = qp_rs.getEigenValues();
-                }
-                
-            }
-        }
-        
-        void cleanup(FMatrix& mX, ScalarMatrix &mY, RealVector& mD) const {
-            ScalarAltMatrix _mY;
-            _mY.swap(mY);
-            cleanup(mX, _mY, mD);
-            _mY.swap(mY);
-        }
-        
-        /**
-         * Minimum/Maximum number of pre-images per rank
-         */
-        std::pair<float,float> preImageRatios;
-
-        //! Eigen value selector
-        boost::shared_ptr< const Selector<Real> > selector;
+    
 
     };
 
     
-    
-#define KQP_KERNEL_EVD_INSTANCIATION(qualifier, type)\
-   KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
-
         
 }
+
+#include <kqp/feature_matrix/dense.hpp>
+#define KQP_KERNEL_EVD_INSTANCIATION(qualifier, type)\
+KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
+
 
 #endif

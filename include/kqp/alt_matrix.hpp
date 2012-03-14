@@ -43,12 +43,18 @@ namespace kqp {
     // ---- Predefined Alt-based matrices
     
     //! Diagonal or Identity matrix
-    template<typename Scalar> struct AltDiag {
-        typedef 
-        AltMatrix< 
-        Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Eigen::Dynamic,1> >, 
-        typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType 
-        > type;
+    template<typename Scalar> struct AltDiagonal {
+        typedef Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Eigen::Dynamic,1>> Diagonal;
+        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType Identity;
+        
+        typedef AltMatrix<Diagonal,Identity> type;
+    };
+    
+    template<typename Scalar> struct AltVector {
+        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1>  Vector;
+        typedef typename Eigen::Matrix<Scalar,Eigen::Dynamic,1>::ConstantReturnType ConstantReturnType;
+        
+        typedef AltMatrix<Vector, ConstantReturnType> type;
     };
     
     
@@ -64,21 +70,112 @@ namespace kqp {
     //! Storage type for AltMatrix
     struct AltMatrixStorage {};
     
+    template<typename Operator, typename Derived> class AltCwiseUnaryOp;
+    template<typename Derived> class AltAsDiagonal;
+    
     //! Base class for any AltMatrix expression
     template<typename Derived> 
     class AltMatrixBase : public Eigen::EigenBase<Derived> {
+    public:
+        typedef typename Eigen::internal::traits<Derived>::Scalar Scalar;
+        
+        AltCwiseUnaryOp<Eigen::internal::scalar_sqrt_op<Scalar>, const Derived> cwiseSqrt() const {
+            return this->derived(); 
+        }
+        
+        AltCwiseUnaryOp<Eigen::internal::scalar_abs_op<Scalar>, const Derived>  cwiseAbs() const {
+            return this->derived();
+        }
+        
+        AltCwiseUnaryOp<Eigen::internal::scalar_abs2_op<Scalar>, const Derived>  cwiseAbs2() const {
+            return this->derived();
+        }
+        
+        AltCwiseUnaryOp<Eigen::internal::scalar_inverse_op<Scalar>, const Derived> cwiseInverse() const {
+            return this->derived();
+        }
+        
+        AltAsDiagonal<const Derived> asDiagonal() const {
+            return this->derived();
+        }
+    };
+    
+    
+    // --- As diagonal
+    template<typename XprType> class AltAsDiagonal : Eigen::internal::no_assignment_operator, public AltMatrixBase<AltAsDiagonal<XprType>> {
+    protected:
+        const typename XprType::Nested m_xpr;
+    public:
+        
+        inline AltAsDiagonal(const XprType& xpr) : m_xpr(xpr) {
+        }
+        
+        EIGEN_STRONG_INLINE Index rows() const { return m_xpr.rows(); }
+        EIGEN_STRONG_INLINE Index cols() const { return m_xpr.cols(); }
+        
+        bool isT1() const { return m_xpr.derived().isT1(); }
+        
+        auto t1() const -> decltype(m_xpr.derived().t1().asDiagonal()) { return m_xpr.derived().t1().asDiagonal(); }
+        auto t2() const -> decltype(m_xpr.derived().t2().asDiagonal()) { return m_xpr.derived().t2().asDiagonal(); }
+        
+    };
+    
+    // --- Unary operator
+    template<typename UnaryOp, typename XprType> class AltCwiseUnaryOp :
+    Eigen::internal::no_assignment_operator, public AltMatrixBase<AltCwiseUnaryOp<UnaryOp,XprType>> {
+    protected:
+        const typename XprType::Nested m_xpr;
+        const UnaryOp m_functor;
+    public:
+        typedef AltCwiseUnaryOp<UnaryOp,XprType> Nested;
+        inline AltCwiseUnaryOp(const XprType& xpr, const UnaryOp& func = UnaryOp())
+        : m_xpr(xpr), m_functor(func) {
+        }
+        
+        EIGEN_STRONG_INLINE Index rows() const { return m_xpr.rows(); }
+        EIGEN_STRONG_INLINE Index cols() const { return m_xpr.cols(); }
+        
+        bool isT1() const { return m_xpr.derived().isT1(); }
+        
+        typedef typename Eigen::internal::remove_all<decltype(m_xpr.derived().t1())>::type T1;
+        Eigen::CwiseUnaryOp<UnaryOp,T1> t1() const  { 
+            return Eigen::CwiseUnaryOp<UnaryOp,T1>(m_xpr.derived().t1(), m_functor); 
+        }
+        
+        typedef typename Eigen::internal::remove_all<decltype(m_xpr.derived().t2())>::type T2;
+        Eigen::CwiseUnaryOp<UnaryOp,T2> t2() const  { 
+            return Eigen::CwiseUnaryOp<UnaryOp,T2>(m_xpr.derived().t2(), m_functor); 
+        }
     };
     
     
     
-    // ---- Transpose
-    
-    // Helper functions
+    // --- Helper functions
     template<typename Derived>
     Eigen::Transpose<const Derived> transpose(const Eigen::MatrixBase<Derived>& x) { return x.transpose(); }
     
     template<typename Derived> 
     Eigen::DiagonalWrapper<const Derived> transpose(const Eigen::DiagonalWrapper<const Derived> & x)  { return x; }
+    
+    template<typename Derived>
+    auto blockSquaredNorm(const Eigen::MatrixBase<Derived>& x, Index row, Index col, Index rowSize, Index colSize) -> decltype(x.squaredNorm()) { 
+        return x.block(row,col,rowSize,colSize).squaredNorm(); 
+    }
+    
+    template<typename Derived> 
+    auto blockSquaredNorm(const Eigen::DiagonalWrapper<Derived> & x, Index row, Index col, Index rowSize, Index colSize) -> decltype(x.diagonal().squaredNorm())  { 
+        return x.diagonal().segment(std::max(row,col), std::min(row+rowSize, col+colSize)).squaredNorm(); 
+    }
+    
+    
+    template<typename Derived>
+    auto squaredNorm(const Eigen::MatrixBase<Derived>& x) -> decltype(x.derived().squaredNorm()) { return x.derived().squaredNorm(); }
+    
+    template<typename Derived> 
+    auto squaredNorm(const Eigen::DiagonalWrapper<Derived> & x) -> decltype(x.diagonal().squaredNorm())  { return x.diagonal().squaredNorm(); }
+    
+    // ---- Transpose
+    
     
     
     //! Transpose
@@ -97,7 +194,7 @@ namespace kqp {
         typedef decltype(kqp::transpose(nested.t1())) T1;
         typedef decltype(kqp::transpose(nested.t2())) T2;
         
-        inline  T1 t1() const  { return transpose(nested.t1()); }
+        inline T1 t1() const  { return transpose(nested.t1()); }
         inline T2 t2() const  { return transpose(nested.t2()); }
         
         void printExpression(std::ostream &out) const {
@@ -168,16 +265,18 @@ namespace kqp {
     
     
     
-    // Storage 
+    //! Default storage type for AltMatrix nested types
     template<typename Derived>
     struct storage {
-        typedef const Derived & ReturnType; 
+        typedef Derived & ReturnType; 
+        typedef const Derived & ConstReturnType; 
         
         Derived m_value;
         
         storage() {}
         storage(const Derived &value) : m_value(value) {}
-        ReturnType get() const { return m_value; }
+        ConstReturnType get() const { return m_value; }
+        ReturnType get() { return m_value; }
         
         void swap(Derived &value) { m_value.swap(value); }
         Index rows() const { return m_value.rows(); }
@@ -194,18 +293,75 @@ namespace kqp {
             return m_value(i,j);
         }
         
+        template<typename CwiseUnaryOp>
+        void unaryExprInPlace(const CwiseUnaryOp &op) {
+            m_value = m_value.unaryExpr(op);
+        }
+        
+        typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
+        Real squaredNorm() const { return m_value.squaredNorm(); }
+        
     };
     
-    // Storage for a diagonal wrapper
+    //! Storage for a constant matrix
+    template<typename Scalar, typename Derived>
+    struct storage< typename Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> > {
+        typedef typename Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> ReturnType;
+        typedef const ReturnType ConstReturnType;
+        
+        Scalar m_value;
+        Index m_rows;
+        Index m_cols;
+        
+        storage() : m_value(0), m_rows(0), m_cols(0) {}
+        storage(const Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>,Derived> &value) 
+        : m_value(value.coeff(0,0)) {}
+        
+        ReturnType get() const { return ReturnType(m_rows, m_cols, m_value); }
+        
+        void swap(ReturnType &) { KQP_THROW_EXCEPTION(illegal_argument_exception, "Cannot swap a constant matrix"); }
+        Index rows() const { return m_rows; }
+        Index cols() const { return m_cols; }
+        
+        void resize(Index rows, Index cols) {
+            m_rows = rows;
+            m_cols = cols;
+        }
+        
+        void conservativeResize(Index rows, Index cols) {
+            if (rows > m_rows || cols > m_cols) 
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot resize to a non smaller size (%d x %d to %d x %d)",
+                                      %m_rows%m_cols%rows%cols);
+            this->resize(rows,cols);
+        }
+        
+        Scalar operator()(Index, Index) const {
+            return m_value;
+        }
+        
+        template<typename CwiseUnaryOp>
+        void unaryExprInPlace(const CwiseUnaryOp &op) {
+            m_value = op(m_value);
+        }
+        
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        Real squaredNorm() const { return std::abs(m_value)*std::abs(m_value) * (Real)m_rows * (Real)m_cols; }
+
+        
+    };
+    
+    //! Storage for a diagonal wrapper
     template<typename Derived>
     struct storage< Eigen::DiagonalWrapper<Derived> > {
-        typedef const Eigen::DiagonalWrapper<const Derived> ReturnType;
+        typedef const Eigen::DiagonalWrapper<const Derived> ConstReturnType;
+        typedef const Eigen::DiagonalWrapper<Derived> ReturnType;
         
         Derived m_value;
         
         storage() {}
         storage(const Eigen::DiagonalWrapper<Derived> &value) : m_value(value.diagonal()) {}
-        ReturnType get() const { return m_value.asDiagonal(); }
+        ConstReturnType get() const { return m_value.asDiagonal(); }
+        ReturnType get() { return static_cast<ReturnType>(m_value.asDiagonal()); }
         
         void swap(ReturnType &value) { m_value.swap(value); }
         Index rows() const { return m_value.rows(); }
@@ -225,15 +381,24 @@ namespace kqp {
             return i == j ? m_value(i) : 0;
         }
         
+        template<typename CwiseUnaryOp>
+        void unaryExprInPlace(const CwiseUnaryOp &op) {
+            m_value = m_value.unaryExpr(op);
+        }
+        
+        typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
+        Real squaredNorm() const { return m_value.squaredNorm(); }
+
     };
     
-    // Storage for the identity
+    //! Storage for the identity
     template<typename Scalar>
     struct storage< Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >  > {
         Index m_rows, m_cols; 
         
         typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > Type;
         typedef Type ReturnType;
+        typedef const Type ConstReturnType;
         
         storage() {}
         storage(const Type &value) : m_rows(value.rows()), m_cols(value.cols()) {}
@@ -259,6 +424,15 @@ namespace kqp {
         Scalar operator()(Index i, Index j) const {
             return i == j ? 1 : 0;
         }
+        
+        template<typename CwiseUnaryOp>
+        void unaryExprInPlace(const CwiseUnaryOp &) {
+            KQP_THROW_EXCEPTION(illegal_operation_exception, "Cannot modify the identity");
+        }
+        
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        Real squaredNorm() const { return (Real)m_rows * (Real)m_cols; }
+
     };
     
     
@@ -288,11 +462,19 @@ namespace kqp {
         Real squaredNorm() const { return m_isT1 ? m_t1.squaredNorm() : m_t2.squaredNorm(); }
         Scalar trace() const { return m_isT1 ? m_t1.trace() : m_t2.trace(); }
         
+        template<typename CwiseUnaryOp>
+        void unaryExprInPlace(const CwiseUnaryOp &op) {
+            if (isT1()) m_t1.unaryExprInPlace(op);
+            else        m_t2.unaryExprInPlace(op);
+        }
         
         bool isT1() const { return m_isT1; }
         
-        inline typename storage<T1>::ReturnType t1() const { return m_t1.get(); }
-        inline typename storage<T2>::ReturnType t2() const { return m_t2.get(); }
+        inline typename storage<T1>::ConstReturnType t1() const { return m_t1.get(); }
+        inline typename storage<T2>::ConstReturnType t2() const { return m_t2.get(); }
+        
+        inline typename storage<T1>::ReturnType t1() { return m_t1.get(); }
+        inline typename storage<T2>::ReturnType t2() { return m_t2.get(); }
         
         
         void swap(T1 &t1) { m_isT1 = true; m_t1.swap(t1); }
@@ -352,8 +534,8 @@ namespace kqp {
         Block col(Index j) { return Block(*this, 0, j, rows(), 1); }
         ConstBlock col(Index j) const { return ConstBlock(const_cast<Self&>(*this), 0, j, rows(), 1); }
         
-        Block block(Index i, Index j, Index width, Index height) { return Block(*this, i, j, width, height); }
-        ConstBlock block(Index i, Index j, Index width, Index height) const { return ConstBlock(const_cast<Self&>(*this), i, j, width, height); }
+        Block block(Index i, Index j, Index height, Index width) { return Block(*this, i, j, height, width); }
+        ConstBlock block(Index i, Index j, Index height, Index width) const { return ConstBlock(const_cast<Self&>(*this), i, j, width, height); }
         
         const RowWise<AltMatrix> rowwise() const {
             return RowWise<AltMatrix>(const_cast<Self&>(*this));
@@ -376,6 +558,7 @@ namespace kqp {
         return x.diagonal().rowwise();
     }
     
+    //! Row wise view of an Alt matrix
     template<typename AltMatrix> class RowWise {
         AltMatrix &alt_matrix;
     public:
@@ -387,44 +570,79 @@ namespace kqp {
         }
         
         RealVector squaredNorm() const {
-            if (alt_matrix.isT1())
-                return rowwise(alt_matrix.t1()).squaredNorm();
-            else
-                return rowwise(alt_matrix.t2()).squaredNorm();
+            if (alt_matrix.isT1()) return rowwise(alt_matrix.t1()).squaredNorm();
+            else return rowwise(alt_matrix.t2()).squaredNorm();
         }
     };
     
     //! Block view of an AltMatrix
-    template<typename AltMatrix> class AltBlock {
+    template<typename AltMatrix> class AltBlock  {
     public:
         typedef typename AltMatrix::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
         
-        AltBlock(AltMatrix &alt_matrix, Index row, Index col, Index width, Index height) :
-        alt_matrix(alt_matrix), row(row), col(col), width(width), height(height),
+        AltBlock(AltMatrix &alt_matrix, Index row, Index col, Index height, Index width) :
+        alt_matrix(alt_matrix), row(row), col(col), height(height), width(width),
         range(std::max(row, col), std::min(row+width, col+height) - std::max(row, col) + 1)
         {
         }
         
         Real squaredNorm() const {
             if (alt_matrix.isT1())
-                return alt_matrix.t1().squaredNorm();
+                return kqp::blockSquaredNorm(alt_matrix.t1(),row,col,height,width);
             else
-                return alt_matrix.t2().squaredNorm();
+                return kqp::blockSquaredNorm(alt_matrix.t2(),row,col,height,width);
         }
         
         
-        AltBlock & operator=(const AltBlock &/*b*/) {
-            KQP_THROW_EXCEPTION(not_implemented_exception, "block equality altblocks");
+        // Assignement 
+        
+        
+        template<typename Op, typename Derived, typename OtherDerived>
+        void assign(const Eigen::CwiseNullaryOp<Op, Derived> &, const OtherDerived &, Index , Index ) {
+            KQP_THROW_EXCEPTION(not_implemented_exception, "Cannot assign a constant matrix to anything");
         }
+        
+        template<typename Derived, int Rows, int Cols, typename OtherDerived>
+        void assign(Eigen::Matrix<Derived, Rows, Cols> &mTo, const Eigen::MatrixBase<OtherDerived> &mFrom, Index fromRow, Index fromCol) {
+            mTo.block(row,col,height,width) = mFrom.derived().block(fromRow, fromCol, height, width);
+        }
+        
+        
+        template<typename Derived>
+        AltBlock<AltMatrix>& assignTo(const AltBlock<Derived> &m) {
+            if (m.height != this->height || m.width != this->width)
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Block sizes differ in assignement (%d x %d != %d x %d)", %height %width %m.height %m.width);
+            if (alt_matrix.isT1()) {
+                if (m.alt_matrix.isT1()) this->assign(alt_matrix.t1(), m.alt_matrix.t1(), m.row, m.col);
+                else this->assign(alt_matrix.t1(), m.alt_matrix.t2(), m.row, m.col);
+            } else {
+                if (m.alt_matrix.isT1()) this->assign(alt_matrix.t2(), m.alt_matrix.t1(), m.row, m.col);
+                else this->assign(alt_matrix.t2(), m.alt_matrix.t2(), m.row, m.col);                
+            }
+            
+            return *this;
+        }
+        
         
     private:
         AltMatrix &alt_matrix;
-        Index row, col, width, height;
+        Index row, col, height, width;
         std::pair<Index, Index> range;
     };
     
+    
+    template <typename Derived, typename OtherDerived>
+    void copy(const Eigen::MatrixBase<Derived> &from, const Eigen::MatrixBase<OtherDerived> &to) {
+        const_cast<Eigen::MatrixBase<OtherDerived>&>(to).derived() = from;
+    }
+    
+    
+    template <typename Derived, typename OtherDerived>
+    void copy(const AltBlock<Derived> &from, const AltBlock<OtherDerived> &to) {
+        const_cast<AltBlock<OtherDerived>&>(to).template assignTo<Derived>(from);
+    }
     
     
     
@@ -463,12 +681,11 @@ namespace kqp {
     
     template<typename Lhs, typename Rhs, int ProductOrder> class AltEigenProduct;
     
-    /** 
-     * Used for type inference (no instance)
-     */
+    //! Defines the expression type of a product
     template<typename Lhs, typename Rhs, int Side, bool isT1> struct ProductType;
     
     
+    //! Defines an expression type when the Alt matrix is on the left
     template<typename _Lhs, typename _Rhs, bool isT1> struct ProductType<_Lhs, _Rhs, Eigen::OnTheLeft, isT1> {
         const _Lhs &_lhs;
         typedef decltype(_lhs.t1()) LhsT1;
@@ -482,6 +699,7 @@ namespace kqp {
         typedef decltype(lhs * rhs) Type;
     };
     
+    //! Defines an expression type when the Alt matrix is on the right
     template<typename _Lhs, typename _Rhs, bool isT1> struct ProductType<_Lhs, _Rhs, Eigen::OnTheRight, isT1> {
         typedef _Lhs Lhs;
         const Lhs &lhs;
@@ -496,6 +714,7 @@ namespace kqp {
     };
     
     
+    //! Defines the expression type of a multiplication
     template<typename _Lhs, typename _Rhs, int Side, bool isT1>
     struct MultExpression {
         typedef ProductType<_Lhs,_Rhs,Side,isT1> Types;
@@ -706,6 +925,29 @@ namespace Eigen {
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename MatrixXd::Index Index;
             typedef typename traits< kqp::AltMatrix<BaseT1, BaseT2> >::Scalar Scalar;
+            enum {
+                Flags = 0,
+                RowsAtCompileTime = Eigen::Dynamic,
+                ColsAtCompileTime = Eigen::Dynamic
+            };
+        };
+        template<typename UnaryOp, typename Derived>
+        struct traits<kqp::AltCwiseUnaryOp<UnaryOp, Derived>> {
+            typedef kqp::AltMatrixStorage StorageKind;
+            typedef typename MatrixXd::Index Index;
+            typedef typename traits<Derived>::Scalar Scalar;
+            enum {
+                Flags = 0,
+                RowsAtCompileTime = Eigen::Dynamic,
+                ColsAtCompileTime = Eigen::Dynamic
+            };
+        };
+        
+        template<typename Derived>
+        struct traits<kqp::AltAsDiagonal<Derived>> {
+            typedef kqp::AltMatrixStorage StorageKind;
+            typedef typename MatrixXd::Index Index;
+            typedef typename traits<Derived>::Scalar Scalar;
             enum {
                 Flags = 0,
                 RowsAtCompileTime = Eigen::Dynamic,

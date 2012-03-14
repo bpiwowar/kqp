@@ -50,7 +50,7 @@ namespace kqp{
         AccumulatorKernelEVD() {
         }
         
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {           
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
             FMatrix fm = mX.linear_combination(mA, Eigen::internal::sqrt(alpha));
             fMatrix.add(fm);
@@ -59,17 +59,23 @@ namespace kqp{
         
         
         //! Actually performs the computation
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, typename FTraits::RealVector& mD) const {
-            const typename FMatrix::Matrix& gram = fMatrix.inner();
-            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+            Decomposition<FMatrix> d;
             
-            typename FTraits::Matrix _mY;
-            kqp::thinEVD(evd, _mY, mD);
+            const ScalarMatrix& gram = fMatrix.inner();
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
+            
+            ScalarMatrix _mY;
+            RealVector _mD;
+            kqp::thinEVD(evd, _mY, _mD);
             
             ScalarMatrix __mY;
-            __mY.noalias() = _mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
-            mY.swap(__mY);
-            mX = fMatrix;
+            __mY.noalias() = _mY * _mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            
+            d.mX = fMatrix;
+            d.mY.swap(__mY);
+            d.mD.swap(_mD);
+            return d;
         }
         
     private:
@@ -109,8 +115,10 @@ namespace kqp{
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
+    public:
         //! Actually performs the computation
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, RealVector& mD) const override {
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+            Decomposition<FMatrix> d;
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
@@ -118,10 +126,10 @@ namespace kqp{
             
             // Nothing to do
             if (size == 0) {
-                mX = FMatrix();
-                mY.resize(0,0);
-                mD.resize(0);
-                return;
+                d.mX = FMatrix();
+                d.mY.resize(0,0);
+                d.mD.resize(0,1);
+                return d;
             }
             
             ScalarMatrix gram_X = fMatrix.inner();
@@ -138,13 +146,15 @@ namespace kqp{
             
             
             // Direct EVD
-            typename FTraits::Matrix _mY;
-            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(gram.template selfadjointView<Eigen::Lower>());
-            kqp::thinEVD(evd, _mY, mD);
+            typename FTraits::ScalarMatrix _mY;
+            typename FTraits::RealVector _mD;
+            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
+            kqp::thinEVD(evd, _mY, _mD);
+            d.mD.swap(_mD);
             
             // Y <- A * Y * D^-1/2
             
-            _mY = _mY * mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            _mY = _mY * d.mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
             ScalarMatrix __mY(offsets_X.back(), _mY.cols());
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {
@@ -152,8 +162,9 @@ namespace kqp{
                 __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = mAi * (alphas[i] * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
-            mY.swap(__mY);
-            mX = fMatrix;
+            d.mY.swap(__mY);
+            d.mX = fMatrix;
+            return d;
         }
         
     private:

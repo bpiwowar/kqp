@@ -20,6 +20,8 @@
 
 #include <Eigen/Core>
 #include <kqp/kqp.hpp>
+#include <kqp/alt_matrix.hpp>
+
 
 namespace kqp {
     struct Mover {
@@ -106,7 +108,7 @@ namespace kqp {
         }
         
         void disjoint_assign(Index from, Index to, Index size) {
-            dest.block(0, to, dest.rows(), size) = source.block(0, from, source.rows(), size);
+            copy(source.block(0, from, source.rows(), size), dest.block(0, to, dest.rows(), size));
         }        
         
         void cleanup() {
@@ -131,7 +133,7 @@ namespace kqp {
         }
         
         void disjoint_assign(Index from, Index to, Index size) {
-            dest.block(to, 0, size, dest.cols()) = source.block(from, 0, size, source.cols());
+            kqp::copy(source.block(from, 0, size, source.cols()), dest.block(to, 0, size, dest.cols()));
         }       
         
         void cleanup() {
@@ -176,5 +178,6 @@ namespace kqp {
                          const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &values, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &new_values)  {
         selection(begin, end, values, new_values);
     }
-}
+    
+  }
 #endif

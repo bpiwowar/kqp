@@ -68,7 +68,7 @@ namespace kqp {
         const IndexedComparable &x;
         IndirectComparator(const IndexedComparable &x) : x(x) {}
         bool operator() (int i1, int i2) {
-            return x[i1] < x[i2];
+            return std::abs(x[i1]) < std::abs(x[i2]);
         }
     };
     
@@ -128,19 +128,19 @@ namespace kqp {
             
             std::vector< LambdaError<Real> > errors;
             for(Index j = 0; j < r; j++) {
-                Scalar maxa = 0;
-                Scalar delta = 0;
+                Real maxa = 0;
+                Real delta = 0;
                 for(Index i = 0; i < n; i++) {
-                    Scalar x = Eigen::internal::abs2(mY(i,j)); 
+                    Real x = Eigen::internal::abs2(mY(i,j)); 
                     delta += x;
                     maxa = std::max(maxa, std::sqrt(x));
                 }
-                errors.push_back(LambdaError<Scalar>(delta * Eigen::internal::abs2(gram(j,j)), maxa, j));
+                errors.push_back(LambdaError<Real>(delta * Eigen::internal::abs2(gram(j,j)), maxa, j));
             }
             
-            typedef typename LambdaError<Scalar>::Comparator LambdaComparator;
+            typedef typename LambdaError<Real>::Comparator LambdaComparator;
             std::sort(errors.begin(), errors.end(), LambdaComparator());
-            LambdaError<Scalar> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Scalar>());
+            LambdaError<Real> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Real>());
             
             Real lambda =  acc_lambda.delta / acc_lambda.maxa;   
                             
@@ -185,7 +185,7 @@ namespace kqp {
             
             // Compute new_mY so that new_mF Y is orthonormal, ie new_mY' new_mF' new_mF new_mY is the identity
             
-            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
+            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
             new_mY.swap(evd.eigenvectors());
             new_mY *= evd.eigenvalues().cwiseSqrt().cwiseInverse().asDiagonal();
             

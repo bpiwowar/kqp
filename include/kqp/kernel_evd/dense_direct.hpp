@@ -43,19 +43,20 @@ namespace kqp {
             matrix.setConstant(0);
         }
         
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
+        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.get_matrix() * mA), alpha);
         }
         
-    protected:
-        virtual void _get_decomposition(FMatrix& mX, ScalarAltMatrix &mY, typename FTraits::RealVector& mD) const {
-            Eigen::SelfAdjointEigenSolver<typename FTraits::Matrix> evd(matrix.template selfadjointView<Eigen::Lower>());
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+            Decomposition<FMatrix> d;
+            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
-            typename FTraits::Matrix _mX;
-            kqp::thinEVD(evd, _mX, mD);  
-            mX.swap(_mX);
+            ScalarAltMatrix _mX;
+            kqp::thinEVD(evd, _mX, d.mD);              
             
-            mY = ScalarMatrix::Identity(mX.size(), mX.size());
+            d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
+            d.mX.swap(_mX);
+            return d;
         }
         
     public:

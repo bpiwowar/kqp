@@ -24,7 +24,12 @@ using namespace std;
 using namespace kqp;
 using namespace Eigen;
 
+#define RANDOM_M(scalar, rows, cols) Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>::Random(rows,cols).eval()
+#define RANDOM_V(scalar, size) Eigen::Matrix<scalar, Eigen::Dynamic, 1>::Random(size).eval()
+#define RANDOM_D(scalar, size) RANDOM_V(scalar,size).asDiagonal()
+
 namespace {
+    
     // Dense or Identity matrix
     template<typename Scalar> struct AltDenseDiagonal {
         typedef AltMatrix< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> , Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Eigen::Dynamic,1> > > type;
@@ -34,12 +39,12 @@ namespace {
     auto transpose(const Eigen::MatrixBase<Derived> &m) -> decltype(m.transpose()) {
         return m.transpose();
     }
-
+    
     template<typename Derived>
     const Eigen::DiagonalWrapper<Derived> & transpose(const Eigen::DiagonalWrapper<Derived> &m)  {
         return m;
     }
-
+    
     
     template<class Lhs, class Rhs>
     int test_pre_product(const Lhs &mA, const Rhs &mB) {
@@ -71,7 +76,7 @@ namespace {
         error2 = (ScalarMatrix(mA * alt) - ScalarMatrix(mA * mB)).squaredNorm();
         std::cerr << "Error: " << error << " [" << error2 << "]" << std::endl;        
         return error < EPSILON;
- 
+        
     }
     
     
@@ -90,7 +95,7 @@ namespace {
         << KQP_DEMANGLE(a) << " x Alt(" << KQP_DEMANGLE(b) << " x " << KQP_DEMANGLE(d) << ": ";
         std::cerr << "Error: " << error << std::endl;        
         return error < EPSILON;
-
+        
     }
     
     
@@ -108,10 +113,10 @@ namespace {
         << KQP_DEMANGLE(a) << " x Alt(" << KQP_DEMANGLE(b) << " x " << KQP_DEMANGLE(d) << ": ";
         std::cerr << "Error: " << error << std::endl;     
         return error < EPSILON;
-
+        
     }
     
-
+    
     
     template<class Lhs, class Rhs>
     int test_adjoint_pre_product(const Lhs &mA, const Rhs &mB) {
@@ -143,11 +148,38 @@ namespace {
         std::cerr << "Error: " << error << " [" << error2 << "]" << std::endl;        
         return error < EPSILON;
     }
-}
+    
+    int test_block() {
+        Eigen::MatrixXd m = RANDOM_M(double, 7, 7);
+        typename AltDenseDiagonal<double>::type alt_m(m);
+        
+        double error = std::abs(m.block(2, 3, 2, 3).squaredNorm() - alt_m.block(2, 3, 2, 3).squaredNorm());
+        std::cerr << "Block error [dense]: " << error << std::endl;
+        
+        auto d = RANDOM_D(double, 7);
+        typename AltDenseDiagonal<double>::type alt_d(d);
+        double error2 = std::abs(Eigen::MatrixXd(d).block(2, 3, 2, 3).squaredNorm() - alt_d.block(2, 3, 2, 3).squaredNorm());
+        std::cerr << "Block error [diagonal]: " << error2 << std::endl;
+        
+        return error < EPSILON && error2 < EPSILON;
+    }
+    
+    template <typename Scalar>
+    int test_unary() {
+        Eigen::MatrixXd m = Eigen::MatrixXd::Random(5,5);
+        typename kqp::AltDense<double>::type altm(m);
+        
+        altm.unaryExprInPlace(Eigen::internal::scalar_multiple_op<double>(2.));
+        
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> m2 = altm;
+        
+        double error = (m2 - 2 * m).squaredNorm();
+        std::cerr << "Unary error: " << error << std::endl;
+        return error < EPSILON;
+    }
+    
+} // end <> ns
 
-#define RANDOM_M(scalar, rows, cols) Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>::Random(rows,cols).eval()
-#define RANDOM_V(scalar, size) Eigen::Matrix<scalar, Eigen::Dynamic, 1>::Random(size).eval()
-#define RANDOM_D(scalar, size) RANDOM_V(scalar,size).asDiagonal()
 
 
 #define test_all(x, y) \
@@ -161,6 +193,8 @@ namespace kqp {
     int altmatrix_test (std::deque<std::string> &) {
         
         int code = 0;
+        
+        // Multiplication test
         
         code |= test_post_product(5.2, RANDOM_M(double,4,6));
         
@@ -176,8 +210,13 @@ namespace kqp {
         
         code |= test_pre_post_product_2(RANDOM_M(double,5,5), RANDOM_M(double,5,4), RANDOM_D(double,4));
         
-        // FIXME: add tests for blocks
+        // Block tests
         
+        code |= test_block();
+        
+        // Unary op
+        
+        code |= test_unary<double>();
         return code;
     }
 }

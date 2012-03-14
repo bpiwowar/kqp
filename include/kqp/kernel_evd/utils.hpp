@@ -20,18 +20,21 @@
 
 #include <cassert>
 
-#include <Eigen/Eigenvalues>
+#include <boost/scoped_ptr.hpp>
+#include <boost/type_traits/is_complex.hpp>
 
+#include <Eigen/Eigenvalues>
 #include <Eigen/Core>
 
 #include <kqp/kernel_evd.hpp>
-#include <kqp/feature_matrix/dense.hpp>
+#include <kqp/subset.hpp>
 
 namespace kqp {
     template <class Derived> 
-    void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> &eigenvectors, 
+    void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, 
+                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> &eigenvectors, 
                  Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> &eigenvalues,
-                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> *nullEigenvectors = 0
+                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> *nullEigenvectors = nullptr
                  ) {
         typedef typename Derived::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
@@ -67,6 +70,90 @@ namespace kqp {
         }
     }
     
+    
+    //! Thin EVD with Alt matrices
+    template <class Derived> 
+    void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, 
+                 typename AltDense<typename Derived::Scalar>::type &eigenvectors, 
+                 typename AltVector<typename Eigen::NumTraits<typename Derived::Scalar>::Real>::type &eigenvalues,
+                 typename AltDense<typename Derived::Scalar>::type *nullEigenvectors = nullptr) {
+        
+        typedef Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        
+        ScalarMatrix _eigenvectors;
+        Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> _eigenvalues;
+        boost::scoped_ptr<ScalarMatrix> _nullEigenvectors;
+        
+        
+        if (nullEigenvectors != nullptr) 
+            _nullEigenvectors.reset(new ScalarMatrix());
+        
+        thinEVD(evd, _eigenvectors, _eigenvalues, _nullEigenvectors.get());
+
+        eigenvectors.swap(_eigenvectors);
+        eigenvalues.swap(_eigenvalues);
+        if (nullEigenvectors != nullptr) 
+            nullEigenvectors->swap(*_nullEigenvectors);
+        
+    }
+    
+    
+    //! Re-orthonormalize a decomposition (complex case)
+    template<typename FMatrix>
+    typename boost::enable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
+    orthonormalize(const FMatrix &mX,
+                        Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
+                        Eigen::Matrix<typename ftraits<FMatrix>::Real, Eigen::Dynamic, 1> &mD) {
+        typename ftraits<FMatrix>::ScalarMatrix m = mD.cwiseSqrt().asDiagonal() * mY.transpose() * mX.inner() * mY * mD.cwiseSqrt().asDiagonal();
+        Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
+        kqp::thinEVD(evd, mY, mD);                    
+        mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+    }
+    
+    //! Re-orthonormalize a decomposition (complex case)
+    template<typename FMatrix>
+    typename boost::disable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
+    orthonormalize(const FMatrix &mX,
+                   Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
+                   Eigen::Matrix<typename ftraits<FMatrix>::Real, Eigen::Dynamic, 1> &mD) {
+        
+        // Negative case: copy what we need
+        auto negatives = mD.array() < 0;
+        typename ftraits<FMatrix>::RealVector _mD;
+        typename ftraits<FMatrix>::ScalarMatrix _mY;
+        
+        Index n = negatives.sum();
+        if (n > 0) {
+            std::vector<bool> selection(n,false);
+            for(Index j = 0; j < mD.rows(); j++)
+                if (negatives[j]) selection[j] = true;
+            
+            select_rows(selection, mD, _mD);
+            select_columns(selection, mY, _mY);
+        }
+        
+        
+        // Perform the EVD
+        typename ftraits<FMatrix>::ScalarMatrix m;
+        m.noalias() = mD.cwiseAbs().cwiseSqrt().asDiagonal() * mY.transpose() * mX.inner() * mY * mD.cwiseAbs().cwiseSqrt().asDiagonal();
+        
+        Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
+        kqp::thinEVD(evd, mY, mD);                    
+        mY = mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+        
+        // FIXME: won't work in the real case if we have negative eigenvalues
+        if (n > 0) {
+            m.resize(mD.rows(), mD.rows());
+            auto _m = m.template selfadjointView<Eigen::Lower>();
+            m = mD;
+            _m.rankUpdate(mY.transpose() * mX.inner() * _mY * _mD, -2);
+            typename ftraits<FMatrix>::ScalarMatrix mU;
+            thinEVD(Eigen::SelfAdjointEigenSolver<decltype(m)>(_m), mU, mD);
+            mD = evd.eigenvalues();
+            mY = mY * mU;
+        }
+    }
+
 }
 
 #endif

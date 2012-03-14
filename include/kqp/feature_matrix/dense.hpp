@@ -40,18 +40,17 @@ namespace kqp {
         typedef ftraits<DenseMatrix<Scalar> > FTraits;
         
         //! The type of inner product matrices
-        typedef typename FTraits::Matrix Matrix;
         typedef typename FTraits::ScalarMatrix ScalarMatrix;
         typedef typename FTraits::ScalarAltMatrix ScalarAltMatrix;
         
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() : view_mode(false), column_start(0), _size(0) {}
         
-        DenseMatrix(Index dimension) : view_mode(false), column_start(0), _size(0), matrix(new Matrix(dimension, 0)) {
+        DenseMatrix(Index dimension) : view_mode(false), column_start(0), _size(0), matrix(new ScalarMatrix(dimension, 0)) {
         }
         
         template<class Derived>
-        explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new Matrix(m)) {
+        explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new ScalarMatrix(m)) {
         }
         
         Index size() const { 
@@ -68,7 +67,7 @@ namespace kqp {
             this->check_can_modify();
             
             if (!matrix.get()) 
-                matrix.reset(new Matrix(other.dimension(), 0));
+                matrix.reset(new ScalarMatrix(other.dimension(), 0));
             
             this->add(other.get_matrix());
         }
@@ -117,26 +116,37 @@ namespace kqp {
         template<class Derived>
         void swap(Eigen::MatrixBase<Derived> &m) {
             if (!matrix.get()) 
-                matrix.reset(new Matrix());
-            matrix->swap(m);
+                matrix.reset(new ScalarMatrix());
+            matrix->swap(m.derived());
             view_mode = false;
             column_start = 0;
             _size = matrix->cols();
             this->gramMatrix.resize(0,0);
         }
         
+        void swap(typename AltDense<Scalar>::type &m) {
+            if (!matrix.get()) 
+                matrix.reset(new ScalarMatrix());
+            m.swap(*this->matrix);
+            view_mode = false;
+            column_start = 0;
+            _size = matrix->cols();
+            this->gramMatrix.resize(0,0);            
+        }
+
+        
         //! Get a reference to the matrix
-        const Eigen::Block<Matrix> get_matrix() const {
+        const Eigen::Block<ScalarMatrix> get_matrix() const {
             return this->matrix->block(0, column_start, matrix->rows(), _size);
         }
 
         //! Get a non-const reference to the matrix
-        Eigen::Block<Matrix> get_matrix() {
+        Eigen::Block<ScalarMatrix> get_matrix() {
             return this->matrix->block(0, column_start, matrix->rows(), _size);
         }
         
         // Computes the Gram matrix
-        const Matrix & inner() const {
+        const ScalarMatrix & inner() const {
             if (_size == 0) return gramMatrix;
             
             // We lose space here, could be used otherwise???
@@ -233,10 +243,10 @@ namespace kqp {
         Index column_start, _size;
         
         //! Our inner product
-        mutable Matrix gramMatrix;
+        mutable ScalarMatrix gramMatrix;
         
         //! Our matrix
-        boost::shared_ptr<Matrix> matrix;
+        boost::shared_ptr<ScalarMatrix> matrix;
     };
     
     

@@ -91,16 +91,16 @@ namespace kqp {
          * 
          * @param evd The kernel EVD 
          */
-        KernelOperator(const KernelEVD<FMatrix>& evd) : orthonormal(true) {
-            evd.get_decomposition(mX, mY, mS);
-            mS = mS.cwiseSqrt();
+        KernelOperator(const KernelEVD<FMatrix>& evd)  {
+            m_operator = evd.getDecomposition();
+            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
         }
         
         
         /**
          * \brief Creates a new kernel operator
          */
-        KernelOperator(const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : mX(mX), mY(mY), mS(mS), orthonormal(orthonormal) {
+        KernelOperator(const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : m_operator(mX,mY,mS,orthonormal) {
         }
         
         
@@ -115,32 +115,39 @@ namespace kqp {
         /**
          * Get the rank of the operator
          */
-        size_t getRank() const {
-            if (orthonormal) return mS.size();
+        Index getRank() const {
+            if (isOrthonormal()) 
+                return m_operator.mS.size();
+            return -1;
         }
         
         //! Get the feature matrix
         inline const FMatrix &X() const {
-            return mX;
+            return m_operator.mX;
         }
         
         inline const ScalarAltMatrix &Y() const {
-            return mY;
+            return m_operator.mY;
         }
         
-        inline const RealVector &S() const {
-            return mS;
+        inline const RealAltVector &S() const {
+            return m_operator.mD;
         }
         
         void orthonormalize() const {
             const_cast<KernelOperator*>(this)->_orthonormalize();
         }
         
+        inline bool isOrthonormal() {
+            return m_operator.orthonormal;
+        }
+        
         /**
          * Compute the squared norm of the operator
          */
         Real squaredNorm() {
-            if (orthonormal) return mS.squaredNorm();
+            if (isOrthonormal()) 
+                return m_operator.mD.squaredNorm();
             
             return kqp::squaredNorm(X(), Y(), S());
         }
@@ -157,7 +164,7 @@ namespace kqp {
             if (alpha < 0) 
                 KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot multiply a kernel operator by a negative value (%g)", %alpha);
                 
-            mS *= std::sqrt(alpha);
+            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_multiple_op<double>(std::sqrt(alpha)));
         }
         
         
@@ -176,57 +183,42 @@ namespace kqp {
          * @throws An exception if the feature matrix cannot be linearly combined
          */
         FMatrix matrix() const {
-            return X().linear_combination(ScalarMatrix(mY * mS));
+            return X().linear_combination(ScalarMatrix(Y() * S()));
         }
         
     protected:
         
         //! Orthonormalize the decomposition (non const version)
         void _orthonormalize() {
-            if (!orthonormal) {
-                // TODO: Eigen should only the needed part
-                Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
-                
-                Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
-                
-                ScalarMatrix _mY;
-                kqp::thinEVD(evd, _mY, mS);
-                
-                mS.array() = mS.array().cwiseAbs().cwiseSqrt();
-                _mY *= mS.cwiseInverse().asDiagonal();
-                
-                if (LinearCombination<FMatrix>::run(mX, mX, mY, 1))
-                    mY = ScalarMatrix::Identity(mX.size(),mX.size());
-                
-                else mY.swap(_mY);
-                
-                orthonormal = true;
-            }
+            // Check if we have something to do
+            if (isOrthonormal()) return;
+            
+            // TODO: Eigen should only the needed part
+            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
+            
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
+            
+            ScalarMatrix _mY;
+            RealVector _mS;
+            kqp::thinEVD(evd, _mY, _mS);
+            
+            _mS.array() = _mS.array().cwiseAbs().cwiseSqrt();
+            _mY *= _mS.cwiseInverse().asDiagonal();
+            
+            // If we can linearly combine, use it to reduce the future amount of computation
+            if (LinearCombination<FMatrix>::run(m_operator.mX, m_operator.mX, _mY, 1))
+                m_operator.mY = ScalarMatrix::Identity(X().size(),X().size());
+            else 
+                m_operator.mY.swap(_mY);
+            
+            m_operator.mD.swap(_mS);
+            
+            m_operator.orthonormal = true;
+            
         }
 
-        
-        /**
-         * The base vector list
-         */
-        FMatrix  mX;
-        
-        /**
-         * The combination matrix.
-         * 
-         * In case of an EVD decomposition, mX mY is orthonormal
-         */
-        ScalarAltMatrix mY;
-        
-        /**
-         * The singular values
-         *
-         * This matrix is used only if the KernelOperator is in a 
-         * EVD decomposed form
-         */
-        RealVector mS;
-        
-        //! Is the decomposition othonormal, i.e. is Y^T X^T X Y the identity?
-        bool orthonormal;
+        //! The current decomposition
+        Decomposition<FMatrix> m_operator;
     };
     
     
@@ -262,8 +254,11 @@ namespace kqp {
         Event(const KernelEVD<FMatrix> &evd, bool fuzzy = false) 
             : KernelOperator<FMatrix>(evd), 
               useLinearCombination(ftraits<FMatrix>::can_linearly_combine) {       
-            init();
-                  if (fuzzy) this->mS = Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>::Identity(this->X().size(), this->X().size());
+                  init();
+                  if (!fuzzy) {
+                      this->orthonormalize();
+                      this->m_operator.mD = RealVector::Ones(this->X().size());
+                  }
         }
         
         /** Construct an event from a basis */
@@ -316,7 +311,9 @@ namespace kqp {
                         
             Index n = event.S().rows();
             
-            ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - event.S().cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y()));
+            // FIXME
+            RealVector s = event.S();
+            ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y()));
             
             FMatrix mX = density.X().linear_combination(density.Y(), 1., event.X(), e_mY, -1.);
             
@@ -361,7 +358,8 @@ namespace kqp {
             Index n = event.S().rows();
             
             _mY.topRows(density.X().size()) = ((Scalar)-1) * density.Y() * density.S();
-            _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - event.S().cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y());
+            RealVector s = event.S();
+            _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y());
             
             ScalarAltMatrix mY; 
             mY.swap(_mY);
@@ -417,8 +415,8 @@ namespace kqp {
         //! Computes the entropy
         Real entropy() const {
             this->orthonormalize();
-            
-            return (2 * this->S().array().log() * this->S().array().abs2()).sum();
+            RealVector s = this->S();
+            return (2 * s.array().log() * s.array().abs2()).sum();
         }
         
         /**
@@ -458,7 +456,9 @@ namespace kqp {
 			// Main computation
 			RealVector mD(tau.S().rows());
             
-            plogq -= (inners * (-((1 - epsilon) * tau.S().array().abs2() + alpha_noise).log())  .sqrt().matrix().asDiagonal()).squaredNorm();
+            RealVector tau_S = tau.S();
+            
+            plogq -= (inners * (-((1 - epsilon) * tau_S.array().abs2() + alpha_noise).log())  .sqrt().matrix().asDiagonal()).squaredNorm();
             
             
             // --- Compute tr(p log p)
