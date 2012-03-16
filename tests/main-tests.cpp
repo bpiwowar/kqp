@@ -54,7 +54,8 @@ DEFINE_TEST("kernel-evd", do_kevd_tests)
 
 DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
 DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
-DEFINE_TEST("reduced-set/qp", test_reduced_set_qp)
+DEFINE_TEST("reduced-set/qp/exact", test_reduced_set_qp_exact)
+DEFINE_TEST("reduced-set/qp/approximate", test_reduced_set_qp_approximate)
 
 DEFINE_TEST("probabilities", do_probabilities_tests);
 DEFINE_TEST("projections", projection_test);
@@ -84,6 +85,13 @@ int main(int argc, const char **argv) {
                 seed = std::atol(args[0].c_str());
                 args.pop_front();
             } 
+            
+            else if (args[0] == "--debug") {
+                args.pop_front();
+                std::string id = args[0];
+                args.pop_front();
+                LOGGER_CONFIG.setLevel(id, "DEBUG");
+            }
             
             else if (args[0] == "--log-level") {
                 args.pop_front();

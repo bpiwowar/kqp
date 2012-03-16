@@ -16,6 +16,11 @@ FUNCTION(do_test id taskname)
    set_tests_properties(${id} PROPERTIES TIMEOUT 5)
 ENDFUNCTION(do_test taskname)
 
+FUNCTION(run_test taskname)
+   ADD_TEST(${taskname} ${EXECUTABLE_OUTPUT_PATH}/kqp_test "${taskname}" ${ARGN})
+   set_tests_properties(${id} PROPERTIES TIMEOUT 5)
+ENDFUNCTION(run_test taskname)
+
 # --- EVD update tests
 
 do_test(evd-update evd-update simple)
@@ -33,9 +38,10 @@ do_test(kqp-qp-random "kqp-qp-solver" "random")
 
 # --- Reduced set methods
 
-do_test(reduced-set_unused "reduced-set/unused")
-do_test(reduced-set_null-space "reduced-set/null-space")
-do_test(reduced-set_qp "reduced-set/qp")
+run_test("reduced-set/unused")
+run_test("reduced-set/null-space")
+run_test("reduced-set/qp/exact")
+run_test("reduced-set/qp/approximate")
 
 # --- Exact Kernel EVD
 

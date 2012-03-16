@@ -33,7 +33,9 @@ namespace kqp {
      * @param dim The dimension of the space
      * @param rank The rank of the matrix
      */
-    template<typename Scalar> Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(Index dim, Index rank, Scalar min = (Scalar)1, Scalar max = (Scalar)10) {
+    template<typename Scalar> 
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
+    generateMatrix(Index dim, Index rank, Scalar min = (Scalar)1, Scalar max = (Scalar)10) {
         // Initialisation
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
         typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
@@ -51,6 +53,34 @@ namespace kqp {
         // Returns the matrix
         return matrix * diagonal.asDiagonal() * matrix.transpose();
         
+    }
+    
+    //! Random vector
+    template<typename Scalar> 
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
+    generateVector(Index dim, Scalar min = (Scalar)1, Scalar max = (Scalar)10) {
+        Eigen::Matrix<Scalar, Eigen::Dynamic, 1>  v(dim);
+        for(Index i = 0; i < dim; i++)
+            v(i) = Eigen::internal::random(min, max);
+        return v;
+    }
+
+    
+    /** 
+     * Generate an orthonormal matrix
+     * 
+     * @param rows The number of rows
+     * @param cols The number of columns
+     */
+    template<typename Scalar> 
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
+    generateOrthonormalMatrix(Index rows, Index cols) {
+        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+
+        if (rows < cols) 
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Number of rows (%d) is less than number of columns (%d)", %rows%cols);
+        
+        return Eigen::FullPivHouseholderQR<ScalarMatrix>(ScalarMatrix::Random(rows,rows)).matrixQ().leftCols(cols);        
     }
 }
 

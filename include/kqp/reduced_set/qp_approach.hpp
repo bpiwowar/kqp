@@ -17,6 +17,7 @@
 
 #ifndef __KQP_REDUCED_QP_APPROACH_H__
 #define __KQP_REDUCED_QP_APPROACH_H__
+ 
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
@@ -27,7 +28,12 @@
 #include <kqp/coneprog.hpp>
 
 
+
 namespace kqp {
+
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.qp-approach");
+    
     /** \brief Solve the QP system associated to the reduced set problem.
      * 
      * <p>Mimimise 
@@ -53,6 +59,7 @@ namespace kqp {
             LambdaError<Scalar> r;
             r.delta = this->delta + other.delta;
             r.maxa = this->maxa + other.maxa;
+            std::cerr << "[[" << *this << " + " << other << "]] = " << r << std::endl;
             return r;
         }
         
@@ -62,6 +69,11 @@ namespace kqp {
         
     };
     
+    template<typename Scalar>
+    std::ostream &operator<<(std::ostream &out, const LambdaError<Scalar> &l) {
+        return out << boost::format("<delta=%g, maxa=%g, index=%d>") % l.delta %l.maxa %l.j;
+    }
+                             
     /// Compares using indices that refers to an array of comparable elements
     template<class IndexedComparable>
     struct IndirectComparator {
@@ -111,8 +123,8 @@ namespace kqp {
          */
         //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
         void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::ScalarAltMatrix &mY, const RealVector &mD) {
-            ScalarMatrix gram = mF.inner();
-            
+            // Get the Gram matrix
+            const ScalarMatrix &gram = mF.inner();
             
             // Dimension of the basis
             Index r = mY.cols();
@@ -127,23 +139,30 @@ namespace kqp {
             //
             
             std::vector< LambdaError<Real> > errors;
-            for(Index j = 0; j < r; j++) {
+            for(Index i = 0; i < n; i++) {
                 Real maxa = 0;
                 Real delta = 0;
-                for(Index i = 0; i < n; i++) {
-                    Real x = Eigen::internal::abs2(mY(i,j)); 
+                for(Index j = 0; j < r; j++) {
+                    Real x = Eigen::internal::abs2(mY(i,j) * mD[j]); 
                     delta += x;
                     maxa = std::max(maxa, std::sqrt(x));
                 }
-                errors.push_back(LambdaError<Real>(delta * Eigen::internal::abs2(gram(j,j)), maxa, j));
+                errors.push_back(LambdaError<Real>(delta * Eigen::internal::abs2(gram(i,i)), maxa, i));
             }
+            
             
             typedef typename LambdaError<Real>::Comparator LambdaComparator;
             std::sort(errors.begin(), errors.end(), LambdaComparator());
-            LambdaError<Real> acc_lambda = std::accumulate(errors.begin(), errors.begin() + target, LambdaError<Real>());
+            LambdaError<Real> acc_lambda = std::accumulate(errors.begin(), errors.begin() + n - target, LambdaError<Real>());
             
+//            for(Index j = 0; j < n; j++) 
+//                std::cerr << boost::format("[%d] delta=%g and maxa=%g\n") %j %errors[j].delta %errors[j].maxa;
+//
+//            std::cerr << boost::format("delta=%g and maxa=%g\n") %acc_lambda.delta % acc_lambda.maxa;
+
             Real lambda =  acc_lambda.delta / acc_lambda.maxa;   
-                            
+            KQP_HLOG_INFO_F("Lambda = %g", %lambda);                
+            
             //
             // (2) Solve the cone quadratic problem
             //
@@ -167,9 +186,12 @@ namespace kqp {
             
             // Sort by increasing order: we will keep only the target last vectors
             std::sort(indices.begin(), indices.end(), getIndirectComparator(result.x.tail(n)));
-            
-            // Now sorts so that we minimise the number of swaps
-            std::sort(indices.end() - target, indices.end());
+
+            if (KQP_IS_DEBUG_ENABLED(KQP_HLOGGER)) {
+                for(Index i = 0; i < n; i++) {
+                    KQP_HLOG_DEBUG_F(boost::format("[%d] %g"), % indices[i] % result.x[result.x.size() - n + indices[i]]);
+                }
+            }
             
             // Construct a sub-view of the initial set of indices
             std::vector<bool> to_keep(n, false);

@@ -4,7 +4,7 @@
 
 #include <kqp/reduced_set/qp_approach.hpp>
 
-DEFINE_LOGGER(logger, "kqp.qp_approach");
+DEFINE_LOGGER(logger, "kqp.qp-approach");
 
 namespace kqp {
     
@@ -308,7 +308,7 @@ namespace kqp {
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix);
         cvxopt::ConeQPOptions<Scalar> options;
         
-        KQP_LOG_DEBUG(logger,  "c:\n" << c);
+        KQP_LOG_DEBUG(logger,  "c:\n" << c.transpose());
 
         cvxopt::coneqp<Scalar>(KMult<Scalar>(n,r, gramMatrix), c, result, 
                                false /* No initial value */, 

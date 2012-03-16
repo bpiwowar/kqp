@@ -110,49 +110,54 @@ namespace kqp {
     }
     
 
-//! Usefull to instanciate / declare a series of templates
-#define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix) \
+# //! Usefull to instanciate / declare a series of templates
+# define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix) \
     prefix double suffix; \
     prefix std::complex<double> suffix; 
 
-    //    prefix float suffix; 
-   //    prefix std::complex<float> suffix;
 
-
-    // --- USEFUL MACROS ---
     
-
-#define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
-#define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
+# //! A matrix
+# define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
+    
+# //! A vector
+# define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
     
     
     
-    //! Demangle a pointer
-#define KQP_DEMANGLEP(x) (x ? kqp::demangle(typeid(x)) : kqp::demangle(typeid(*x)))
-    //! Demangle a reference
-#define KQP_DEMANGLE(x) kqp::demangle(typeid(x))
+# //! Demangle a pointer
+# define KQP_DEMANGLEP(x) (x ? kqp::demangle(typeid(x)) : kqp::demangle(typeid(*x)))
     
-    //! Hidden macro for STRING_IT(x)
-#define KQP_XSTRING_IT(x) #x
+# //! Demangle a reference
+# define KQP_DEMANGLE(x) kqp::demangle(typeid(x))
     
-    //! String-ize the parameter
-#define KQP_STRING_IT(x) KQP_XSTRING_IT(x)
+# //! Hidden macro for STRING_IT(x)
+# define KQP_XSTRING_IT(x) #x
+    
+# //! String-ize the parameter
+# define KQP_STRING_IT(x) KQP_XSTRING_IT(x)
     
     
     // ---- LOGGING MACROS ---
     
-#ifdef NOLOGGING
+# ifdef NOLOGGING
     
-#define DEFINE_LOGGER(logger, loggerName)
-#define KQP_LOG_DEBUG(name,message)
-#define KQP_LOG_DEBUG_S(name,message)
-#define KQP_LOG_INFO(name,message)
-#define KQP_LOG_WARN(name,message)
-#define KQP_LOG_ERROR(name,message)
-#define KQP_LOG_ASSERT(name,condition,message)
+#    define DEFINE_LOGGER(logger, loggerName)
+#    define KQP_LOG_DEBUG(name,message)
+#    define KQP_LOG_DEBUG_S(name,message)
+#    define KQP_LOG_INFO(name,message)
+#    define KQP_LOG_WARN(name,message)
+#    define KQP_LOG_ERROR(name,message)
+#    define KQP_LOG_ASSERT(name,condition,message)
+    
+#    // Check logger level
+#    define KQP_IS_DEBUG_ENABLED(name) false
+#    define KQP_IS_INFO_ENABLED(name) false
+#    define KQP_IS_WARN_ENABLED(name) false
+#    define KQP_IS_ERROR_ENABLED(name) false
 
-//! Throw an exception with a message
-#define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+#    //! Throw an exception with a message
+#    define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
 
     
     
@@ -163,34 +168,40 @@ namespace kqp {
         
     extern log4cxx::LoggerPtr main_logger;
     
-    // We define the logger
+#   define KQP_IS_DEBUG_ENABLED(name) (name->isDebugEnabled())
+#   define KQP_IS_INFO_ENABLED(name) (name->isInfoEnabled())
+#   define KQP_IS_WARN_ENABLED(name) (name->isWarnEnabled())
+#   define KQP_IS_ERROR_ENABLED(name) (name->isErrorEnabled())
+
+#    // We define the logger
+#    define DEFINE_LOGGER(loggerId, loggerName) namespace { log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName)); }
     
-#define DEFINE_LOGGER(loggerId, loggerName) namespace { log4cxx::LoggerPtr loggerId(log4cxx::Logger::getLogger(loggerName)); }
-    
-    // * Note * Use the if (false) construct to compile code; the code optimizer
-    // is able to remove the corresponding code, so it does change
-    // the speed 
-    // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
-#ifndef NDEBUG
+#    // * Note * Use the if (false) construct to compile code; the code optimizer
+#    // is able to remove the corresponding code, so it does change
+#    // the speed 
+#    // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
+#    ifndef NDEBUG
     
 
-    /** Debug */
-#define KQP_LOG_DEBUG(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
-    /** Assertion with message */
-#define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { prepareLogger(); LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
-
-//! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
-#define KQP_THROW_EXCEPTION(type, message) { prepareLogger(); KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
-
-#else // No DEBUG
+#      /** Debug */
+#      define KQP_LOG_DEBUG(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
     
-//! Throw an exception with a message
-#define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+#     /** Assertion with message */
+#     define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { prepareLogger(); LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
 
-    /** Debug */
-#define KQP_LOG_DEBUG(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
-    /** Assertion with message */
-#define KQP_LOG_ASSERT(name,condition,message) { if (false && !(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+#     //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
+#     define KQP_THROW_EXCEPTION(type, message) { prepareLogger(); KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
+
+#    else // No DEBUG
+    
+#     //! Throw an exception with a message
+#     define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+
+#     /** Debug */
+#     define KQP_LOG_DEBUG(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
+    
+#     /** Assertion with message */
+#     define KQP_LOG_ASSERT(name,condition,message) { if (false && !(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
     
 #endif // ELSE
     
