@@ -23,7 +23,7 @@ PROJECT (kqp)
 SET (libkqp_VERSION "0.0.1")
 
 # Build by default a release version of the library
-SET(CMAKE_BUILD_TYPE "Release")
+OPTION(CMAKE_BUILD_TYPE "Release")
 
 # --- Version number
 
@@ -39,9 +39,18 @@ SET (libkqp_SOVERSION "${libkqp_VERSION_MAJOR}.${libkqp_VERSION_MINOR}")
 # --- Compilation flags
 
 IF(CMAKE_COMPILER_IS_GNUCXX)
-  SET (EXTRA_C_FLAGS "--std=c++0x -Wno-deprecated -Wall -W -Wextra -fPIC")
-  SET (EXTRA_C_FLAGS_RELEASE "-O3")
-  SET (EXTRA_C_FLAGS_DEBUG "-O3 -g")
+	# Get the major and minor version
+	EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    
+  IF(GCC_VERSION VERSION_GREATER "4.6.999999")
+	SET(CXX_STD "c++11")
+  ELSE()
+	SET(CXX_STD "c++0x")
+  ENDIF()
+
+  SET (EXTRA_C_FLAGS "--std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC")
+  SET (EXTRA_C_FLAGS_RELEASE "-O3 ${EXTRA_C_FLAGS}")
+  SET (EXTRA_C_FLAGS_DEBUG "-O0 -g ${EXTRA_C_FLAGS}")
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 IF (CMAKE_GENERATOR MATCHES Xcode)
