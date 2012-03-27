@@ -711,6 +711,22 @@ LatexCommand tableofcontents
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+input{pygment}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Introduction
 \end_layout
@@ -3337,6 +3353,26 @@ We project the old operator into the new space in order to minimise the
 \end_layout
 
 \begin_layout Section
+Example
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+input{code/example_1}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
 Conclusion
 \end_layout
 
@@ -3348,40 +3384,9 @@ This document described the Kernel Quantum Probability Library, that can
 \end_layout
 
 \begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Caption
-
-\begin_layout Plain Layout
-Example of the use of the KQP library
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-An example of the use of the library is given in
-\end_layout
-
-\begin_layout Standard
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
-bibfiles "kernels"
+bibfiles "kqp"
 options "abbrv"
 
 \end_inset

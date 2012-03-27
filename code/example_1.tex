@@ -1,0 +1,59 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{c+cp}{\PYZsh{}}\PY{c+cp}{include <kqp}\PY{c+cp}{/}\PY{c+cp}{feature\PYZus{}matrix}\PY{c+cp}{/}\PY{c+cp}{dense.hpp>}
+\PY{c+cp}{\PYZsh{}}\PY{c+cp}{include <kqp}\PY{c+cp}{/}\PY{c+cp}{kernel\PYZus{}evd}\PY{c+cp}{/}\PY{c+cp}{incremental.hpp>}
+\PY{c+cp}{\PYZsh{}}\PY{c+cp}{include <kqp}\PY{c+cp}{/}\PY{c+cp}{probabilities.hpp>}
+
+\PY{k+kt}{int} \PY{n}{main}\PY{p}{(}\PY{k+kt}{int}\PY{p}{,} \PY{k}{const} \PY{k+kt}{char}\PY{o}{*}\PY{o}{*}\PY{p}{)} \PY{p}{\PYZob{}}
+    
+    \PY{c+c1}{// --- Compute a density at random}
+    
+    \PY{c+c1}{// Definitions}
+    \PY{k}{using} \PY{k}{namespace} \PY{n}{kqp}\PY{p}{;}
+    \PY{k}{typedef} \PY{n}{Eigen}\PY{o}{:}\PY{o}{:}\PY{n}{Matrix}\PY{o}{<}\PY{k+kt}{double}\PY{p}{,} \PY{n}{Eigen}\PY{o}{:}\PY{o}{:}\PY{n}{Dynamic}\PY{p}{,} \PY{n}{Eigen}\PY{o}{:}\PY{o}{:}\PY{n}{Dynamic}\PY{o}{>} \PY{n}{Matrix}\PY{p}{;}
+    \PY{k+kt}{int} \PY{n}{dim} \PY{o}{=} \PY{l+m+mi}{10}\PY{p}{;}
+    
+    \PY{c+c1}{// Creating an incremental builder}
+    \PY{n}{IncrementalKernelEVD}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{kevd}\PY{p}{;}
+    
+    \PY{c+c1}{// Add 10 vectors with $\alpha_i=1$}
+    \PY{k}{for}\PY{p}{(}\PY{k+kt}{int} \PY{n}{i} \PY{o}{=} \PY{l+m+mi}{0}\PY{p}{;} \PY{n}{i} \PY{o}{<} \PY{l+m+mi}{10}\PY{p}{;} \PY{n}{i}\PY{o}{+}\PY{o}{+}\PY{p}{)} \PY{p}{\PYZob{}}
+        \PY{c+c1}{// Adds a random $\varphi_i$}
+        \PY{n}{Matrix} \PY{n}{m} \PY{o}{=} \PY{n}{Matrix}\PY{o}{:}\PY{o}{:}\PY{n}{Random}\PY{p}{(}\PY{n}{dim}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{)}\PY{p}{;}
+        \PY{n}{kevd}\PY{p}{.}\PY{n}{add}\PY{p}{(}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{p}{(}\PY{n}{m}\PY{p}{)}\PY{p}{)}\PY{p}{;}
+    \PY{p}{\PYZcb{}}
+    
+    \PY{c+c1}{// Get the result $\rho \approx X Y D Y^\dagger X^\dagger$}
+    \PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>} \PY{n}{mX}\PY{p}{;}
+    \PY{k}{typename} \PY{n}{AltDense}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{:}\PY{o}{:}\PY{n}{type} \PY{n}{mY}\PY{p}{;}
+    \PY{n}{Eigen}\PY{o}{:}\PY{o}{:}\PY{n}{Matrix}\PY{o}{<}\PY{k+kt}{double}\PY{p}{,} \PY{n}{Eigen}\PY{o}{:}\PY{o}{:}\PY{n}{Dynamic}\PY{p}{,}\PY{l+m+mi}{1}\PY{o}{>}  \PY{n}{mD}\PY{p}{;}
+    
+    \PY{n}{kevd}\PY{p}{.}\PY{n}{get\PYZus{}decomposition}\PY{p}{(}\PY{n}{mX}\PY{p}{,} \PY{n}{mY}\PY{p}{,} \PY{n}{mD}\PY{p}{)}\PY{p}{;}
+
+    \PY{c+c1}{// --- Compute a kEVD for a subspace}
+    
+    \PY{n}{IncrementalKernelEVD}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{kevd\PYZus{}event}\PY{p}{;}
+    \PY{k}{for}\PY{p}{(}\PY{k+kt}{int} \PY{n}{i} \PY{o}{=} \PY{l+m+mi}{0}\PY{p}{;} \PY{n}{i} \PY{o}{<} \PY{l+m+mi}{3}\PY{p}{;} \PY{n}{i}\PY{o}{+}\PY{o}{+}\PY{p}{)} \PY{p}{\PYZob{}}
+        \PY{c+c1}{// Adds a random $\varphi_i$}
+        \PY{n}{Matrix} \PY{n}{m} \PY{o}{=} \PY{n}{Matrix}\PY{o}{:}\PY{o}{:}\PY{n}{Random}\PY{p}{(}\PY{n}{dim}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{)}\PY{p}{;}
+        \PY{n}{kevd\PYZus{}event}\PY{p}{.}\PY{n}{add}\PY{p}{(}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{p}{(}\PY{n}{m}\PY{p}{)}\PY{p}{)}\PY{p}{;}
+    \PY{p}{\PYZcb{}}
+
+    
+    \PY{c+c1}{// --- Compute some probabilities}
+    
+    \PY{c+c1}{// Setup densities and events}
+    \PY{n}{Density}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{rho}\PY{p}{(}\PY{n}{kevd}\PY{p}{)}\PY{p}{;}
+    \PY{n}{Event}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{event}\PY{p}{(}\PY{n}{kevd\PYZus{}event}\PY{p}{)}\PY{p}{;}
+    
+    \PY{c+c1}{// Compute the probability}
+    \PY{n}{std}\PY{o}{:}\PY{o}{:}\PY{n}{cout} \PY{o}{<}\PY{o}{<} \PY{l+s}{"}\PY{l+s}{Probability = }\PY{l+s}{"} \PY{o}{<}\PY{o}{<} \PY{n}{rho}\PY{p}{.}\PY{n}{probability}\PY{p}{(}\PY{n}{event}\PY{p}{)} \PY{o}{<}\PY{o}{<} \PY{n}{std}\PY{o}{:}\PY{o}{:}\PY{n}{endl}\PY{p}{;}
+
+    \PY{c+c1}{// Conditional probability}
+    \PY{n}{Density}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{rho\PYZus{}cond} \PY{o}{=} \PY{n}{event}\PY{p}{.}\PY{n}{project}\PY{p}{(}\PY{n}{kevd}\PY{p}{)}\PY{p}{.}\PY{n}{normalize}\PY{p}{(}\PY{p}{)}\PY{p}{;} 
+
+    \PY{c+c1}{// Conditional probability (orthogonal event)}
+    \PY{n}{Density}\PY{o}{<}\PY{n}{DenseMatrix}\PY{o}{<}\PY{k+kt}{double}\PY{o}{>}\PY{o}{>} \PY{n}{rho\PYZus{}cond\PYZus{}orth} \PY{o}{=} \PY{n}{event}\PY{p}{.}\PY{n}{project}\PY{p}{(}\PY{n}{kevd}\PY{p}{,} \PY{k+kc}{true}\PY{p}{)}\PY{p}{.}\PY{n}{normalize}\PY{p}{(}\PY{p}{)}\PY{p}{;}
+    
+    \PY{k}{return} \PY{l+m+mi}{0}\PY{p}{;}
+\PY{p}{\PYZcb{}}
+\end{Verbatim}
