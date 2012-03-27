@@ -350,8 +350,13 @@ End
 \use_bibtopic false
 \use_indices false
 \paperorientation portrait
-\suppress_date false
+\suppress_date true
 \use_refstyle 0
+\branch devel
+\selected 0
+\filename_suffix 0
+\color #faf0e6
+\end_branch
 \index Index
 \shortcut idx
 \color #008000
@@ -868,6 +873,21 @@ reference "sec:kevd"
 quantum
 \emph default
  densities or events.
+\end_layout
+
+\begin_layout Enumerate
+In Section
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:example"
+
+\end_inset
+
+, we give an example of code using KQP in C++.
 \end_layout
 
 \begin_layout Section*
@@ -2984,19 +3004,11 @@ E=\mbox{tr}\left(\trtimes{XA\Sigma A^{\dagger}X^{\dagger}-XBTB^{\dagger}X^{\dagg
 
 \begin_layout Standard
 Denoting 
-\begin_inset Formula $a_{i}=\sigma_{i}XA_{\bullet i}$
+\begin_inset Formula $a_{i}=\X A_{\bullet i}\Sigma^{1/2}$
 \end_inset
 
  and 
-\begin_inset Formula $b_{i}=\tau_{i}XB_{\bullet i}$
-\end_inset
-
- where 
-\begin_inset Formula $\sigma_{i}=\sqrt{\Sigma_{ii}}$
-\end_inset
-
- and 
-\begin_inset Formula $\tau_{i}=\sqrt{T_{ii}}$
+\begin_inset Formula $b_{i}=\X B_{\bullet i}T^{1/2}$
 \end_inset
 
  the two sets of vectors (in the feature space), we can then rewrite 
@@ -3045,8 +3057,8 @@ key "Scholkopf1999Input"
  regularisation): 
 \begin_inset Formula 
 \begin{align}
-\mbox{minimise } & E_{RS}=\sum_{i}\nu_{i}\left\Vert a_{i}-b_{i}\right\Vert ^{2}+\lambda\xi_{i}\label{eq:rs-opt}\\
-\mbox{subject to } & \xi_{i}\ge\left|B_{ij}\right|\nonumber 
+\mbox{minimise } & E_{RS}=\sum_{j}\nu_{j}\left\Vert a_{j}-b_{j}\right\Vert ^{2}+\lambda\xi_{i}\label{eq:rs-opt}\\
+\mbox{subject to } & \forall i\,\xi_{i}\ge\max_{j}\left|B_{ij}\right|\nonumber 
 \end{align}
 
 \end_inset
@@ -3064,15 +3076,78 @@ The role of
 \end_inset
 
  are close to 0 at the end of the optimisation.
- We set 
+ Finally, and differently from other approaches, we added a new constant,
+ 
 \begin_inset Formula $\nu_{i}$
 \end_inset
 
- in the following.
+, that ensures that 
+\begin_inset Formula $K\times E_{RS}\ge E$
+\end_inset
+
+ for some 
+\begin_inset Formula $K\ge0$
+\end_inset
+
+.
+ We discuss both in the following.
 \end_layout
 
 \begin_layout Paragraph
 Relation with the reduced set approach
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+with ginsh (ginac)
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+l=a^2/(a^2+c^2);
+\end_layout
+
+\begin_layout Plain Layout
+eRS=((1-l)^2 * a^2 + l^2 * c^2); 
+\end_layout
+
+\begin_layout Plain Layout
+e1 = a^4 + (l^2*a^2 +l^2 * c^2)^2 - 2 * l^4 * a^4;
+\end_layout
+
+\begin_layout Plain Layout
+# Shows that it is a strictly decreasing function of c
+\end_layout
+
+\begin_layout Plain Layout
+r=normal(e1/eRS);
+\end_layout
+
+\begin_layout Plain Layout
+normal((diff(r,c)));
+\end_layout
+
+\begin_layout Plain Layout
+# with c = 0
+\end_layout
+
+\begin_layout Plain Layout
+subs(r,c==0);
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -3180,7 +3255,7 @@ which is clearly bounded by
 \end_layout
 
 \begin_layout Standard
-Our problem is then to optimise Eq.
+Our problem is thus to optimise Eq.
  (
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -3189,21 +3264,21 @@ reference "eq:rs-opt"
 \end_inset
 
 ) with 
-\begin_inset Formula $\nu_{i}=\left\Vert a_{i}\right\Vert =\sigma_{i}$
+\begin_inset Formula $\nu_{j}=\sigma_{j}=\left\Vert a_{j}\right\Vert ^{2}=|\Sigma_{jj}|$
 \end_inset
 
 , or equivalently, by posing 
-\begin_inset Formula $B^{\prime}=B^{\prime}\Sigma^{-1/2}$
+\begin_inset Formula $B_{\bullet j}^{\prime}=\sigma_{j}B_{j}$
 \end_inset
 
-.
+, we can reformulate the optimisation problem as:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align}
-\mbox{minimise } & E_{RS}=\sum_{i}\left\Vert \sigma_{i}a_{i}-b_{i}^{\prime}\right\Vert ^{2}+\lambda\xi_{i}\label{eq:rs-opt-1}\\
-\mbox{subject to } & \xi_{i}\ge\sigma_{j}\left|B_{ij}^{\prime}\right|\nonumber 
+\mbox{minimise } & E_{RS}=\sum_{j}\left\Vert \sigma_{j}a_{j}-b_{j}^{\prime}\right\Vert ^{2}+\lambda\xi_{j}\label{eq:rs-opt-1}\\
+\mbox{subject to } & \forall i\,\xi_{i}\ge\max_{j}\sigma_{j}^{-1}\left|B_{ij}^{\prime}\right|\nonumber 
 \end{align}
 
 \end_inset
@@ -3224,10 +3299,18 @@ If
 \begin_inset Formula $B=A$
 \end_inset
 
-, then 
+ (trivial solution when 
+\begin_inset Formula $\lambda=0$
+\end_inset
+
+), then to minimise the above equation, we set 
+\begin_inset Formula $\xi_{i}=\max\sigma_{j}^{-1}|\sigma_{j}A_{ij}\sigma_{j}^{1/2}|$
+\end_inset
+
+ and 
 \begin_inset Formula 
 \[
-E_{RS}^{(0)}=\lambda\sum_{i}\max_{j}\left|\sigma_{j}A_{ij}\right|
+E_{RS}^{(0)}=\lambda\sum_{i}\max_{j}|\sigma_{j}^{1/2}A_{ij}|
 \]
 
 \end_inset
@@ -3242,7 +3325,7 @@ If we remove the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\sigma_{i}A_{ij}\right|+\sum_{j}\left\Vert \sigma_{j}\X A_{\bullet j}\right\Vert ^{2}\underbrace{\left\Vert \X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right\Vert ^{2}}_{\left|\sigma_{j}K_{ii}A_{ij}\right|^{2}}
+E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\text{\sigma}_{j}^{1/2}A_{ij}\right|+\sum_{j}\underbrace{\left\Vert \sigma_{j}^{3/2}\left(\X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right)\right\Vert ^{2}}_{\sigma_{j}^{3}\left|K_{ii}A_{ij}\right|^{2}}
 \]
 
 \end_inset
@@ -3274,7 +3357,7 @@ where
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{4}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}A_{ij}\right|\ge0
+E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}^{1/2}A_{ij}\right|\ge0
 \end{align*}
 
 \end_inset
@@ -3298,7 +3381,7 @@ E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{4}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sigma_{j}^{4}A_{\bullet j}^{\dagger}KA_{\bullet j}\sum_{j=1}^{r}\sigma_{j}^{2}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{i}A_{ij}\right|}
+\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{i}A_{ij}\right|}
 \]
 
 \end_inset
@@ -3354,6 +3437,16 @@ We project the old operator into the new space in order to minimise the
 
 \begin_layout Section
 Example
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:example"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -3780,10 +3873,18 @@ Writing
 \end_inset
 
  and 
-\begin_inset Formula $K_{q}=\X^{\dagger}\X$
+\begin_inset Formula $K=\X^{\dagger}\X$
 \end_inset
 
- the gram matrix, we have
+ the gram matrix (
+\begin_inset Formula $r$
+\end_inset
+
+ is the rank of the opeator, 
+\begin_inset Formula $n$
+\end_inset
+
+ is the number of pre-images), we have
 \end_layout
 
 \begin_layout Standard
@@ -3880,17 +3981,25 @@ We require that both the real and imaginary part be inferior to
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\forall i\in1\dots n,\,\forall q\in1\dots r & \beta_{qi}^{\prime}+\xi_{i}\ge0\mbox{ and }-\beta_{qi}^{\prime}+\xi_{i}\ge0\\
- & \beta_{qi}^{\second}+\xi_{i}\ge0\mbox{ and }-\beta_{qi}^{\second}+\xi_{i}\ge0
+\forall i\in1\dots n,\,\forall q\in1\dots r,\, & S_{qq}\beta_{qi}^{\prime}+\xi_{i}\ge0\mbox{ and }-S_{qq}\beta_{qi}^{\prime}+\xi_{i}\ge0\\
+ & S_{qq}\beta_{qi}^{\second}+\xi_{i}\ge0\mbox{ and }-S_{qq}\beta_{qi}^{\second}+\xi_{i}\ge0
 \end{align*}
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 where 
+\begin_inset Formula $S$
+\end_inset
+
+ is a diagonal matrix of size 
+\begin_inset Formula $r$
+\end_inset
+
+ such that 
+\begin_inset Formula $S_{jj}=\sigma_{j}^{-1}$
+\end_inset
+
+, and 
 \begin_inset Formula $x$
 \end_inset
 
@@ -3933,24 +4042,33 @@ Denoting
 \begin_inset Formula 
 \begin{eqnarray*}
 H & = & \left(\begin{array}{cc}
-K_{\otimes r}^{\prime}\\
+\mbox{diag}{}_{r}K^{\prime}\\
  & \mathbf{0}_{n}
 \end{array}\right)\\
 c & = & \left(\begin{array}{c}
--\nu_{q}K^{\second}\alpha_{1}\\
+-K^{\second}\alpha_{1}\\
 \vdots\\
--\nu_{q}K^{\second}\alpha_{r}\\
+-K^{\second}\alpha_{r}\\
 \frac{\lambda}{2}\mathbf{1}^{(n)}
 \end{array}\right)\\
 G & = & \left(\begin{array}{cc}
--\Id_{r^{\prime}n} & -\Id_{n}^{(r^{\prime})}\\
-\Id_{r^{\prime}n} & -\Id_{n}^{(r^{\prime})}
+-\mbox{diag}_{r^{\prime}}S & -\Id_{n}^{(r^{\prime})}\\
+\mbox{diag}_{r^{\prime}}S & -\Id_{n}^{(r^{\prime})}
 \end{array}\right)
 \end{eqnarray*}
 
 \end_inset
 
+where 
+\begin_inset Formula $\mbox{diag}_{r}$
+\end_inset
 
+ repeats the matrix 
+\begin_inset Formula $r$
+\end_inset
+
+ times in the diagonal.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -3966,11 +4084,7 @@ In the case where
 \begin_inset Formula $r^{\prime}=r$
 \end_inset
 
-.
-\end_layout
-
-\begin_layout Standard
-In the case where 
+; in the case where 
 \begin_inset Formula $\mathbb{K}=\mathbb{C}$
 \end_inset
 
@@ -3996,6 +4110,14 @@ K^{\second} & =\left(\begin{array}{cc}
 
 \end_inset
 
+
+\end_layout
+
+\begin_layout Subsection
+Pre-solving the system
+\end_layout
+
+\begin_layout Standard
 In order to speed up, we need to solve the linear systems defined by
 \end_layout
 
@@ -4019,9 +4141,9 @@ where
 \begin_inset Formula 
 \[
 \left(\begin{array}{cccc}
-K_{r}^{\prime} & -\Id_{nr^{\prime}} & \Id_{n}^{(r^{\prime})} & \mathbf{0}_{n}^{(r^{\prime})}\\
--\Id_{nr^{\prime}} & -U & \mathbf{0}_{nr^{\prime}} & -\Id_{n}^{(r^{\prime})}\\
-\Id_{nr^{\prime}} & \mathbf{0}_{2nr} & -V & -\Id_{n}^{(r^{\prime})}\\
+\mbox{diag}_{r}K^{\prime} & -\Id_{nr^{\prime}} & \Id_{n}^{(r^{\prime})} & \mathbf{0}_{n}^{(r^{\prime})}\\
+-\mbox{diag}_{r^{\prime}}S & -U & \mathbf{0}_{nr^{\prime}} & -\Id_{n}^{(r^{\prime})}\\
+\mbox{diag}_{r^{\prime}}S & \mathbf{0}_{2nr} & -V & -\Id_{n}^{(r^{\prime})}\\
 \mathbf{0}_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(2r)\dagger} & \mathbf{0}
 \end{array}\right)\left(\begin{array}{c}
 x\\
@@ -4051,10 +4173,6 @@ where
 \end_inset
 
 .
-\end_layout
-
-\begin_layout Subsection
-Pre-solving the system
 \end_layout
 
 \begin_layout Standard
@@ -4133,15 +4251,15 @@ We now have
 L_{21}\\
 L_{31}
 \end{array}\right)L_{11}^{\dagger}=\left(\begin{array}{c}
--\Id_{nr}\\
--\Id_{nr}
+-\mbox{diag}_{r^{\prime}}S\\
+-\mbox{diag}_{r^{\prime}}S
 \end{array}\right)
 \]
 
 \end_inset
 
 which can be solved straightforwardly by first solving 
-\begin_inset Formula $BA^{\dagger}=\Id$
+\begin_inset Formula $BA^{\dagger}=S$
 \end_inset
 
  
@@ -4492,10 +4610,10 @@ A^{\dagger}x_{i} & =x_{i}^{\prime}-B^{\dagger}t_{i}+B^{\dagger}z_{i}
 \end_layout
 
 \begin_layout Standard
-\begin_inset Note Note
+\begin_inset Branch devel
 status collapsed
 
-\begin_layout Section
+\begin_layout Standard
 Substitutions
 \end_layout
 
@@ -4503,7 +4621,7 @@ Substitutions
 Finding the vector to substitute
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset CommandInset label
 LatexCommand label
 name "sub:finding"
@@ -4513,12 +4631,12 @@ name "sub:finding"
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 We would like to have a set of support vectors as orthogonal as possible.
  The criteria is 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \[
 \left\Vert K^{\bullet}-Id\right\Vert ^{2}
@@ -4579,7 +4697,7 @@ cos\left(x_{p},x_{1}\right) & \cdots & cos\left(x_{p},x_{p-1}\right) & 1
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 We thus define a cost 
 \begin_inset Formula $s_{k}=\left\Vert K-Id\right\Vert ^{2}-\left\Vert K_{x}-Id\right\Vert ^{2}$
 \end_inset
@@ -4613,7 +4731,7 @@ i\not=k
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 Defining
 \begin_inset Formula 
 \[
@@ -4629,7 +4747,7 @@ i\not=k
 we have
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \[
 s_{k}=2S_{k}-2S_{u}+2\cos\left(x_{k},u\right)^{2}
@@ -4644,7 +4762,7 @@ s_{k}=2S_{k}-2S_{u}+2\cos\left(x_{k},u\right)^{2}
 Exact case
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 Suppose we have a vector 
 \begin_inset Formula $u$
 \end_inset
@@ -4661,7 +4779,7 @@ Suppose we have a vector
  as 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray*}
 u & = & \X YY^{\dagger}\left(\begin{array}{c}
@@ -4677,7 +4795,7 @@ K\left(X_{\bullet,p},u\right)
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 where 
 \begin_inset Formula $x_{i}$
 \end_inset
@@ -4705,7 +4823,7 @@ where
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 If 
 \begin_inset Formula $\beta_{p}>0$
 \end_inset
@@ -4748,7 +4866,7 @@ t=\beta_{p}^{-1}\left(\begin{array}{c}
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 In general, substitution with the 
 \begin_inset Formula $k^{\text{th}}$
 \end_inset
@@ -4756,7 +4874,7 @@ In general, substitution with the
  vector means
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray*}
 Y & \gets & \left(\begin{array}{c}
@@ -4784,7 +4902,7 @@ X_{k,\bullet} & \gets & u
 Case where the substitution is not exact
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \[
 u=\sum_{i=1}^{n}\beta_{i}x_{i}+v
@@ -4795,7 +4913,7 @@ u=\sum_{i=1}^{n}\beta_{i}x_{i}+v
 
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 The idea is to 
 \end_layout
 
@@ -4815,11 +4933,11 @@ Remove the orthogonal (simple, since it is orthogonal)
 Step 1 (add the orthogonal to the decomposition)
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 The new decomposition is
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 \begin_inset Formula 
 \[
 \left(\begin{array}{cc}
@@ -4844,7 +4962,7 @@ Z & 0\\
 Step 2 (substitute the vector)
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 
 \family roman
 \series medium
@@ -4878,7 +4996,7 @@ Z & 0\\
 Step 3
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout Standard
 We are in the situation described by the exact case - the error made is
  
 \begin_inset Formula $\beta_{k}^{-2}$
@@ -4889,13 +5007,6 @@ We are in the situation described by the exact case - the error made is
 \end_inset
 
 )
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Note Note
-status open
-
-\begin_layout Plain Layout
 \begin_inset Float algorithm
 wide false
 sideways false
@@ -4994,11 +5105,6 @@ substitute(
 
  support vector by 
 \begin_inset Formula $u$
-\end_inset
-
-
-\end_layout
-
 \end_inset
 
 

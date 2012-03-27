@@ -15,7 +15,7 @@ all: $(pygment_targets)
 clean:
 	@rm -f $(pygment_targets)
 
-graphs: $(pygment_targets) $(sketch_targets)
+graphs: $(pygment_targets) 
 
 .PHONY: all clean slides
 
