@@ -1,0 +1,5018 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{fullpage}
+%\usepackage{algorithmic}
+\usepackage{mathrsfs}
+\usepackage{fancyvrb}
+\usepackage{color}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\begin_local_layout
+Format	 	 11
+Requires	color
+
+AddToPreamble
+\usepackage{float}
+\usepackage[noend]{algorithmic}
+\floatstyle{ruled}
+\newfloat{algorithm}{tbp}{loa}
+\floatname{algorithm}{Algorithm}
+\newcommand{\forbody}[1]{ #1 \ENDFOR}
+\newcommand{\ifbody}[1]{ #1  \ENDIF}
+\newcommand{\whilebody}[1]{ #1  \ENDWHILE}
+%\newcommand{\algorithmicprint}{\textbf{draw}}
+EndPreamble
+
+InsetLayout ALGORITHMIC
+LyxType         element
+LabelType	    Static
+LabelString     ALGORITHMIC
+Decoration	    Classic
+BgColor		    cyan
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    true
+LatexType       Environment
+LatexName       algorithmic
+#	LatexParam      [1]
+End
+InsetLayout REQUIRE
+LyxType         charstyle
+LabelType	    Static
+LabelString     REQUIRE
+Decoration	    Classic
+BgColor		    white
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    true
+LatexType       command
+LatexName       REQUIRE
+End
+InsetLayout FORALL
+LyxType         charstyle
+LabelType	    Static
+LabelString     FORALL
+Decoration	    Classic
+BgColor		    white
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    true
+LatexType       command
+LatexName       FORALL
+End
+InsetLayout FORBODY
+LyxType         element
+LabelType	    Static
+LabelString     FORBODY
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+BgColor		    green
+MultiPar	    true
+LatexType       command
+LatexName       forbody
+EndLabeltype	static
+EndLatexName	FORBODY
+End
+InsetLayout IF
+LyxType         charstyle
+LabelType	    Static
+LabelString     IF
+Decoration	    Classic
+BgColor		    white
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       IF
+End
+InsetLayout IFBODY
+LyxType         element
+LabelType	    Static
+LabelString     IFBODY
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+BgColor		    yellow
+MultiPar	    true
+LatexType       command
+LatexName       ifbody
+EndLabeltype	static
+EndLatexName	IFBODY
+End
+InsetLayout ELSIF
+LyxType         charstyle
+LabelType	    Static
+LabelString     ELSIF
+Decoration	    Classic
+BgColor		    white
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       ELSIF
+End
+InsetLayout ELSE
+LyxType         charstyle
+LabelType	    Static
+LabelString     ELSE
+Decoration	    Classic
+BgColor		    black
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       ELSE
+End
+InsetLayout ENDIF
+LyxType         charstyle
+LabelType	    Static
+LabelString     ENDIF
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       ENDIF
+End
+InsetLayout WHILE
+LyxType         charstyle
+LabelType	    Static
+LabelString     WHILE
+Decoration	    Classic
+BgColor		    white
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       WHILE
+End
+InsetLayout WHILEBODY
+LyxType         element
+LabelType	    Static
+LabelString     WHILEBODY
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+BgColor		    green
+MultiPar	    true
+LatexType       command
+LatexName       whilebody
+EndLabeltype	static
+EndLatexName	WHILEBODY
+End
+InsetLayout STATE
+LyxType         charstyle
+LabelType	    Static
+LabelString     STATE
+BgColor		    white
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    true
+LatexType       command
+LatexName       STATE
+End
+InsetLayout DRAW
+LyxType         charstyle
+LabelType	    Static
+LabelString     DRAW
+BgColor		    white
+Decoration	    Classic
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    true
+LatexType       command
+LatexName       PRINT
+End
+InsetLayout AND
+LyxType         charstyle
+LabelType	    Static
+LabelString     AND
+Decoration	    Classic
+BgColor		    black
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       AND
+End
+InsetLayout OR
+LyxType         charstyle
+LabelType	    Static
+LabelString     OR
+Decoration	    Classic
+BgColor		    black
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       OR
+End
+InsetLayout TRUE
+LyxType         charstyle
+LabelType	    Static
+LabelString     TRUE
+Decoration	    Classic
+BgColor		    black
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       TRUE
+End
+InsetLayout FALSE
+LyxType         charstyle
+LabelType	    Static
+LabelString     FALSE
+Decoration	    Classic
+BgColor		    black
+LabelFont
+Color		blue
+Family		Sans
+Size		Small
+EndFont
+MultiPar	    false
+LatexType       command
+LatexName       FALSE
+End
+
+
+
+       InsetLayout    CharStyle:System
+       LyxType               charstyle
+       LabelString           system
+       LatexType             command
+       LatexName            system
+       LabelType            static
+       Font
+           Family              Typewriter
+       EndFont
+       Preamble
+           \newcommand*{\system}[1]{{\ttfamily #1}}
+       EndPreamble
+       End
+\end_local_layout
+\language british
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format pdf2
+\output_sync 1
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_title "Kernel Quantum Probabilities"
+\pdf_author "B. Piwowarski"
+\pdf_keywords "quantum probabilities, kernel"
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder true
+\pdf_colorlinks true
+\pdf_backref page
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry false
+\use_amsmath 2
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+The Kernel Quantum Probabilities (KQP) Library
+\end_layout
+
+\begin_layout Author
+B.
+ Piwowarski
+\end_layout
+
+\begin_layout Abstract
+In this document, we show how the different quantities necessary to compute
+ kernel quantum probabilities can be computed.
+ This document form the basis of the implementation of the Kernel Quantum
+ Probability (KQP) open source project
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://kqp.bpiwowar.net/
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\units}{\mathcal{U}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\normv}{\left\Vert \mathcal{V}\right\Vert }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\dproj}[2]{#1\vartriangleright#2}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\Projector}{\mathcal{P}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\bra}[1]{#1^{\dagger}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\ket}[1]{#1}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\braAket}[3]{\left\langle #1\middle|#2\middle|#3\right\rangle }
+{\left\langle #1|#2|#3\right\rangle }
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\braket}[2]{\left\langle #1\middle|#2\right\rangle }
+{\left\langle #1|#2\right\rangle }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\pr}{\mbox{Pr}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\event}[1]{\mathbf{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\kbasis}[1]{\ket{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\bbasis}[1]{\bra{#1}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\norm}[1]{\left\Vert #1\right\Vert }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\card}[1]{\left|#1\right|}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\argmax}{\mathop{\arg\max}}
+{\arg\max}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\argmin}{\mathop{\arg\min}}
+{\mbox{argmin}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\st}{\mbox{ s.t. }}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\vproj}[1]{\ket{#1}\bra{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\kt}{\middle|}
+{|}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+trtimes is to multiply an operator or a vector by its transpose
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\trtimes}[1]{\mathcal{P}\left(#1\right)}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\Hilbert}{\mathcal{H}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\FMatrix}[1][]{\mathcal{M}_{\Hilbert}^{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\Matrix}{\mathcal{M}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\Id}{Id}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\tr}{\mbox{tr}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\renewcommand{\dproj}[2]{#1\triangleright#2}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+
+\series bold
+Operators
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\X}{\mathcal{X}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\U}{\mathcal{U}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\V}{\mathcal{V}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\W}{\mathcal{W}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\Y}{\mathcal{Y}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\fvectors}{\mathscr{U}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\foperator}{\mathfrak{U}}
+\end_inset
+
+
+\begin_inset Formula $ $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\XP}{\overline{\X}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\UP}{\overline{\U}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\repr}{\psi}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\nth}{{\tiny\mathrm{th}}}
+{th}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\oequal}[1]{\stackrel{\mathbf{o}[#1]}{=}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\second}{\prime\prime}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Quantum Probabilities correspond to one of the generalisation of standard
+ probabilities.
+ It is founded on the mathematical theory underlying Quantum Physics.
+ This framework was developed in the 1930s by von Neumann and Dirac.
+ It was recently further developed and generalised by the so-called 
+\begin_inset Quotes eld
+\end_inset
+
+sequential effect algebra
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gudder2007Quantum-Probability"
+
+\end_inset
+
+.
+ The Kernel Quantum Probability library (KQP) aims to provide tools to effective
+ly compute 
+\begin_inset Quotes eld
+\end_inset
+
+quantum probabilities
+\begin_inset Quotes erd
+\end_inset
+
+, that is to compute a representation of densities, events and to update
+ the densities when events are observed (conditionalisation).
+ It also provides access to generalisation of standard probabilistic measure
+ like entropy and divergence 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gudder2007Quantum-Probability"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Computing quantum probabilities related quantities relies on linear algebra,
+ and more precisely on the definition of an inner product in a Hilbert space,
+ since this defines the probability of transition (when measuring) between
+ possible system states.
+ 
+\end_layout
+
+\begin_layout Standard
+In the machine learning community, a standard 
+\begin_inset Quotes eld
+\end_inset
+
+trick
+\begin_inset Quotes erd
+\end_inset
+
+ is to use a 
+\emph on
+kernel
+\emph default
+ to define the inner product 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Scholkopf2002Learning-with"
+
+\end_inset
+
+.
+ That is, states can be represented in an arbitrary feature space 
+\begin_inset Formula $\mathcal{F}$
+\end_inset
+
+ for which there exists a mapping 
+\begin_inset Formula $\Phi$
+\end_inset
+
+ such that 
+\begin_inset Formula $\Phi(x)\cdot\Phi\left(y\right)$
+\end_inset
+
+ is valid inner product.
+ We call 
+\begin_inset Formula $k(x,y)=\Phi(x)\cdot\Phi(y)$
+\end_inset
+
+ the kernel, which can be computed without explicitly computing 
+\begin_inset Formula $\Phi(x)$
+\end_inset
+
+, thus allowing to work in high or infinite spaces.
+ 
+\end_layout
+
+\begin_layout Standard
+This documents describe how to compute quantum probabilities related quantities
+ relying only on the inner product definition given by the kernel.
+ The organisation of this document is as follows:
+\end_layout
+
+\begin_layout Enumerate
+In Section
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:kqpr"
+
+\end_inset
+
+, we describe how to compute probabilities and how to update the probabilities
+ given a subspace (or its orthogonal), both from a theoretical point of
+ view and implementation point of view.
+\end_layout
+
+\begin_layout Enumerate
+In Section
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:kevd"
+
+\end_inset
+
+, we describe how to compute an approximation of 
+\emph on
+quantum
+\emph default
+ densities or events.
+\end_layout
+
+\begin_layout Section*
+Notations
+\end_layout
+
+\begin_layout Standard
+We suppose that we work within a complex Hilbert space, that is that the
+ field is 
+\begin_inset Formula $\mathbb{C}$
+\end_inset
+
+ unless otherwise specified.
+ The set of complex matrices of dimensions 
+\begin_inset Formula $n$
+\end_inset
+
+ by 
+\begin_inset Formula $p$
+\end_inset
+
+ is denoted 
+\begin_inset Formula $\Matrix_{n\times p}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In order to deal with kernels, following the literature, data points in
+ the original space will be called pre-images since they are used to build
+ a basis of the subspace containing the quantum density or event (see Section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:kqpr"
+
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Standard
+In order to use common linear algebra notations, we consider a list of pre-image
+s as a linear map, and use uppercase calligraphic letters to denote a list
+ of pre-images: A list 
+\begin_inset Formula $\X$
+\end_inset
+
+ of 
+\begin_inset Formula $n$
+\end_inset
+
+ pre-images is denoted
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\X\in\FMatrix[(n)]
+\]
+
+\end_inset
+
+An arbitrary list belongs to 
+\begin_inset Formula $\FMatrix=\bigcup_{n}\FMatrix[(n)]$
+\end_inset
+
+.
+ A linear combination of pre-images is simply denoted 
+\begin_inset Formula $\X A$
+\end_inset
+
+ where 
+\begin_inset Formula $A\in\Matrix_{n\times p}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+We define the adjoint operator in a natural way, i.e.
+ it maps a list of pre-images into 
+\begin_inset Formula 
+\[
+\X^{\dagger}\in\cup_{p}\mathcal{L}\left(\FMatrix[(p)];\mathcal{M}_{n\times p}\right)
+\]
+
+\end_inset
+
+We denote 
+\begin_inset Formula $k$
+\end_inset
+
+ the kernel, i.e.
+ we denote 
+\begin_inset Formula 
+\[
+k(\X,\U)=\X^{\dagger}\U\in\mathcal{M}_{n\times p}
+\]
+
+\end_inset
+
+with 
+\begin_inset Formula $\X\in\FMatrix[(n)]$
+\end_inset
+
+ and 
+\begin_inset Formula $\U\in\FMatrix[(p)]$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Finally, we use the symbol 
+\begin_inset Formula $\Projector$
+\end_inset
+
+ to denote the composition of a linear operator with its transpose, i.e.
+ 
+\begin_inset Formula 
+\[
+\Projector\left(A\right)=AA^{\dagger}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Computing probabilities
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:kqpr"
+
+\end_inset
+
+ Readers are referred to 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gudder2007Quantum-Probability,Pitowsky:1989kr"
+
+\end_inset
+
+ for a discussion and presentation of what are quantum probabilities.
+ Shortly, they can be defined by:
+\end_layout
+
+\begin_layout Description
+A
+\begin_inset space ~
+\end_inset
+
+quantum
+\begin_inset space ~
+\end_inset
+
+density is a positive semi-definite self-adjoint linear operator 
+\begin_inset Formula $\rho$
+\end_inset
+
+ of trace 1;
+\end_layout
+
+\begin_layout Description
+An
+\begin_inset space ~
+\end_inset
+
+Observable is a projector and corresponds to a yes-no measurement, i.e.
+ to a quantum 
+\begin_inset Quotes eld
+\end_inset
+
+event
+\begin_inset Quotes erd
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Description
+An
+\begin_inset space ~
+\end_inset
+
+effect is an operator 
+\begin_inset Formula $A$
+\end_inset
+
+ such that 
+\begin_inset Formula $0\le\left\langle Ax,x\right\rangle \le1$
+\end_inset
+
+.
+ Note that an observable is an effect, but the reverse is not true.
+ Effects can be considered as 
+\begin_inset Quotes eld
+\end_inset
+
+fuzzy
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+imprecise
+\begin_inset Quotes erd
+\end_inset
+
+ observables.
+\end_layout
+
+\begin_layout Standard
+In this section, we present the formulas corresponding to the various quantities
+ of interest (probability, conditionalisation, divergence) and how we can
+ compute them within KQP.
+ This section is based on the work of Gudder 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gudder2007Quantum-Probability"
+
+\end_inset
+
+ (effects) and 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Umegaki:1962ee"
+
+\end_inset
+
+ (divergence and entropy).
+\end_layout
+
+\begin_layout Standard
+In this section, we suppose we have a density 
+\begin_inset Formula $\rho$
+\end_inset
+
+ and an effect 
+\begin_inset Formula $E\in\mathcal{E}\left(\Hilbert\right)$
+\end_inset
+
+ that can be decomposed as: 
+\begin_inset Formula 
+\[
+\rho=\Projector\left(\X_{\rho}Y_{\rho}\Sigma_{\rho}\right)\mbox{ and }E=\Projector\left(\X_{E}Y_{E}\Sigma_{E}\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\X_{\bullet}$
+\end_inset
+
+ belong to 
+\begin_inset Formula $\FMatrix$
+\end_inset
+
+ ,
+\begin_inset Formula $Y_{\bullet}$
+\end_inset
+
+ and 
+\begin_inset Formula $Z_{\bullet}$
+\end_inset
+
+ to 
+\begin_inset Formula $\Matrix$
+\end_inset
+
+.
+  
+\end_layout
+
+\begin_layout Standard
+For some operations, we need the decomposition to be in an orthonormal form,
+ i.e.
+ that 
+\begin_inset Formula 
+\begin{equation}
+Y^{\dagger}\X^{\dagger}\X Y=\Id\label{eq:ortho}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When using the orthonormality hypothesis, we use the symbol 
+\begin_inset Formula $\mathbf{o}[\ldots]$
+\end_inset
+
+ over the equality.
+ For example,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\rho}Y_{\rho}\oequal{\rho}\Id
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, for densities we use the proportionality to denote that it should
+ be normalised, i.e.
+ 
+\begin_inset Formula $\rho\propto\rho_{u}$
+\end_inset
+
+ means that 
+\begin_inset Formula 
+\[
+\rho=\frac{\rho_{u}}{\mbox{tr}\left(\rho_{u}\right)}
+\]
+
+\end_inset
+
+Note that it is straightforward to compute the normalisation factor, since,
+ using the cyclic re-ordering property of trace operators:
+\begin_inset Formula 
+\[
+\tr\left(\rho\right)=\tr\left(\X_{\rho}Y_{\rho}\Sigma_{\rho}^{2}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\right)=\tr\left(\Sigma_{\rho}^{2}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\rho}Y_{\rho}\right)
+\]
+
+\end_inset
+
+If the decomposition is orthonormal (Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:ortho"
+
+\end_inset
+
+), we have 
+\begin_inset Formula $\tr\left(\rho\right)=\tr\left(\Sigma_{\rho}^{2}\right)=\left\Vert \Sigma_{\rho}\right\Vert ^{2}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For a matrix 
+\begin_inset Formula $A$
+\end_inset
+
+, we denote 
+\begin_inset Formula $A_{\bullet j}$
+\end_inset
+
+ its 
+\begin_inset Formula $j^{\nth}$
+\end_inset
+
+ column,
+\begin_inset Formula $A_{i\bullet}$
+\end_inset
+
+ its 
+\begin_inset Formula $i^{\nth}$
+\end_inset
+
+ row.
+ If a matrix 
+\begin_inset Formula $A$
+\end_inset
+
+ as an subscript 
+\begin_inset Formula $\rho$
+\end_inset
+
+, we use a semicolon to separate the subscript from the column/row indices,
+ as for example in 
+\begin_inset Formula $A_{\rho;ij}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Computing probabilities
+\end_layout
+
+\begin_layout Standard
+The probability of an effect 
+\begin_inset Formula $E$
+\end_inset
+
+ is defined as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\pr_{\rho}\left(E\right)=\mbox{tr}\left(\rho E\right)
+\]
+
+\end_inset
+
+We can compute the probability of an effect 
+\begin_inset Formula $E$
+\end_inset
+
+ using the re-ordering property of the trace operator
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\pr_{\rho}\left(E\right)=\mbox{tr}\left(\rho E\right)=\left\Vert \Sigma_{E}Y_{E}^{\dagger}k\left(\X_{E},\X_{\rho}\right)Y_{\rho}\Sigma_{\rho}\right\Vert ^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Entropy
+\end_layout
+
+\begin_layout Standard
+The entropy of a density 
+\begin_inset Formula $\rho$
+\end_inset
+
+ (with an orthonormal decomposition) can be written 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Umegaki:1962ee"
+
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\tr(\rho\log(\rho))) & \oequal{\rho}\tr\left(\left(Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\rho}Y_{\rho}\right)\Sigma_{\rho}\left(Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\rho}Y_{\rho}\right)\log\left(\Sigma_{\rho}^{2}\right)\right)\\
+ & =\tr\left(\Sigma_{\rho}^{2}\log\left(\Sigma_{\rho}^{2}\right)\right)\\
+ & =\sum_{i}2\Sigma_{\rho;ii}^{2}\log\left(\Sigma_{\rho;ii}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Divergence
+\end_layout
+
+\begin_layout Standard
+Umegaki 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Umegaki:1962ee"
+
+\end_inset
+
+ proved that the equivalent of the Kullback-Leilbler divergence between
+ two densities 
+\begin_inset Formula $\rho$
+\end_inset
+
+ and 
+\begin_inset Formula $\tau$
+\end_inset
+
+ can be computed as: 
+\begin_inset Formula 
+\[
+J(\rho||\tau)=\tr(\rho\log(\rho)-\rho\log(\tau)))
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first part corresponds to the entropy, and the second part can be computed
+ as follows.
+ In order to deal with infinities, in practice we want to compute the divergence
+ using 
+\begin_inset Formula $\tau^{\prime}=\left(1-\epsilon\right)\tau+\epsilon\alpha\Id$
+\end_inset
+
+ where 
+\begin_inset Formula $\alpha\Id$
+\end_inset
+
+ is a blank noise, i.e.
+ 
+\begin_inset Formula $\tr\left(\alpha\Id\right)=1$
+\end_inset
+
+.
+ In case of infinities, 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ can be set to a small value.
+ We have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\tr\left(\rho\log\tau^{\prime}\right) & =\tr\left(\rho\log\left(\left(1-\epsilon\right)\tau+\epsilon\alpha\Id\right)\right)\\
+ & \oequal{\tau}\tr\left(\rho\left[\X_{\tau}Y_{\tau}\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}+\log\left(\epsilon\alpha\right)\left(\Id-\X_{\tau}Y_{\tau}Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\right)\right]\right)\\
+ & =\tr\left(\Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\X_{\rho}Y_{\rho}\Sigma_{\rho}\right)+\log\left(\epsilon\alpha\right)\left(\tr\left(\rho\right)-\tr\left(\rho\X_{\tau}Y_{\tau}Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\right)\right)\\
+ & =-\left\Vert \Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\left(\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)\right)^{1/2}\right\Vert ^{2}+\log\left(\epsilon\alpha\right)\left(1-\left\Vert \Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\right\Vert ^{2}\right)
+\end{align*}
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Subsection
+Conditionalisation
+\end_layout
+
+\begin_layout Standard
+We first give the formulas to compute the conditional quantum density when
+ observing an effect 
+\begin_inset Formula $E$
+\end_inset
+
+, and then when observing its orthogonal 
+\begin_inset Formula $E^{\bot}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Projecting on the effect 
+\begin_inset Formula $E$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series medium
+If we observe the event 
+\begin_inset Formula $E$
+\end_inset
+
+, the density 
+\begin_inset Formula $\rho$
+\end_inset
+
+ conditioned upon 
+\begin_inset Formula $E$
+\end_inset
+
+, denoted 
+\begin_inset Formula $\rho\triangleright E$
+\end_inset
+
+, is given by: 
+\series bold
+
+\begin_inset Formula 
+\[
+\rho\triangleright E=\frac{E^{1/2}\rho E^{1/2}}{\tr\left(\rho E\right)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can focus on the numerator since we only have to normalise the resulting
+ density afterwards.
+ We have 
+\begin_inset Formula 
+\[
+\dproj{\rho}E\propto E^{1/2}\rho E^{1/2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can distinguish two cases:
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $E$
+\end_inset
+
+ is an observable: since 
+\begin_inset Formula $E=E^{1/2}$
+\end_inset
+
+, we have 
+\begin_inset Formula 
+\[
+\dproj{\rho}E=\Projector\left[\X_{E}\left(Y_{E}\Sigma_{E}^{2}Y_{E}^{\dagger}k\left(\X_{E},\X_{\rho}\right)Y_{\rho}\right)\Sigma_{\rho}\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $E$
+\end_inset
+
+ is a 
+\begin_inset Quotes eld
+\end_inset
+
+strict
+\begin_inset Quotes erd
+\end_inset
+
+ effect: In this case, we require an orthonormal decomposition for E, and
+ we can compute the projection as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\dproj{\rho}E\oequal E\Projector\left[\X_{E}\left(Y_{E}\Sigma_{E}Y_{E}^{\dagger}k\left(\X_{E},\X_{\rho}\right)Y_{\rho}\right)\Sigma_{\rho}\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In both cases, the resulting density is not in an orthonormal form.
+\end_layout
+
+\begin_layout Subsubsection
+Projecting on the orthogonal 
+\begin_inset Formula $E^{\bot}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we observe the orthogonal of event 
+\begin_inset Formula $E$
+\end_inset
+
+, we can update our knowledge on 
+\begin_inset Formula $\rho$
+\end_inset
+
+, denoted 
+\begin_inset Formula $\rho\triangleright E^{\bot}$
+\end_inset
+
+, as:
+\begin_inset Formula 
+\[
+\dproj{\text{\rho}}{E^{\bot}}=\frac{\left(\Id-E\right)^{1/2}\rho\left(\Id-E\right)^{1/2}}{1-\tr\left(\rho E\right)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When 
+\begin_inset Formula $E$
+\end_inset
+
+ is in an orthonormal form, we can use the fact that 
+\begin_inset Formula $\Id-Y_{E}\X_{E}\X_{E}^{\dagger}Y_{E}^{\dagger}$
+\end_inset
+
+ is the projector on the space orthogonal to the space spanned by the vectors
+ of 
+\begin_inset Formula $E$
+\end_inset
+
+.
+ Thus,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+\left(\Id-E\right)^{1/2} & = & \X_{E}V\left(\Id-\Sigma^{2}\right)^{1/2}Y_{E}^{\dagger}\X_{E}^{\dagger}+\left(\Id-\X_{E}Y_{E}Y_{E}^{\dagger}\X_{E}^{\dagger}\right)\nonumber \\
+ & = & \Id-\X_{E}Y_{E}\left[\Id-\left(\Id-\Sigma_{E}^{2}\right)^{1/2}\right]Y_{E}^{\dagger}\X_{E}^{\dagger}\label{eq:effect-orthogonal}
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Using the above, we can write:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\dproj{\rho}{E^{\bot}} & \propto\trtimes{\left(\Id-E\right)^{1/2}\X_{\rho}Y_{\rho}\Sigma_{\rho}}\\
+ & \propto\Projector\left[\left(\begin{array}{cc}
+\X_{\rho} & \X_{E}\end{array}\right)\left(\begin{array}{c}
+\Id\\
+-Y_{E}\left[\Id-\left(\Id-\Sigma_{E}^{2}\right)^{1/2}\right]Y_{E}^{\dagger}k\left(\X_{E},\X_{\text{\rho}}\right)
+\end{array}\right)Y_{\rho}\Sigma_{\rho}\right]
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We readily verify that when 
+\begin_inset Formula $\Sigma_{E}=\Id$
+\end_inset
+
+ it gives the right formula 
+\begin_inset Formula $\rho-\X YY^{\dagger}X^{\dagger}\rho$
+\end_inset
+
+.
+ We can use in those cases a direct EVD approach (section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:direct-EVD"
+
+\end_inset
+
+) to obtain a simplified form.
+ 
+\end_layout
+
+\begin_layout Section
+Approximating operators
+\end_layout
+
+\begin_layout Standard
+In this section, we describe the techniques used to computed low-rank approximat
+ions of linear operators in the feature space.
+ In particular, we are interested in methods where the operator can be decompose
+d as: 
+\begin_inset Formula 
+\begin{equation}
+\sum_{i}\alpha_{i}\U_{i}A_{i}A_{i}^{\dagger}\U_{i}^{\dagger}\approx\X Y\Sigma Y^{\dagger}\X^{\dagger}\label{eq:approx}
+\end{equation}
+
+\end_inset
+
+ were 
+\begin_inset Formula $\X Y$
+\end_inset
+
+ is (or might be) orthonormal, i.e.
+ 
+\begin_inset Formula $Y^{\dagger}\X^{\text{\dagger}}\X^{\dagger}Y$
+\end_inset
+
+ is the identity.
+\end_layout
+
+\begin_layout Standard
+In the following, we describe:
+\end_layout
+
+\begin_layout Itemize
+In Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:direct-EVD"
+
+\end_inset
+
+, how to get an EVD decomposition of any linear operator of the form 
+\begin_inset Formula $\foperator=\X AA^{\dagger}\X^{\dagger}$
+\end_inset
+
+.
+ This is useful in order to e.g.
+ lower the rank and is needed or before removing feature space vectors from
+ 
+\begin_inset Formula $\X$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+In Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:kevd"
+
+\end_inset
+
+, we show how to update the EVD of a linear operator 
+\begin_inset Formula $\foperator$
+\end_inset
+
+ with a low rank operator 
+\begin_inset Formula $\alpha_{i}\U_{i}A_{i}A_{i}^{\dagger}\U_{i}^{\dagger}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+In Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:reduced-set"
+
+\end_inset
+
+, we show how to remove feature vectors from 
+\begin_inset Formula $\X$
+\end_inset
+
+ when we have an EVD 
+\begin_inset Formula $\foperator=\X A\Sigma A^{\dagger}\X^{\dagger}$
+\end_inset
+
+.
+ We use two techniques: 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Null space method (Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:null-space-method"
+
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Itemize
+Quadratic optimisation to find the subset of pre-images that minimise the
+ reconstruction error (Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:reduced-set"
+
+\end_inset
+
+).
+\end_layout
+
+\end_deeper
+\begin_layout Subsection
+Direct EVD
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:direct-EVD"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this section, we discuss how to get the orthonormal form of an operator
+ written as 
+\begin_inset Formula $\foperator=\X ASA^{\dagger}\X^{\dagger}$
+\end_inset
+
+ where 
+\begin_inset Formula $S$
+\end_inset
+
+ is a diagonal matrix.
+ We first describe the case where 
+\begin_inset Formula $S$
+\end_inset
+
+ is positive semi-definite, before tackling the general case.
+ 
+\end_layout
+
+\begin_layout Standard
+This type of approach is useful in several cases, and the builder 
+\begin_inset Flex System
+status collapsed
+
+\begin_layout Plain Layout
+AccumulatorKernelEVD
+\end_layout
+
+\end_inset
+
+ in KQP relies on this decomposition, since it represents Eq.
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:approx"
+
+\end_inset
+
+) as
+\begin_inset Formula 
+\[
+\left(\begin{array}{ccc}
+\U_{1} & \cdots & \U_{n}\end{array}\right)\left(\begin{array}{ccc}
+A_{1}\\
+ & \ddots\\
+ &  & A_{n}
+\end{array}\right)\left(\begin{array}{ccc}
+\Sigma_{1}\\
+ & \ddots\\
+ &  & \Sigma_{n}
+\end{array}\right)\left(\begin{array}{ccc}
+A_{1}\\
+ & \ddots\\
+ &  & A_{n}
+\end{array}\right)^{\dagger}\left(\begin{array}{ccc}
+\U_{1} & \cdots & \U_{n}\end{array}\right)^{\dagger}
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\Sigma_{i}=\mbox{diag}\left(\alpha_{i},\ldots,\alpha_{i}\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Semi-positive definite case
+\end_layout
+
+\begin_layout Standard
+Suppose we have 
+\begin_inset Formula $\foperator=\X AA^{\dagger}\X^{\dagger}$
+\end_inset
+
+ and we wish to transform it to an orthonormal form.
+ To achieve this, we have to compute a thin EVD 
+\begin_inset Formula 
+\[
+EDE^{\dagger}=A^{\dagger}\X^{\dagger}\X A
+\]
+
+\end_inset
+
+It is then straightforward to obtain the desired form by posing 
+\begin_inset Formula $Y=AED^{-1/2}$
+\end_inset
+
+ and 
+\begin_inset Formula $\Sigma=D^{1/2}D^{1/2}$
+\end_inset
+
+ 
+\begin_inset Formula 
+\[
+\X Y\Sigma Y^{\dagger}\X^{\dagger}=\X AEE^{\dagger}A^{\dagger}\X^{\text{\dagger}}=\X ASA^{\dagger}\X^{\dagger}
+\]
+
+\end_inset
+
+where the last equality can be shown has follows.
+ Any vector 
+\begin_inset Formula $y\in\Hilbert$
+\end_inset
+
+ can be written 
+\begin_inset Formula $\X AP+\V Q$
+\end_inset
+
+ where 
+\begin_inset Formula $\V^{\dagger}\X A=0$
+\end_inset
+
+.
+ Then, 
+\begin_inset Formula 
+\begin{align*}
+\X AEE^{\dagger}A^{\dagger}\X^{\text{\dagger}}y & =\X A\underbrace{EE^{\dagger}\underbrace{A^{\dagger}\X^{\text{\dagger}}\X A}_{EDE^{\dagger}}}_{A^{\dagger}\X^{\dagger}\X A}P+\underbrace{\X AEE^{\dagger}A^{\dagger}\X^{\dagger}\V Q}_{0}\\
+ & =\X AA^{\dagger}\X^{\dagger}\X AP+\underbrace{\X AA^{\dagger}\X^{\dagger}\V Q}_{0}\\
+ & =\X AA^{\dagger}\X^{\dagger}y
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We also can show easily that 
+\begin_inset Formula $\X Y$
+\end_inset
+
+ is an orthonormal matrix 
+\begin_inset Formula 
+\[
+Y^{\dagger}\X^{\dagger}\X Y=D^{-1/2}E^{\dagger}\left(A^{\dagger}\X^{\dagger}\X A\right)ED^{-1/2}=\Id
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+It is then possible to remove some pre-images using techniques from Section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:reduced-set"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Subsubsection
+General case
+\end_layout
+
+\begin_layout Standard
+In the general case, we have 
+\begin_inset Formula $\foperator=\X ASA^{\dagger}\X^{\dagger}$
+\end_inset
+
+ which can be rewritten 
+\begin_inset Formula $\foperator=\X AS^{1/2}S^{1/2}A^{\dagger}\X^{\dagger}$
+\end_inset
+
+.
+ That is, unless we use a real field and 
+\begin_inset Formula $S$
+\end_inset
+
+ is not semidefinite positive.
+ In that case, we can still write
+\begin_inset Formula 
+\[
+\foperator=\X BB^{\dagger}\X^{\dagger}-2\X CC^{\dagger}\X^{\dagger}
+\]
+
+\end_inset
+
+ where 
+\begin_inset Formula 
+\begin{align*}
+B & =A\left(S_{+}+S_{-}\right)^{1/2}\\
+C & =AS_{-}^{1/2}
+\end{align*}
+
+\end_inset
+
+where 
+\begin_inset Formula $S_{\pm}$
+\end_inset
+
+ is the 
+\begin_inset Formula $S$
+\end_inset
+
+ matrix where negative (resp.
+ positive) values are set to 0.
+ We then use the approach above to compute an orthonormal decomposition
+ of 
+\begin_inset Formula $\X BB^{\dagger}\X^{\dagger}$
+\end_inset
+
+, and then, using the fact that the space defined by 
+\begin_inset Formula $\X YY\X^{\dagger}$
+\end_inset
+
+ contains 
+\begin_inset Formula $\X C$
+\end_inset
+
+, 
+\begin_inset Formula 
+\begin{align*}
+\foperator & =\X Y\Sigma Y^{\dagger}\X^{\dagger}-2\X CC^{\dagger}\X^{\dagger}\\
+ & =\X Y\left[\Sigma-2ZZ^{\dagger}\right]Y^{\dagger}\X^{\dagger}
+\end{align*}
+
+\end_inset
+
+with 
+\begin_inset Formula $Z=Y^{\dagger}\X^{\dagger}\X C$
+\end_inset
+
+.
+ We then have to compute another EVD for 
+\begin_inset Formula $\Sigma-2ZZ^{\dagger}$
+\end_inset
+
+, which will give the final form of 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\foperator$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Low-rank update of operators
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:kevd"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The problem is to compute a low rank approximation of 
+\begin_inset Formula 
+\[
+\foperator=\sum_{i}\alpha_{i}\U_{i}A_{i}A_{i}^{\dagger}\U_{i}^{\dagger}
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\U_{i}\in\FMatrix$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+In the following, we consider just one update and we drop the 
+\begin_inset Formula $i$
+\end_inset
+
+ for more clarity.
+ We further assume that we have a current approximation decomposition expressed
+ as 
+\begin_inset Formula 
+\[
+\foperator=\X YZ\Sigma Z^{\dagger}Y^{\dagger}\X
+\]
+
+\end_inset
+
+where
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\X\in\FMatrix[(n)]$
+\end_inset
+
+ and 
+\begin_inset Formula $Y$
+\end_inset
+
+ is a 
+\begin_inset Formula $n\times r$
+\end_inset
+
+ matrix such that 
+\begin_inset Formula $\X Y$
+\end_inset
+
+ is orthonormal;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Z$
+\end_inset
+
+ is a 
+\begin_inset Formula $r\times r$
+\end_inset
+
+ unitary matrix.
+ This matrix is used in order to avoid updating the potentially larger matrix
+ 
+\begin_inset Formula $Y$
+\end_inset
+
+ when the list of pre-images remain the same;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\Sigma$
+\end_inset
+
+ is a diagonal matrix of rank 
+\begin_inset Formula $r$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In order to be able to process incrementally the set of vectors 
+\begin_inset Formula $\units$
+\end_inset
+
+, we wish to compute at each step a rank one update of 
+\begin_inset Formula $U$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\widehat{\text{\foperator}}=\foperator+\alpha\U AA^{\dagger}\U^{\dagger}\approx\widetilde{\foperator}=\X^{\prime}Y^{\prime}Z^{\prime}\Sigma\left(\X^{\prime}Y^{\prime}Z^{\prime}\right)^{\dagger}
+\]
+
+\end_inset
+
+This problem is related to
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Chin2006Incremental-Kernel"
+
+\end_inset
+
+ that deals with incremental Kernel SVD, and we follow mainly the same approach.
+ We use the following constraints:
+\end_layout
+
+\begin_layout Enumerate
+Keep the (relative) error 
+\begin_inset Formula $\epsilon=\left\Vert \widehat{\text{\foperator}}-\widetilde{\foperator}\right\Vert /\left\Vert \text{\foperator}\right\Vert $
+\end_inset
+
+ below a limit 
+\begin_inset Formula $\eta$
+\end_inset
+
+ (if possible, see below);
+\end_layout
+
+\begin_layout Enumerate
+Keep the rank 
+\begin_inset Formula $r$
+\end_inset
+
+ below the limit 
+\begin_inset Formula $r_{\max}$
+\end_inset
+
+ ;
+\end_layout
+
+\begin_layout Enumerate
+Keep the number of pre-images below a number 
+\begin_inset Formula $cr$
+\end_inset
+
+ where 
+\begin_inset Formula $c\ge1$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Pre-computations
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:rank-n-EVD"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can write 
+\begin_inset Formula $\U$
+\end_inset
+
+ as the direct sum
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\U A=\underbrace{\left(\Id-\X YY^{\dagger}\X^{\dagger}\right)\U A}_{\V}+\X Y\underbrace{Y^{\dagger}\X^{\dagger}\U A}_{W}\label{eq:def:v}
+\end{equation}
+
+\end_inset
+
+The operator 
+\begin_inset Formula $W$
+\end_inset
+
+ can be computed explicitly as:
+\begin_inset Formula 
+\begin{equation}
+W=Y^{\dagger}\X^{\dagger}\U A=Y^{\dagger}k\left(\X,\U\right)A\label{eq:def:W}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subparagraph
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Paragraph
+Norm of 
+\begin_inset Formula $\V$
+\end_inset
+
+ (now computed anyways with 
+\begin_inset Formula $\V^{\dagger}\V$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Plain Layout
+Let us call
+\begin_inset Formula $\normv$
+\end_inset
+
+ the norm of 
+\begin_inset Formula $\V$
+\end_inset
+
+, whose value can be computed with the kernel:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{eqnarray*}
+\normv^{2} & = & \left\Vert \U A\right\Vert ^{2}-\left\Vert XYY^{\dagger}X^{\dagger}\U A\right\Vert ^{2}\\
+ & = & \sum_{j,i,l}k\left(\U_{i}A_{ij},\U_{l}A_{lj}\right)-\left\Vert W\right\Vert ^{2}\\
+ & = & \sum_{j}A_{\bullet j}^{\dagger}k\left(\U,\U\right)A_{\bullet j}-\left\Vert W\right\Vert ^{2}
+\end{eqnarray*}
+
+\end_inset
+
+ The last equation can be obtained since 
+\begin_inset Formula $\X Y$
+\end_inset
+
+ is an orthonormal matrix:
+\begin_inset Formula 
+\[
+\left\Vert \X YY^{\dagger}\X^{\dagger}\U A\right\Vert ^{2}=\tr(A^{\dagger}\U^{\dagger}XY\underbrace{\left(\X Y\right)^{\dagger}\X Y}_{\mbox{Identity}}\left(\X Y\right)^{\dagger}\U A)=\mbox{tr}\left(W^{\dagger}W\right)
+\]
+
+\end_inset
+
+and 
+\begin_inset Formula $\left(\X Y\right)^{\dagger}\X Y$
+\end_inset
+
+ is the identity by definition.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subparagraph
+General case
+\end_layout
+
+\begin_layout Standard
+We can compute 
+\begin_inset Formula $\V^{\dagger}\V$
+\end_inset
+
+ as
+\begin_inset Formula 
+\[
+\V^{\dagger}\V=A^{\dagger}k\left(\U,U\right)A-W^{\dagger}W
+\]
+
+\end_inset
+
+which can in turn be used to compute
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Note that we could use a Cholesky decomposition 
+\begin_inset Formula $k\left(\U,\U\right)=LL^{\dagger}$
+\end_inset
+
+ followed by a generalised SVD on 
+\begin_inset Formula $L^{\dagger}A$
+\end_inset
+
+ and 
+\begin_inset Formula $W$
+\end_inset
+
+ to find the EVD of 
+\begin_inset Formula $\V\V^{\dagger}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+ the (full) EVD of 
+\begin_inset Formula $\V\V^{\dagger}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Subparagraph
+Special case 
+\begin_inset Formula $\U=\X$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When 
+\begin_inset Formula $\U A$
+\end_inset
+
+ is a linear combination of kernel vectors.
+ In this case, we have 
+\begin_inset Formula $\V=0$
+\end_inset
+
+ and 
+\begin_inset Formula 
+\[
+W=Y^{\dagger}\X^{\dagger}\X A=Y^{\dagger}k\left(\X,\X\right)A
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Updating the operator
+\end_layout
+
+\begin_layout Standard
+Let us express 
+\begin_inset Formula $\U A$
+\end_inset
+
+ as the direct sum of its projection onto the subspace spanned by 
+\begin_inset Formula $\X YY^{\dagger}\X^{\dagger}$
+\end_inset
+
+ and its orthogonal.
+ Since by definition 
+\begin_inset Formula $W=\left(\X Y\right)^{\dagger}\U A$
+\end_inset
+
+, we can write 
+\begin_inset Formula $\U A$
+\end_inset
+
+ as:
+\begin_inset Formula 
+\[
+\U AA^{\dagger}\U^{\dagger}=\Projector\left(\X YY^{\dagger}\X^{\dagger}\U A+\V\right)=\Projector\left(\left(\begin{array}{cc}
+\X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)\left(\begin{array}{cc}
+WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $Q$
+\end_inset
+
+, 
+\begin_inset Formula $Q_{0}$
+\end_inset
+
+ and 
+\begin_inset Formula $D$
+\end_inset
+
+ such that 
+\begin_inset Formula $\left(\begin{array}{cc}
+Q & Q_{0}\end{array}\right)$
+\end_inset
+
+ is unitary and 
+\begin_inset Formula 
+\begin{equation}
+\V QDQ^{\dagger}\V^{\dagger}=\V\V^{\dagger}\label{eq:constraint-q-1}
+\end{equation}
+
+\end_inset
+
+We can write
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\foperator=\Projector\left(\begin{array}{cc}
+\X YZ\Sigma^{1/2} & 0\end{array}\right)=\Projector\left[\left(\begin{array}{cc}
+\X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & 0
+\end{array}\right)\left(\begin{array}{cc}
+\Sigma^{1/2} & 0\\
+0 & 0
+\end{array}\right)\right]
+\]
+
+\end_inset
+
+and hence:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{multline}
+\foperator+\alpha\U AA^{\dagger}\U^{\dagger}=\left(\begin{array}{cc}
+\X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)\left[\left(\begin{array}{cc}
+Z & 0\\
+0 & 0
+\end{array}\right)\left(\begin{array}{cc}
+\Sigma & 0\\
+0 & 0
+\end{array}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & 0
+\end{array}\right)^{\dagger}+\right.\\
+\left.\alpha\left(\begin{array}{cc}
+WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)\left(\begin{array}{cc}
+WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)^{\dagger}\right]\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)^{\dagger}\left(\begin{array}{cc}
+\X & \mathcal{V}\end{array}\right)^{\dagger}\label{eq:U1}
+\end{multline}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Computing 
+\begin_inset Formula $Q$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Since 
+\begin_inset Formula $\left(\begin{array}{cc}
+X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)$
+\end_inset
+
+ should be an orthonormal matrix, we should have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\left(\left(\begin{array}{cc}
+X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)\right)^{\dagger}\left(\begin{array}{cc}
+X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right) & = & \left(\begin{array}{c}
+\left(\X Y\right)^{\dagger}\\
+Q^{\dagger}\V^{\dagger}
+\end{array}\right)\left(\begin{array}{cc}
+\X Y & \V Q\end{array}\right)\\
+ & = & \left(\begin{array}{cc}
+\Id & 0\\
+0 & Q^{\dagger}\V^{\dagger}\V Q
+\end{array}\right)
+\end{eqnarray*}
+
+\end_inset
+
+where we used the fact that 
+\begin_inset Formula $\left(\X Y\right)^{\dagger}\V=0$
+\end_inset
+
+ from Eq.
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:def:v"
+
+\end_inset
+
+.
+ Hence, orthonormality is equivalent to
+\begin_inset Formula 
+\begin{align}
+Q^{\dagger}\V^{\dagger}\V Q & =\Id\label{eq:constraint-q-2}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Using the result of Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:direct-EVD"
+
+\end_inset
+
+, we can compute the thin EVD 
+\begin_inset Formula $CDC^{\dagger}$
+\end_inset
+
+ of 
+\begin_inset Formula $k\left(\V,\V\right)$
+\end_inset
+
+ and pose 
+\begin_inset Formula $Q=CD^{-1/2}$
+\end_inset
+
+ which will verify both Eqs.
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:constraint-q-1"
+
+\end_inset
+
+) and (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:constraint-q-2"
+
+\end_inset
+
+) .
+ 
+\begin_inset Formula $Q_{0}$
+\end_inset
+
+ corresponds to the basis of the null space obtained using the same decompositio
+n (note that if 
+\begin_inset Formula $\V=0$
+\end_inset
+
+, 
+\begin_inset Formula $Q_{0}$
+\end_inset
+
+ is the identity).
+\end_layout
+
+\begin_layout Paragraph
+Updating
+\end_layout
+
+\begin_layout Standard
+We can use standard rank-one update techniques to update the decomposition;
+ since 
+\begin_inset Formula $Z$
+\end_inset
+
+ is unitary, we can write 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\lefteqn{\left(\begin{array}{cc}
+Z & 0\\
+0 & \Id
+\end{array}\right)\left(\begin{array}{cc}
+\Sigma & 0\\
+0 & 0
+\end{array}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & \Id
+\end{array}\right)^{\dagger}+\alpha\left(\begin{array}{cc}
+WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)\left(\begin{array}{cc}
+WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)^{\dagger}}\\
+= & \left(\begin{array}{cc}
+Z & 0\\
+0 & \Id
+\end{array}\right)\left(\left(\begin{array}{cc}
+\Sigma & 0\\
+0 & 0
+\end{array}\right)+\alpha\left(\begin{array}{cc}
+Z^{\dagger}WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)\left(\begin{array}{cc}
+Z^{\dagger}WQD^{1/2} & WQ_{0}\\
+D^{1/2} & \mathbf{0}
+\end{array}\right)^{\dagger}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & \Id
+\end{array}\right)^{\dagger}
+\end{align*}
+
+\end_inset
+
+which is a rank 
+\begin_inset Formula $p$
+\end_inset
+
+ update of a diagonal matrix.
+ Note that, as we cannot really compute 
+\begin_inset Formula $\V$
+\end_inset
+
+, we have to get back to an expression where 
+\begin_inset Formula $\U$
+\end_inset
+
+ appears in the first matrix: 
+\begin_inset Formula 
+\begin{eqnarray*}
+\left(\begin{array}{cc}
+\X & \V\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right) & = & \left(\begin{array}{cc}
+\X & \U A-\X YW\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & Q
+\end{array}\right)\\
+ & = & \left(\begin{array}{cc}
+X & \U\end{array}\right)\left(\begin{array}{cc}
+Y & -YWQ\\
+0 & AQ
+\end{array}\right)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Reducing the pre-image set
+\end_layout
+
+\begin_layout Standard
+In this section, we describe the techniques used to reduce the number of
+ pre-images.
+ When a linear combination of pre-images is possible, it is better to use
+ the direct EVD approach described in Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:direct-EVD"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Null space method
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:null-space-method"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Suppose we have an operator 
+\begin_inset Formula $\foperator$
+\end_inset
+
+ defined as
+\begin_inset Formula 
+\[
+\foperator=\X Y\Sigma Y^{\dagger}\X^{\dagger}
+\]
+
+\end_inset
+
+and we wish to reduce the set of pre-images in 
+\begin_inset Formula $\X$
+\end_inset
+
+ without loss.
+ We suppose 
+\begin_inset Formula $\Sigma$
+\end_inset
+
+ is full rank.
+\end_layout
+
+\begin_layout Enumerate
+Remove the pre-images for which a line of 
+\begin_inset Formula $Y\Sigma Y^{\dagger}$
+\end_inset
+
+ is null (and remove the corresponding column of 
+\begin_inset Formula $Y$
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Enumerate
+If the decomposition is not orthonormal, use a QR or LU decomposition to
+ find the null space of 
+\begin_inset Formula $\X^{\dagger}\X$
+\end_inset
+
+, i.e.
+ a full rank 
+\begin_inset Formula $Z$
+\end_inset
+
+ such that 
+\begin_inset Formula $\X^{\dagger}\X Z=0$
+\end_inset
+
+.
+ We then remove 
+\begin_inset Formula $n$
+\end_inset
+
+ pre-images (see below) where 
+\begin_inset Formula $n$
+\end_inset
+
+ is the rank of 
+\begin_inset Formula $Z$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Enumerate
+Finally, we remove non used pre-images like in step (1).
+\end_layout
+
+\begin_layout Paragraph
+Null space and pre-images
+\end_layout
+
+\begin_layout Standard
+We want to find 
+\begin_inset Formula $\X^{\prime}$
+\end_inset
+
+ and 
+\begin_inset Formula $A$
+\end_inset
+
+ such that 
+\begin_inset Formula $\X=\left(\begin{array}{cc}
+\X^{\prime} & X^{\prime}A\end{array}\right)P$
+\end_inset
+
+ where 
+\begin_inset Formula $P$
+\end_inset
+
+ is a permutation matrix.
+\end_layout
+
+\begin_layout Standard
+We have a basis 
+\begin_inset Formula $Z$
+\end_inset
+
+ for the null subspace of 
+\begin_inset Formula $\X^{\dagger}\X$
+\end_inset
+
+.
+ If 
+\begin_inset Formula $z$
+\end_inset
+
+ is in the null subspace, then
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\forall i\,\X_{i}^{\dagger}\sum_{j}z_{j}\X_{j}=0\implies\sum_{j}z_{j}\X_{j}=0
+\]
+
+\end_inset
+
+ since 
+\begin_inset Formula $\sum_{j}z_{j}\X_{j}$
+\end_inset
+
+ belongs to the span of 
+\begin_inset Formula $\X$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+To chose among the pre-images, we chose to remove first those that are the
+ less used, i.e.
+ those for which 
+\begin_inset Formula $\left\Vert Y_{j\bullet}\right\Vert \left\Vert \X_{j}\right\Vert $
+\end_inset
+
+ is minimum.
+ We also have to ensure that 
+\begin_inset Formula $z_{j}$
+\end_inset
+
+ is not too small, i.e.
+ is above 
+\begin_inset Formula $\delta\left\Vert z\right\Vert _{\infty}$
+\end_inset
+
+.
+ We then remove entries one by one using the pivoted Gauss algorithm.
+\end_layout
+
+\begin_layout Subsubsection
+Quadratic Programming approach (L1-optimisation)
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:reduced-set"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Another to remove some pre-images is to try to directly optimise the cost
+ using an 
+\begin_inset Formula $L_{1}$
+\end_inset
+
+ regulariser to set some rows of 
+\begin_inset Formula $Y$
+\end_inset
+
+ close to 0.
+ Denoting 
+\begin_inset Formula $A=YZ$
+\end_inset
+
+, we seek at minimising the difference 
+\begin_inset Formula 
+\[
+E=\left\Vert \X A\Sigma A^{\dagger}\X^{\dagger}-\X BTB^{\dagger}\X^{\dagger}\right\Vert ^{2}+\lambda\sum_{i}\left\Vert B_{i\bullet}\right\Vert _{\infty}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Using 
+\begin_inset Formula $L_{1}$
+\end_inset
+
+ regularisation ensures that 
+\begin_inset Formula $B$
+\end_inset
+
+ is sparser than 
+\begin_inset Formula $A$
+\end_inset
+
+ -- in particular, rows of 
+\begin_inset Formula $B$
+\end_inset
+
+ are close to 0
+\begin_inset space ~
+\end_inset
+
+(which means that the corresponding pre-images 
+\begin_inset Formula $\X_{i}$
+\end_inset
+
+ can be removed).
+ 
+\end_layout
+
+\begin_layout Standard
+In the following, we suppose that 
+\begin_inset Formula $A$
+\end_inset
+
+ is of dimension 
+\begin_inset Formula $r\times n$
+\end_inset
+
+ (i.e.
+ 
+\begin_inset Formula $r$
+\end_inset
+
+ basis vectors and 
+\begin_inset Formula $n$
+\end_inset
+
+ feature vectors).
+ Using the link between the trace and the Frobenius norm, we have 
+\begin_inset Formula 
+\[
+E=\mbox{tr}\left(\trtimes{XA\Sigma A^{\dagger}X^{\dagger}-XBTB^{\dagger}X^{\dagger}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Denoting 
+\begin_inset Formula $a_{i}=\sigma_{i}XA_{\bullet i}$
+\end_inset
+
+ and 
+\begin_inset Formula $b_{i}=\tau_{i}XB_{\bullet i}$
+\end_inset
+
+ where 
+\begin_inset Formula $\sigma_{i}=\sqrt{\Sigma_{ii}}$
+\end_inset
+
+ and 
+\begin_inset Formula $\tau_{i}=\sqrt{T_{ii}}$
+\end_inset
+
+ the two sets of vectors (in the feature space), we can then rewrite 
+\begin_inset Formula $E$
+\end_inset
+
+ as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+E= & \mbox{tr}\left(\sum_{i,j}a_{i}a_{i}^{\dagger}a_{j}a_{j}^{\dagger}+b_{i}b_{i}^{\dagger}b_{j}b_{j}^{\dagger}-2a_{i}a_{i}^{\dagger}b_{j}b_{j}^{\dagger}\right)\\
+= & \sum_{i,j}\left(a_{i}^{\dagger}a_{j}\right)^{2}+\left(b_{i}^{\dagger}b_{j}\right)^{2}-2\left|a_{i}^{\dagger}b_{j}\right|^{2}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The problem we want to solve is linked to the 
+\begin_inset Quotes eld
+\end_inset
+
+reduced set
+\begin_inset Quotes erd
+\end_inset
+
+ approach proposed in
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Scholkopf1999Input"
+
+\end_inset
+
+, where one seeks to minimise the following cost function (with 
+\begin_inset Formula $L_{1}$
+\end_inset
+
+ regularisation): 
+\begin_inset Formula 
+\begin{align}
+\mbox{minimise } & E_{RS}=\sum_{i}\nu_{i}\left\Vert a_{i}-b_{i}\right\Vert ^{2}+\lambda\xi_{i}\label{eq:rs-opt}\\
+\mbox{subject to } & \xi_{i}\ge\left|B_{ij}\right|\nonumber 
+\end{align}
+
+\end_inset
+
+The role of 
+\begin_inset Formula $\xi_{i}$
+\end_inset
+
+ is to regularise the importances of feature vectors; we need to set 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ appropriately so that some rows of 
+\begin_inset Formula $B$
+\end_inset
+
+ are close to 0 at the end of the optimisation.
+ We set 
+\begin_inset Formula $\nu_{i}$
+\end_inset
+
+ in the following.
+\end_layout
+
+\begin_layout Paragraph
+Relation with the reduced set approach
+\end_layout
+
+\begin_layout Standard
+We first check that minimising 
+\begin_inset Formula $E_{RS}$
+\end_inset
+
+ solves our problem.
+ The main difference is that 
+\begin_inset Formula $E$
+\end_inset
+
+ contains terms of the form 
+\begin_inset Formula $b_{i}^{\dagger}b_{j}$
+\end_inset
+
+ and 
+\begin_inset Formula $a_{i}^{\dagger}b_{j}$
+\end_inset
+
+.
+ However, they will tend to be will be close to 0 since the feature vectors
+ will be approximately orthogonal.
+\end_layout
+
+\begin_layout Standard
+Posing 
+\begin_inset Formula $b_{i}=\mu_{i}\left(a_{i}+c_{i}\right)$
+\end_inset
+
+ with 
+\begin_inset Formula $a_{i}\bot c_{i}$
+\end_inset
+
+, we can first show that 
+\begin_inset Formula $\mu_{i}$
+\end_inset
+
+ must be equal to 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\left\Vert a_{i}\right\Vert ^{2}\left(\left\Vert a_{i}\right\Vert ^{2}+\left\Vert c_{i}\right\Vert ^{2}\right)$
+\end_inset
+
+ when 
+\begin_inset Formula $E_{RS}$
+\end_inset
+
+ is minimised.
+ Then, we can show that
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+6\left\Vert a_{i}\right\Vert ^{2}\left\Vert a_{i}-b_{i}\right\Vert ^{2}\ge\left(a_{i}^{\dagger}a_{i}\right)^{2}+\left(b_{i}^{\dagger}b_{i}\right)^{2}-2\left|a_{i}^{\dagger}b_{i}\right|^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we have to prove that all cross terms (
+\begin_inset Formula $i\not=j$
+\end_inset
+
+) are minimised if we minimise the new objective function, which intuitively
+ is ensured by the fact that 
+\begin_inset Formula $a_{i}\bot a_{j}$
+\end_inset
+
+.
+ Denoting 
+\begin_inset Formula $\Delta_{i}=a_{i}-b_{i}$
+\end_inset
+
+, we have for 
+\begin_inset Formula $i\not=j$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(a_{i}^{\dagger}a_{j}\right)^{2}+\left(b_{i}^{\dagger}b_{j}\right)^{2}-2\left|a_{i}^{\dagger}b_{j}\right|^{2}=\left(a_{i}^{\dagger}\Delta_{j}+\Delta_{i}^{\dagger}a_{j}+\Delta_{i}^{\dagger}\Delta_{j}\right)^{2}-2\left|a_{i}^{\dagger}\Delta_{j}\right|^{2}
+\]
+
+\end_inset
+
+which is clearly bounded by 
+\begin_inset Formula $K\max_{i}\left\Vert \Delta_{i}\right\Vert ^{2}$
+\end_inset
+
+ and hence by 
+\begin_inset Formula $K^{\prime}E_{RS}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Our problem is then to optimise Eq.
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:rs-opt"
+
+\end_inset
+
+) with 
+\begin_inset Formula $\nu_{i}=\left\Vert a_{i}\right\Vert =\sigma_{i}$
+\end_inset
+
+, or equivalently, by posing 
+\begin_inset Formula $B^{\prime}=B^{\prime}\Sigma^{-1/2}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+\mbox{minimise } & E_{RS}=\sum_{i}\left\Vert \sigma_{i}a_{i}-b_{i}^{\prime}\right\Vert ^{2}+\lambda\xi_{i}\label{eq:rs-opt-1}\\
+\mbox{subject to } & \xi_{i}\ge\sigma_{j}\left|B_{ij}^{\prime}\right|\nonumber 
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Setting 
+\begin_inset Formula $\lambda$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If 
+\begin_inset Formula $B=A$
+\end_inset
+
+, then 
+\begin_inset Formula 
+\[
+E_{RS}^{(0)}=\lambda\sum_{i}\max_{j}\left|\sigma_{j}A_{ij}\right|
+\]
+
+\end_inset
+
+If we remove the 
+\begin_inset Formula $i^{\nth}$
+\end_inset
+
+ pre-image the error becomes
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\sigma_{i}A_{ij}\right|+\sum_{j}\left\Vert \sigma_{j}\X A_{\bullet j}\right\Vert ^{2}\underbrace{\left\Vert \X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right\Vert ^{2}}_{\left|\sigma_{j}K_{ii}A_{ij}\right|^{2}}
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $A^{(i)}$
+\end_inset
+
+ is 
+\begin_inset Formula $A$
+\end_inset
+
+ with the 
+\begin_inset Formula $i^{\nth}$
+\end_inset
+
+ row set to zero.
+ Hence, in order to remove the 
+\begin_inset Formula $i^{\nth}$
+\end_inset
+
+ pre-image, we need to set 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ such that
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{4}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}A_{ij}\right|\ge0
+\end{align*}
+
+\end_inset
+
+ where 
+\begin_inset Formula $K=k\left(\X,\X\right)$
+\end_inset
+
+.
+ If we want to remove (at least) 
+\begin_inset Formula $m$
+\end_inset
+
+ pre-images whose indices are in 
+\begin_inset Formula $M$
+\end_inset
+
+, we want to have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sigma_{j}^{4}A_{\bullet j}^{\dagger}KA_{\bullet j}\sum_{j=1}^{r}\sigma_{j}^{2}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{i}A_{ij}\right|}
+\]
+
+\end_inset
+
+As an heuristic, we set 
+\begin_inset Formula $M$
+\end_inset
+
+ to be the set of indices of pre-images with ,minimum 
+\begin_inset Formula $E_{RS}^{(i)}-E_{RS}^{(0)}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Paragraph
+Quadratic optimisation
+\end_layout
+
+\begin_layout Standard
+The quadratic programming problem can be solved using quadratic cone optimisatio
+n.
+ This is detailed in Appendix 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:qp-approach"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph
+Re-estimation of parameters
+\end_layout
+
+\begin_layout Standard
+We project the old operator into the new space in order to minimise the
+ error, i.e.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathfrak{U}=\left(\Y BB^{\dagger}\Y^{\dagger}\X A\right)\Sigma A^{\dagger}\X^{\dagger}B\Y\Y^{\dagger}B^{\text{\dagger}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+This document described the Kernel Quantum Probability Library, that can
+ be used to compute quantum events and density in the an arbitrary feature
+ space and relies only on the definition of a kernel, i.e.
+ of the inner product between any two feature vectors.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Example of the use of the KQP library
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+An example of the use of the library is given in
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "kernels"
+options "abbrv"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\start_of_appendix
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section
+\start_of_appendix
+Broken-arrow EVD
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset FormulaMacro
+\newcommand{\trp}[1]{#1^{\dagger}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset FormulaMacro
+\newcommand{\btob}[2]{B_{#1,#2}}
+\end_inset
+
+For completeness, we report here the broken-arrow EVD technique
+\end_layout
+
+\begin_layout Plain Layout
+Let us denote 
+\begin_inset Formula $\btob ij=e_{i}\trp{e_{j}}$
+\end_inset
+
+ and hence 
+\begin_inset Formula $\btob ij=\trp{\btob ji}$
+\end_inset
+
+ and 
+\begin_inset Formula $\btob ij\btob kl=\begin{cases}
+0 & \mbox{if }j\not=k\\
+\btob il & \mbox{otherwise}
+\end{cases}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+We want to do a SVD decomposition of the following broken-arrow matrix
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+A=\left(\begin{array}{cccc}
+d_{1} &  &  & 0\\
+ & \ddots &  & \vdots\\
+ &  & d_{n-1} & 0\\
+z_{1} & \ldots & z_{n-1} & z_{n}
+\end{array}\right)=\sum_{i=1}^{n-1}d_{i}\btob ij+\sum_{i=1}^{n}z_{i}\btob ni
+\]
+
+\end_inset
+
+ as
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+A=\sum_{i}\omega_{i}w_{i}\trp{q_{i}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+In order to adapt it to the technique described in Gu and Eisenstat
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gu1993A-Stable-and-Fast"
+
+\end_inset
+
+.
+ The eigenvalues can be computed in 
+\begin_inset Formula $O(n)$
+\end_inset
+
+ with multipole approximation; for the moment, we have a more naive algorithm
+ in 
+\begin_inset Formula $O\left(n^{2}\right)$
+\end_inset
+
+.
+ The eigenvectors are then computed in 
+\begin_inset Formula $O(n^{2})$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+we add an extra row:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{equation}
+A=\left(\begin{array}{cccc}
+d_{1} &  &  & 0\\
+ & \ddots &  & \vdots\\
+ &  & d_{n-1} & 0\\
+0 & \cdots & 0 & d_{m}\\
+z_{1} & \cdots & z_{n-1} & z_{n}
+\end{array}\right)=\sum_{i=1}^{n}d_{i}\btob ii+\sum_{i=1}^{n}z_{i}\btob{n+1}i\label{eq:broken-arrow}
+\end{equation}
+
+\end_inset
+
+ which is a 
+\begin_inset Formula $n+1\times n$
+\end_inset
+
+ matrix and 
+\begin_inset Formula $d_{n}=0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+We have
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+w_{jk}=\frac{d_{i}z_{i}}{}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\series bold
+TODO: reformulate with permutations and rotations
+\end_layout
+
+\begin_layout Subsection
+Deflation when 
+\begin_inset Formula $z_{k}\le\tau$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Plain Layout
+Each time 
+\begin_inset Formula $z_{k}$
+\end_inset
+
+ is below a given threshold 
+\begin_inset Formula $\tau$
+\end_inset
+
+, we can approximate the SVD by setting 
+\begin_inset Formula $z_{i}$
+\end_inset
+
+ to 0.
+ The decomposition is then quite easy since
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+A\approx\btob kk+\left(\sum_{\begin{array}{c}
+i=1\\
+i\not=k
+\end{array}}^{n-1}d_{i}\btob ii+\sum_{\begin{array}{c}
+i=1\\
+i\not=k
+\end{array}}^{n}z_{i}\btob{n+1}i\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Deflation of 
+\begin_inset Formula $d_{i}-d_{j}\le\tau$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+In that case, we set 
+\begin_inset Formula $d_{i}$
+\end_inset
+
+ to 
+\begin_inset Formula $d_{j}$
+\end_inset
+
+ and we perform a plane rotation to reduce 
+\begin_inset Formula $z_{j}$
+\end_inset
+
+ to 0
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\begin{array}{ccc}
+c=\frac{z_{i}}{\sqrt{z_{i}^{2}+z_{j}^{2}}} & \mbox{ and } & s=\frac{z_{j}}{\sqrt{z_{i}^{2}+z_{j}^{2}}}\end{array}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+We can then define the rotation
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+H=c\left(\btob ii+\btob jj\right)+s\left(\btob ij-\btob ji\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+We have
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+A^{\prime}=HA\trp H\approx d_{j}\btob jj+\sum_{\begin{array}{c}
+k=1\\
+k\not=j
+\end{array}}^{n-1}d_{k}\btob kk+\sum_{\begin{array}{c}
+k=1\\
+k\in\left\{ i,j\right\} 
+\end{array}}^{n}z_{k}\btob{n+1}k+\sqrt{z_{i}^{2}+z_{j}^{2}}\btob{n+1}i
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+which is the same as the previous case (the coefficient for 
+\begin_inset Formula $\btob{n+1}j$
+\end_inset
+
+ is 0).
+\end_layout
+
+\begin_layout Plain Layout
+Once we have done the decomposition of 
+\begin_inset Formula $A^{\prime}$
+\end_inset
+
+ as 
+\begin_inset Formula $\sum_{i}\omega_{i}w_{i}\trp{q_{i}}$
+\end_inset
+
+ we have to transform back
+\begin_inset Formula 
+\begin{eqnarray*}
+A & = & H^{T}A^{\prime}H\\
+ & = & H^{T}U\Sigma\trp{\left(H^{T}V^{\prime}\right)}
+\end{eqnarray*}
+
+\end_inset
+
+with 
+\begin_inset Formula $H^{T}=c\left(\btob ii+\btob jj\right)+s\left(\btob ji-\btob ij\right)$
+\end_inset
+
+.
+ If 
+\begin_inset Formula $u_{i}$
+\end_inset
+
+and 
+\begin_inset Formula $u_{j}$
+\end_inset
+
+ are rows of 
+\begin_inset Formula $U$
+\end_inset
+
+, 
+\begin_inset Formula $H^{T}U$
+\end_inset
+
+ is 
+\begin_inset Formula $U$
+\end_inset
+
+ with the modified rows 
+\begin_inset Formula $u_{i}^{\prime}\leftarrow cu_{i}-su_{j}$
+\end_inset
+
+ and 
+\begin_inset Formula $u_{j}^{\prime}\leftarrow cu_{j}+su_{i}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+QP Approach
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:qp-approach"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this section, we derive a computationally efficient way to optimise Eq.
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:rs-opt"
+
+\end_inset
+
+).
+ We show here how to transform this optimisation problem into a cone quadratic
+ programming approach proposed in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Andersen:2011wx"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Precomputations
+\end_layout
+
+\begin_layout Standard
+Writing 
+\begin_inset Formula $\alpha_{i}=\sigma_{i}A_{\bullet i}$
+\end_inset
+
+, 
+\begin_inset Formula $\beta_{i}=\tau_{i}B_{\bullet i}$
+\end_inset
+
+ and 
+\begin_inset Formula $K_{q}=\X^{\dagger}\X$
+\end_inset
+
+ the gram matrix, we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+E_{RS}= & \sum_{q=1}^{r}\beta_{q}^{\dagger}\beta_{q}-2\nu_{q}\Re\left(\alpha_{q}^{\dagger}\beta_{q}\right)+\lambda\xi_{q}\\
+= & \sum_{q=1}^{r}\beta_{q}^{\dagger}K\beta_{q}-2\Re\left(\alpha_{q}^{\dagger}K\beta_{q}\right)+\lambda\xi_{q}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We get back to a real case by posing 
+\begin_inset Formula $\beta_{q}=\beta_{q}^{\prime}+i\beta_{q}^{\prime\prime}$
+\end_inset
+
+ and 
+\begin_inset Formula $\alpha_{q}=\alpha_{q}^{\prime}+i\alpha_{q}^{\prime\prime}$
+\end_inset
+
+.
+ Dropping 
+\begin_inset Formula $q$
+\end_inset
+
+ for clarity, we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\beta^{\dagger}K\beta & =\beta^{\prime\dagger}K\beta^{\prime}+\beta^{\second\dagger}K\beta^{\second}+i\left(\beta^{\prime\dagger}K\beta^{\second}-\beta^{\second\dagger}K\beta^{\prime}\right)\\
+ & =\beta^{\prime\dagger}\Re\left(K\right)\beta^{\prime}+\beta^{\second\dagger}\Re\left(K\right)\beta^{\second}+i\left(\beta^{\prime\dagger}K\beta^{\second}-\beta^{\prime\dagger}K^{\dagger}\beta^{\second}\right)\\
+ & =\beta^{\prime\dagger}\Re\left(K\right)\beta^{\prime}+\beta^{\second\dagger}\Re\left(K\right)\beta^{\second}-2\beta^{\prime\dagger}\Im\left(K\right)\beta^{\second}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\Re\left(\alpha^{\dagger}K\beta\right) & =\Re\left(\alpha^{\prime\dagger}K\beta^{\prime}+\alpha^{\second\dagger}K\beta^{\second}+i\alpha^{\prime\dagger}K\beta^{\second}-i\alpha^{\second\dagger}K\beta^{\prime}\right)\\
+ & =\left(\alpha^{\prime\dagger}\Re\left(K\right)+\alpha^{\second\dagger}\Im\left(K\right)\right)\beta^{\prime}+\left(\alpha^{\second\dagger}\Re\left(K\right)-\alpha^{\prime\dagger}\Im\left(K\right)\right)\beta^{\second}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we pose
+\begin_inset Formula 
+\begin{eqnarray*}
+x & = & \left(\begin{array}{cccccc}
+\beta_{1}^{\dagger} & \cdots & \beta_{r}^{\dagger} & \xi_{1} & \cdots & \xi_{n}\end{array}\right)^{\dagger}
+\end{eqnarray*}
+
+\end_inset
+
+with 
+\begin_inset Formula $\beta_{i}=\left(\begin{array}{c}
+\beta_{i}^{\prime}\\
+\beta_{i}^{\second}
+\end{array}\right)$
+\end_inset
+
+ in the complex case and 
+\begin_inset Formula $\beta_{i}=\beta_{i}^{\prime}$
+\end_inset
+
+ in the real one.
+\end_layout
+
+\begin_layout Standard
+We require that both the real and imaginary part be inferior to 
+\begin_inset Formula $\xi$
+\end_inset
+
+, i.e.
+ that
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\forall i\in1\dots n,\,\forall q\in1\dots r & \beta_{qi}^{\prime}+\xi_{i}\ge0\mbox{ and }-\beta_{qi}^{\prime}+\xi_{i}\ge0\\
+ & \beta_{qi}^{\second}+\xi_{i}\ge0\mbox{ and }-\beta_{qi}^{\second}+\xi_{i}\ge0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $x$
+\end_inset
+
+ has a length 
+\begin_inset Formula $n\times(r^{\prime}+1)$
+\end_inset
+
+.
+ Our problem can be expressed as a cone quadratic problem
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mbox{minimise } & x^{\dagger}Hx+2c^{\dagger}x\\
+\mbox{subject to } & Gx\le0
+\end{align*}
+
+\end_inset
+
+Denoting 
+\begin_inset Formula $\Id_{n}^{(.)}$
+\end_inset
+
+ the matrix 
+\begin_inset Formula $(\begin{array}{ccc}
+\Id_{n} & \cdots & \Id_{n}\end{array})^{\dagger}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{1}^{(.)}$
+\end_inset
+
+ the matrix 
+\begin_inset Formula $(\begin{array}{ccc}
+1 & \cdots & 1\end{array})^{\dagger}$
+\end_inset
+
+, we can identify: 
+\begin_inset Formula 
+\begin{eqnarray*}
+H & = & \left(\begin{array}{cc}
+K_{\otimes r}^{\prime}\\
+ & \mathbf{0}_{n}
+\end{array}\right)\\
+c & = & \left(\begin{array}{c}
+-\nu_{q}K^{\second}\alpha_{1}\\
+\vdots\\
+-\nu_{q}K^{\second}\alpha_{r}\\
+\frac{\lambda}{2}\mathbf{1}^{(n)}
+\end{array}\right)\\
+G & = & \left(\begin{array}{cc}
+-\Id_{r^{\prime}n} & -\Id_{n}^{(r^{\prime})}\\
+\Id_{r^{\prime}n} & -\Id_{n}^{(r^{\prime})}
+\end{array}\right)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the case where 
+\begin_inset Formula $\mathbb{K}=\mathbb{R}$
+\end_inset
+
+, we have 
+\begin_inset Formula $K^{\prime}=K^{\second}=K$
+\end_inset
+
+ and 
+\begin_inset Formula $r^{\prime}=r$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In the case where 
+\begin_inset Formula $\mathbb{K}=\mathbb{C}$
+\end_inset
+
+, we have 
+\begin_inset Formula $r^{\prime}=2r$
+\end_inset
+
+ and
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+K^{\prime} & =\left(\begin{array}{cc}
+\Re\left(K\right) & -\Im\left(K\right)\\
+-\Im\left(K\right) & \Re\left(K\right)
+\end{array}\right)\\
+K^{\second} & =\left(\begin{array}{cc}
+\Re\left(K\right) & \Im\left(K\right)\\
+-\Im\left(K\right) & \Re\left(K\right)
+\end{array}\right)
+\end{align*}
+
+\end_inset
+
+In order to speed up, we need to solve the linear systems defined by
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\begin{array}{cc}
+H & G^{\dagger}\\
+G & V
+\end{array}\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $V$
+\end_inset
+
+ is a diagonal negative matrix.
+ With a bit of re-ordering, this gives
+\begin_inset Formula 
+\[
+\left(\begin{array}{cccc}
+K_{r}^{\prime} & -\Id_{nr^{\prime}} & \Id_{n}^{(r^{\prime})} & \mathbf{0}_{n}^{(r^{\prime})}\\
+-\Id_{nr^{\prime}} & -U & \mathbf{0}_{nr^{\prime}} & -\Id_{n}^{(r^{\prime})}\\
+\Id_{nr^{\prime}} & \mathbf{0}_{2nr} & -V & -\Id_{n}^{(r^{\prime})}\\
+\mathbf{0}_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(2r)\dagger} & \mathbf{0}
+\end{array}\right)\left(\begin{array}{c}
+x\\
+z\\
+t\\
+y
+\end{array}\right)=\left(\begin{array}{c}
+a\\
+b\\
+d\\
+c
+\end{array}\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $U$
+\end_inset
+
+ and 
+\begin_inset Formula $V$
+\end_inset
+
+ are positive semi-definite (diagonal) matrices of size 
+\begin_inset Formula $2nr$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Pre-solving the system
+\end_layout
+
+\begin_layout Standard
+We want to perform a 
+\begin_inset Formula $LDL^{\dagger}$
+\end_inset
+
+ decomposition of this matrix (a D-Cholesky).
+ Given the structure of the above matrix, we decompose these matrices as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L=\left(\begin{array}{cccc}
+L_{11}\\
+L_{21} & L_{22}\\
+L_{31} & L_{32} & L_{33}\\
+L_{41} & L_{42} & L_{43} & L_{44}
+\end{array}\right)\mbox{ and }D=\left(\begin{array}{cccc}
+D_{1}\\
+ & D_{2}\\
+ &  & D_{3}\\
+ &  &  & D_{4}
+\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A Cholesky decomposition of 
+\begin_inset Formula $K^{\prime}$
+\end_inset
+
+, 
+\begin_inset Formula $AA^{\dagger}=K^{\prime}$
+\end_inset
+
+ gives
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{11}=\mbox{diag}\left(\begin{array}{ccc}
+A & \cdots & A\end{array}\right)\mbox{ and }D_{1}=\Id
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that in the complex field case, we can decompose the problem into
+\begin_inset Formula 
+\begin{align*}
+A_{11}A_{11}^{\dagger} & =\Re\left(K\right)\\
+A_{21}A_{11}^{\dagger} & =-\Im\left(K\right)\\
+A_{22}A_{22}^{\dagger} & =\Re\left(K\right)-A_{21}A_{21}^{\dagger}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We now have 
+\begin_inset Formula 
+\[
+\left(\begin{array}{c}
+L_{21}\\
+L_{31}
+\end{array}\right)L_{11}^{\dagger}=\left(\begin{array}{c}
+-\Id_{nr}\\
+-\Id_{nr}
+\end{array}\right)
+\]
+
+\end_inset
+
+which can be solved straightforwardly by first solving 
+\begin_inset Formula $BA^{\dagger}=\Id$
+\end_inset
+
+ 
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Note that 
+\begin_inset Formula $BB^{\dagger}=K^{\prime-1}$
+\end_inset
+
+ since 
+\begin_inset Formula $BB^{\dagger}=A^{-\dagger}A^{-1}=\left(AA^{\dagger}\right)^{-1}$
+\end_inset
+
+ and hence 
+\begin_inset Formula $BB^{\dagger}$
+\end_inset
+
+ is positive definite
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{21}=\mbox{diag}\left(\begin{array}{ccc}
+-B & \cdots & -B\end{array}\right)\mbox{ and }L_{31}=\mbox{diag}\left(\begin{array}{ccc}
+B & \cdots & B\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We have 
+\begin_inset Formula $L_{21}L_{21}^{\dagger}+L_{22}D_{22}^{\dagger}L_{22}=-U$
+\end_inset
+
+.
+ Since 
+\begin_inset Formula $U_{i}+BB^{\dagger}$
+\end_inset
+
+ is negative definite.
+ It is sufficient to solve the 
+\begin_inset Formula $r$
+\end_inset
+
+ Cholesky decompositions 
+\begin_inset Formula $L_{22}^{(i)}L_{22}^{(i)\dagger}=U_{i}+BB^{\dagger}$
+\end_inset
+
+, and then
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{22}=\mbox{diag}\left(\begin{array}{ccc}
+L_{22}^{(1)} & \cdots & L_{22}^{(r)}\end{array}\right)\mbox{ and }D_{2}=-\Id_{nr}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then, we find 
+\begin_inset Formula $L_{32}$
+\end_inset
+
+ by solving 
+\begin_inset Formula $L_{31}L_{21}^{\dagger}+L_{32}D_{2}L_{22}^{\dagger}=0$
+\end_inset
+
+ which can be solved by solving the 
+\begin_inset Formula $r$
+\end_inset
+
+ systems 
+\begin_inset Formula $L_{32}^{(i)}L_{22}^{(i)^{\dagger}}=-BB^{\dagger}$
+\end_inset
+
+, and then
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{32}=\mbox{diag}\left(\begin{array}{ccc}
+L_{32}^{(1)} & \cdots & L_{32}^{(r)}\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For 
+\begin_inset Formula $L_{33}$
+\end_inset
+
+, we have 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{33}D_{3}L_{33}^{\dagger}-L_{32}L_{32}^{\dagger}+L_{31}L_{31}^{\dagger}=-V
+\]
+
+\end_inset
+
+ which can be solved by 
+\begin_inset Formula $r$
+\end_inset
+
+ D-Cholesky decomposition (all the matrices are block diagonal):
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+L_{33}^{(i)}D_{3}^{(i)}L_{33}^{(i)\dagger}=-V_{i}-BB^{\dagger}+L_{32}^{(i)}L_{32}^{(i)\dagger}\label{eq:L33}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In order to simplify the computation, let us prove that the right hand side
+ is negative definite; we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+L_{32}^{(i)}L_{32}^{(i)\dagger} & =-BB^{\dagger}L_{22}^{(i)-1}L_{22}^{(i)-\dagger}BB^{\dagger}\\
+ & =-BB^{\dagger}\left(U_{i}+BB^{\dagger}\right)^{-1}BB^{\dagger}\\
+ & =BB^{\dagger}-U_{i}+U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+U_{i}^{-1}\left(U_{i}+BB^{\dagger}\right)U_{i}^{-1}=U_{i}^{-1}+U_{i}^{-1}BB^{\dagger}U_{i}^{-1}\ge U_{i}^{-1}>0
+\]
+
+\end_inset
+
+ using the partial order of definite matrices and its properties.
+ This implies that
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+U_{i}\ge U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}>0
+\]
+
+\end_inset
+
+ and hence 
+\begin_inset Formula $-U_{i}+U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}$
+\end_inset
+
+ is positive semi-definite, which in turn implies that the right hand side
+ of Eq.
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:L33"
+
+\end_inset
+
+) is negative definite.
+ This shows that we can find 
+\begin_inset Formula $L_{33}$
+\end_inset
+
+ using a Cholesky decomposition
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{33}^{(i)}L_{33}^{(i)\dagger}=V_{i}+BB^{\dagger}-L_{32}^{(i)}L_{32}^{(i)\dagger}
+\]
+
+\end_inset
+
+and that 
+\begin_inset Formula $D_{3}=\Id_{rn}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For the fourth row, we first have trivially 
+\begin_inset Formula $L_{41}=0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+To solve 
+\begin_inset Formula $L_{42}D_{2}L_{22}^{\dagger}=\left(\begin{array}{ccc}
+-\Id_{n} & \cdots & -\Id_{n}\end{array}\right)$
+\end_inset
+
+, we have to solve 
+\begin_inset Formula $L_{42}^{(i)}L_{22}^{(i)\dagger}=\Id_{n}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1\dots r$
+\end_inset
+
+, and then
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{42}=\left(\begin{array}{ccc}
+L_{42}^{(1)} & \cdots & L_{42}^{(r)}\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To find 
+\begin_inset Formula $L_{43}$
+\end_inset
+
+, we have to solve 
+\begin_inset Formula $L_{43}^{(i)}L_{33}^{(i)\dagger}=\Id_{n}-L_{42}^{(i)}L_{32}^{(i)\dagger}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1\dots r$
+\end_inset
+
+ and
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{43}=\left(\begin{array}{ccc}
+L_{43}^{(1)} & \cdots & L_{43}^{(r)}\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, the last equation 
+\begin_inset Formula $L_{42}D_{2}L_{42}^{\dagger}+L_{43}D_{3}L_{43}^{\dagger}+L_{44}D_{4}L_{44}^{\dagger}=0$
+\end_inset
+
+ can be solved by computing the Cholesky decomposition
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{44}L_{44}^{\dagger}=\sum_{i=1}^{r}L_{42}^{(i)}L_{42}^{(i)\dagger}+L_{43}^{(i)}L_{43}^{(i)\dagger}\mbox{ with }D_{4}=\Id_{n}
+\]
+
+\end_inset
+
+Here is the final structure of the decomposition:
+\begin_inset Formula 
+\begin{align*}
+L & =\left(\begin{array}{cccc}
+A_{r}\\
+-B_{r} & L_{22}\\
+B_{r} & L_{32} & L_{33}\\
+\mathbf{0} & L_{42} & L_{43} & L_{44}
+\end{array}\right)\\
+D & =\left(\begin{array}{ccc}
+\Id_{nr}\\
+ & -\Id_{2rn}\\
+ &  & \Id_{n}
+\end{array}\right)
+\end{align*}
+
+\end_inset
+
+which gives the following systems to solve:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+A^{\text{}}x_{i}^{\prime} & =a_{i}\\
+L_{22}^{(i)}z_{i}^{\prime} & =-Bx_{i}^{\prime}-c_{i}\\
+L_{33}^{(i)}t_{i}^{\prime} & =Bx_{i}^{\prime}-L_{32}^{(i)}z_{i}^{\prime}-d_{i}\\
+L_{44}y^{\prime} & =b+\sum_{i=1}^{r}L_{43}^{(i)}t_{i}^{\prime}+L_{42}^{(i)}z_{i}^{\prime}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and finally
+\begin_inset Formula 
+\begin{align*}
+L_{44}^{\dagger}y & =y^{\prime}\\
+L_{33}^{(i)\dagger}t_{i} & =t_{i}^{\prime}-L_{43}^{(i)\dagger}y\\
+L_{22}^{(i)\dagger}y_{i} & =y_{i}^{\prime}-L_{32}^{(i)\dagger}t_{i}-L_{42}^{(i)\dagger}y\\
+A^{\dagger}x_{i} & =x_{i}^{\prime}-B^{\dagger}t_{i}+B^{\dagger}z_{i}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section
+Substitutions
+\end_layout
+
+\begin_layout Subsection
+Finding the vector to substitute
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:finding"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+We would like to have a set of support vectors as orthogonal as possible.
+ The criteria is 
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\left\Vert K^{\bullet}-Id\right\Vert ^{2}
+\]
+
+\end_inset
+
+ where 
+\begin_inset Formula $K$
+\end_inset
+
+ is the Gram matrix of normalised vectors 
+\begin_inset Formula 
+\[
+K^{\bullet}=\left(\begin{array}{cccc}
+1 & cos\left(x_{1},x_{2}\right) & \cdots & cos\left(x_{1},x_{p}\right)\\
+cos\left(x_{2},x_{1}\right) & \ddots & \ddots & \vdots\\
+\vdots & \ddots & \ddots & cos\left(x_{p-1},x_{p}\right)\\
+cos\left(x_{p},x_{1}\right) & \cdots & cos\left(x_{p},x_{p-1}\right) & 1
+\end{array}\right)
+\]
+
+\end_inset
+
+ Let's call 
+\begin_inset Formula $K_{k}$
+\end_inset
+
+ the matrix 
+\begin_inset Formula $K$
+\end_inset
+
+ where all the 
+\begin_inset Formula $x_{k}$
+\end_inset
+
+ have been substituted by the vector 
+\begin_inset Formula $u$
+\end_inset
+
+.
+ It is better to swap 
+\begin_inset Formula $x_{k}$
+\end_inset
+
+ with 
+\begin_inset Formula $u$
+\end_inset
+
+ if and only if:
+\begin_inset Formula 
+\[
+\left\Vert K-Id\right\Vert ^{2}\ge\left\Vert K_{x}-Id\right\Vert ^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+We thus define a cost 
+\begin_inset Formula $s_{k}=\left\Vert K-Id\right\Vert ^{2}-\left\Vert K_{x}-Id\right\Vert ^{2}$
+\end_inset
+
+ that we wish to maximise
+\begin_inset space ~
+\end_inset
+
+(if below 0, then 
+\begin_inset Formula $u$
+\end_inset
+
+ should not be included in the support vectors).
+ 
+\begin_inset Formula 
+\[
+s_{k}=\sum_{\substack{i,j=1\\
+i\not=j
+}
+}^{n}k\left(x_{i},x_{j}\right)^{2}-\sum_{\substack{i,j=1\\
+i,j\not=k,i\not=j
+}
+}^{n}\cos\left(x_{i},x_{j}\right)^{2}-2\sum_{\substack{i=1\\
+i\not=k
+}
+}^{n}\cos\left(x_{i},u\right)^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Defining
+\begin_inset Formula 
+\[
+S_{k}=\sum_{\substack{i=1\\
+i\not=k
+}
+}\cos\left(x_{i},x_{k}\right)^{2}\mbox{ and }S_{u}=\sum_{\substack{i=1}
+}^{n}\cos\left(x_{i},u\right)^{2}
+\]
+
+\end_inset
+
+we have
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+s_{k}=2S_{k}-2S_{u}+2\cos\left(x_{k},u\right)^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Exact case
+\end_layout
+
+\begin_layout Plain Layout
+Suppose we have a vector 
+\begin_inset Formula $u$
+\end_inset
+
+ belongs to the subspace spanned by 
+\begin_inset Formula $\left\{ x_{i}\right\} _{i=1}^{n}$
+\end_inset
+
+.
+ We can write 
+\begin_inset Formula $u$
+\end_inset
+
+ as 
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{eqnarray*}
+u & = & \X YY^{\dagger}\left(\begin{array}{c}
+K\left(X_{\bullet,1},u\right)\\
+\vdots\\
+K\left(X_{\bullet,p},u\right)
+\end{array}\right)\\
+ & = & \sum_{i=1}^{n}\beta_{i}x_{i}
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+where 
+\begin_inset Formula $x_{i}$
+\end_inset
+
+ is the 
+\begin_inset Formula $i$
+\end_inset
+
+
+\begin_inset Formula $^{\text{th}}$
+\end_inset
+
+ column of 
+\begin_inset Formula $X$
+\end_inset
+
+, and 
+\begin_inset Formula 
+\[
+\beta_{i}=\left(Y\underbrace{Y^{\dagger}X^{\dagger}u}_{w}\right)_{i}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+If 
+\begin_inset Formula $\beta_{p}>0$
+\end_inset
+
+, we can substitute 
+\begin_inset Formula $x_{p}$
+\end_inset
+
+ by 
+\begin_inset Formula $u$
+\end_inset
+
+ easily (other substitutions are easy with permutation, since
+\begin_inset Formula 
+\[
+\left(\begin{array}{cccc}
+x_{1} & \cdots & x_{n-1} & x_{n}\end{array}\right)=\left(\begin{array}{cccc}
+x_{1} & \cdots & x_{p-1} & u\end{array}\right)\left(\begin{array}{cc}
+\begin{array}{c}
+Id_{p-1}\\
+0
+\end{array} & t\end{array}\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula 
+\[
+t=\beta_{p}^{-1}\left(\begin{array}{c}
+-\beta_{1}\\
+\vdots\\
+-\beta_{p-1}\\
+1
+\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+In general, substitution with the 
+\begin_inset Formula $k^{\text{th}}$
+\end_inset
+
+ vector means
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{eqnarray*}
+Y & \gets & \left(\begin{array}{c}
+Y_{1:k-1,1:r}-\beta_{k}^{-1}\left(\begin{array}{c}
+\beta_{1}\\
+\vdots\\
+\beta_{k-1}
+\end{array}\right)Y_{k,\bullet}\\
+\beta_{k}^{-1}Y_{k,\bullet}\\
+Y_{k+1:p,1:r}-\beta_{k}^{-1}\left(\begin{array}{c}
+\beta_{k+1}\\
+\vdots\\
+\beta_{p}
+\end{array}\right)Y_{k,\bullet}
+\end{array}\right)\\
+X_{k,\bullet} & \gets & u
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Case where the substitution is not exact
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+u=\sum_{i=1}^{n}\beta_{i}x_{i}+v
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+The idea is to 
+\end_layout
+
+\begin_layout Enumerate
+Add the orthogonal to the decomposition
+\end_layout
+
+\begin_layout Enumerate
+Substitute the vector 
+\end_layout
+
+\begin_layout Enumerate
+Remove the orthogonal (simple, since it is orthogonal)
+\end_layout
+
+\begin_layout Subsubsection
+Step 1 (add the orthogonal to the decomposition)
+\end_layout
+
+\begin_layout Plain Layout
+The new decomposition is
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\left(\begin{array}{cc}
+\X & v\end{array}\right)\left(\begin{array}{cc}
+Y & 0\\
+0 & \left\Vert v\right\Vert ^{-1}
+\end{array}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & 1
+\end{array}\right)\left(\begin{array}{cc}
+\Sigma & 0\\
+0 & 1
+\end{array}\right)\ldots
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Step 2 (substitute the vector)
+\end_layout
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\noun off
+\color none
+\begin_inset Formula 
+\[
+\left(\begin{array}{cc}
+X_{u/k} & v\end{array}\right)\left(\begin{array}{cc}
+Y_{u/k} & 0\\
+0 & \left\Vert v\right\Vert ^{-1}
+\end{array}\right)\left(\begin{array}{cc}
+Z & 0\\
+0 & 1
+\end{array}\right)\left(\begin{array}{cc}
+\Sigma & 0\\
+0 & \beta_{k}^{-2}
+\end{array}\right)...
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Step 3
+\end_layout
+
+\begin_layout Plain Layout
+We are in the situation described by the exact case - the error made is
+ 
+\begin_inset Formula $\beta_{k}^{-2}$
+\end_inset
+
+ (to be compared with 
+\begin_inset Formula $\text{\epsilon}$
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+\begin_inset Float algorithm
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset FormulaMacro
+\renewcommand{\normv}{n_{v}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\normw}{n_{w}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Algorithmic
+\begin_inset Flex ALGORITHMIC
+status open
+
+\begin_layout Plain Layout
+\begin_inset Flex STATE
+status open
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+Y\gets\left(\begin{array}{c}
+Y_{1:k-1,1:r}-\beta_{k}^{-1}\left(\begin{array}{c}
+\beta_{1}\\
+\vdots\\
+\beta_{k-1}
+\end{array}\right)Y_{k,\bullet}\\
+\beta_{k}^{-1}Y_{k,\bullet}\\
+Y_{k+1:p,1:r}-\beta_{k}^{-1}\left(\begin{array}{c}
+\beta_{k+1}\\
+\vdots\\
+\beta_{p}
+\end{array}\right)Y_{k,\bullet}
+\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Flex STATE
+status open
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{eqnarray*}
+X_{k,\bullet} & \gets & u
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset FormulaMacro
+\renewcommand{\normv}{\left\Vert v\right\Vert }
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+substitute(
+\begin_inset Formula $X,Y,u,k,\beta$
+\end_inset
+
+) -- Used when we want to replace the 
+\begin_inset Formula $k^{\mbox{th}}$
+\end_inset
+
+ support vector by 
+\begin_inset Formula $u$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
