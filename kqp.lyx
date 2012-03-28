@@ -3857,6 +3857,7 @@ key "Andersen:2011wx"
 \end_inset
 
 .
+ We handle both the complex and the real field cases.
 \end_layout
 
 \begin_layout Subsection
@@ -3880,7 +3881,7 @@ Writing
 \begin_inset Formula $r$
 \end_inset
 
- is the rank of the opeator, 
+ is the rank of the operator, 
 \begin_inset Formula $n$
 \end_inset
 
@@ -3946,7 +3947,37 @@ and
 \end_layout
 
 \begin_layout Standard
-If we pose
+Hence
+\begin_inset Formula 
+\[
+\beta_{q}^{\dagger}K\beta_{q}-2\Re\left(\alpha_{q}^{\dagger}K\beta_{q}\right)+\lambda\xi_{q}=\left(\begin{array}{c}
+\beta_{q}^{\prime}\\
+\beta_{q}^{\second}
+\end{array}\right)^{\dagger}\left(\begin{array}{cc}
+\Re\left(K\right) & \Im(K)\\
+\Im(K) & \Re(K)
+\end{array}\right)\left(\begin{array}{c}
+\beta_{q}^{\prime}\\
+\beta_{q}^{\second}
+\end{array}\right)+\left(\begin{array}{c}
+\alpha^{\prime}\\
+\alpha^{\second}
+\end{array}\right)^{\dagger}\left(\begin{array}{cc}
+\Re(K) & \Im(K)\\
+-\Im(K) & \Re(K)
+\end{array}\right)\left(\begin{array}{c}
+\beta_{q}^{\prime}\\
+\beta_{q}^{\second}
+\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we let
 \begin_inset Formula 
 \begin{eqnarray*}
 x & = & \left(\begin{array}{cccccc}
@@ -3981,25 +4012,16 @@ We require that both the real and imaginary part be inferior to
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\forall i\in1\dots n,\,\forall q\in1\dots r,\, & S_{qq}\beta_{qi}^{\prime}+\xi_{i}\ge0\mbox{ and }-S_{qq}\beta_{qi}^{\prime}+\xi_{i}\ge0\\
- & S_{qq}\beta_{qi}^{\second}+\xi_{i}\ge0\mbox{ and }-S_{qq}\beta_{qi}^{\second}+\xi_{i}\ge0
+\forall i\in1\dots n,\,\forall q\in1\dots r,\, & \nu_{q}\left(\pm\beta_{qi}^{\prime}\pm\beta_{qi}^{\second}\right)+\xi_{i}\ge0
 \end{align*}
 
 \end_inset
 
 where 
-\begin_inset Formula $S$
+\begin_inset Formula $\nu_{q}$
 \end_inset
 
- is a diagonal matrix of size 
-\begin_inset Formula $r$
-\end_inset
-
- such that 
-\begin_inset Formula $S_{jj}=\sigma_{j}^{-1}$
-\end_inset
-
-, and 
+ are weights associated to basis vectors in the feature space, and 
 \begin_inset Formula $x$
 \end_inset
 
@@ -4042,7 +4064,7 @@ Denoting
 \begin_inset Formula 
 \begin{eqnarray*}
 H & = & \left(\begin{array}{cc}
-\mbox{diag}{}_{r}K^{\prime}\\
+K_{\times r}^{\prime}\\
  & \mathbf{0}_{n}
 \end{array}\right)\\
 c & = & \left(\begin{array}{c}
@@ -4052,8 +4074,8 @@ c & = & \left(\begin{array}{c}
 \frac{\lambda}{2}\mathbf{1}^{(n)}
 \end{array}\right)\\
 G & = & \left(\begin{array}{cc}
--\mbox{diag}_{r^{\prime}}S & -\Id_{n}^{(r^{\prime})}\\
-\mbox{diag}_{r^{\prime}}S & -\Id_{n}^{(r^{\prime})}
+-S & -\Id_{n}^{(r^{\prime})}\\
+S & -\Id_{n}^{(r^{\prime})}
 \end{array}\right)
 \end{eqnarray*}
 
@@ -4067,8 +4089,27 @@ where
 \begin_inset Formula $r$
 \end_inset
 
- times in the diagonal.
- 
+ times in the diagonal where 
+\begin_inset Formula 
+\[
+S=\mbox{diag}\left(\nu_{1}G_{0},\ldots\nu_{1}G_{0}\right)
+\]
+
+\end_inset
+
+with 
+\begin_inset Formula $G_{0}$
+\end_inset
+
+ defined latter.
+\end_layout
+
+\begin_layout Paragraph
+Case 
+\begin_inset Formula $\mathbb{K}=\mathbb{R}$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -4084,11 +4125,23 @@ In the case where
 \begin_inset Formula $r^{\prime}=r$
 \end_inset
 
-; in the case where 
-\begin_inset Formula $\mathbb{K}=\mathbb{C}$
+ and 
+\begin_inset Formula $G_{0}=\Id_{n}$
 \end_inset
 
-, we have 
+
+\end_layout
+
+\begin_layout Paragraph
+Case 
+\begin_inset Formula $\mathbb{K}=C$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+we have 
 \begin_inset Formula $r^{\prime}=2r$
 \end_inset
 
@@ -4105,6 +4158,10 @@ K^{\prime} & =\left(\begin{array}{cc}
 K^{\second} & =\left(\begin{array}{cc}
 \Re\left(K\right) & \Im\left(K\right)\\
 -\Im\left(K\right) & \Re\left(K\right)
+\end{array}\right)\\
+G_{0} & =\left(\begin{array}{cc}
+\Id_{n} & \Id_{n}\\
+\Id_{n} & -\Id_{n}
 \end{array}\right)
 \end{align*}
 
@@ -4142,8 +4199,8 @@ where
 \[
 \left(\begin{array}{cccc}
 \mbox{diag}_{r}K^{\prime} & -\Id_{nr^{\prime}} & \Id_{n}^{(r^{\prime})} & \mathbf{0}_{n}^{(r^{\prime})}\\
--\mbox{diag}_{r^{\prime}}S & -U & \mathbf{0}_{nr^{\prime}} & -\Id_{n}^{(r^{\prime})}\\
-\mbox{diag}_{r^{\prime}}S & \mathbf{0}_{2nr} & -V & -\Id_{n}^{(r^{\prime})}\\
+-S & -U & \mathbf{0}_{nr^{\prime}} & -\Id_{n}^{(r^{\prime})}\\
+S & \mathbf{0}_{2nr} & -V & -\Id_{n}^{(r^{\prime})}\\
 \mathbf{0}_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(r^{\prime})\dagger} & -\Id_{n}^{(2r)\dagger} & \mathbf{0}
 \end{array}\right)\left(\begin{array}{c}
 x\\
@@ -4205,6 +4262,14 @@ D_{1}\\
 
 \end_layout
 
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{11}$
+\end_inset
+
+
+\end_layout
+
 \begin_layout Standard
 A Cholesky decomposition of 
 \begin_inset Formula $K^{\prime}$
@@ -4243,6 +4308,18 @@ A_{22}A_{22}^{\dagger} & =\Re\left(K\right)-A_{21}A_{21}^{\dagger}
 
 \end_layout
 
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{21}$
+\end_inset
+
+ and 
+\begin_inset Formula $L_{31}$
+\end_inset
+
+
+\end_layout
+
 \begin_layout Standard
 We now have 
 \begin_inset Formula 
@@ -4251,32 +4328,33 @@ We now have
 L_{21}\\
 L_{31}
 \end{array}\right)L_{11}^{\dagger}=\left(\begin{array}{c}
--\mbox{diag}_{r^{\prime}}S\\
--\mbox{diag}_{r^{\prime}}S
+-S\\
+S
 \end{array}\right)
 \]
 
 \end_inset
 
-which can be solved straightforwardly by first solving 
-\begin_inset Formula $BA^{\dagger}=S$
+where 
+\begin_inset Formula $S=\mbox{diag}\left(\nu_{1}G_{0},\ldots\nu_{1}G_{0}\right)$
 \end_inset
 
- 
+.
+ This can be solved straightforwardly by first solving
 \begin_inset Foot
 status open
 
 \begin_layout Plain Layout
 Note that 
-\begin_inset Formula $BB^{\dagger}=K^{\prime-1}$
-\end_inset
-
- since 
-\begin_inset Formula $BB^{\dagger}=A^{-\dagger}A^{-1}=\left(AA^{\dagger}\right)^{-1}$
-\end_inset
-
- and hence 
 \begin_inset Formula $BB^{\dagger}$
+\end_inset
+
+ is positive definite since 
+\begin_inset Formula $BB^{\dagger}=A^{-\dagger}G_{0}^{2}A^{-1}$
+\end_inset
+
+ where 
+\begin_inset Formula $G_{0}$
 \end_inset
 
  is positive definite
@@ -4284,15 +4362,19 @@ Note that
 
 \end_inset
 
-.
+ 
+\begin_inset Formula $BA^{\dagger}=G_{0}$
+\end_inset
+
+ .
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
 L_{21}=\mbox{diag}\left(\begin{array}{ccc}
--B & \cdots & -B\end{array}\right)\mbox{ and }L_{31}=\mbox{diag}\left(\begin{array}{ccc}
-B & \cdots & B\end{array}\right)
+-\nu_{1}B & \cdots & -\nu_{r}B\end{array}\right)\mbox{ and }L_{31}=\mbox{diag}\left(\begin{array}{ccc}
+\nu_{1}B & \cdots & \nu_{r}B\end{array}\right)
 \]
 
 \end_inset
@@ -4300,35 +4382,50 @@ B & \cdots & B\end{array}\right)
 
 \end_layout
 
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{22}$
+\end_inset
+
+
+\end_layout
+
 \begin_layout Standard
-We have 
-\begin_inset Formula $L_{21}L_{21}^{\dagger}+L_{22}D_{22}^{\dagger}L_{22}=-U$
+We have to solve 
+\begin_inset Formula $L_{22}D_{22}^{\dagger}L_{22}=-U-L_{21}L_{21}^{\dagger}=-\mbox{diag}\left(\left(U_{i}+\nu_{i}^{2}BB^{\dagger}\right)_{i}\right)$
 \end_inset
 
 .
  Since 
-\begin_inset Formula $U_{i}+BB^{\dagger}$
+\begin_inset Formula $U_{i}+\nu_{i}^{2}BB^{\dagger}$
 \end_inset
 
- is negative definite.
- It is sufficient to solve the 
+ is positive definite, it is sufficient to solve the 
 \begin_inset Formula $r$
 \end_inset
 
  Cholesky decompositions 
-\begin_inset Formula $L_{22}^{(i)}L_{22}^{(i)\dagger}=U_{i}+BB^{\dagger}$
+\begin_inset Formula $L_{22}^{(i)}L_{22}^{(i)\dagger}=U_{i}+\nu_{i}^{2}BB^{\dagger}$
 \end_inset
 
-, and then
+ with
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
 L_{22}=\mbox{diag}\left(\begin{array}{ccc}
-L_{22}^{(1)} & \cdots & L_{22}^{(r)}\end{array}\right)\mbox{ and }D_{2}=-\Id_{nr}
+L_{22}^{(1)} & \cdots & L_{22}^{(r)}\end{array}\right)\mbox{ and }D_{2}=-\Id_{nr^{\prime}}
 \]
 
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{32}$
 \end_inset
 
 
@@ -4340,7 +4437,7 @@ Then, we find
 \end_inset
 
  by solving 
-\begin_inset Formula $L_{31}L_{21}^{\dagger}+L_{32}D_{2}L_{22}^{\dagger}=0$
+\begin_inset Formula $L_{32}D_{2}L_{22}^{\dagger}=-L_{31}L_{21}^{\dagger}$
 \end_inset
 
  which can be solved by solving the 
@@ -4348,10 +4445,10 @@ Then, we find
 \end_inset
 
  systems 
-\begin_inset Formula $L_{32}^{(i)}L_{22}^{(i)^{\dagger}}=-BB^{\dagger}$
+\begin_inset Formula $L_{32}^{(i)}L_{22}^{(i)^{\dagger}}=-\nu_{i}^{2}BB^{\dagger}$
 \end_inset
 
-, and then
+, 
 \end_layout
 
 \begin_layout Standard
@@ -4361,6 +4458,14 @@ L_{32}=\mbox{diag}\left(\begin{array}{ccc}
 L_{32}^{(1)} & \cdots & L_{32}^{(r)}\end{array}\right)
 \]
 
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{33}$
 \end_inset
 
 
@@ -4392,7 +4497,7 @@ L_{33}D_{3}L_{33}^{\dagger}-L_{32}L_{32}^{\dagger}+L_{31}L_{31}^{\dagger}=-V
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-L_{33}^{(i)}D_{3}^{(i)}L_{33}^{(i)\dagger}=-V_{i}-BB^{\dagger}+L_{32}^{(i)}L_{32}^{(i)\dagger}\label{eq:L33}
+L_{33}^{(i)}D_{3}^{(i)}L_{33}^{(i)\dagger}=-V_{i}-\nu_{i}^{2}BB^{\dagger}+L_{32}^{(i)}L_{32}^{(i)\dagger}\label{eq:L33}
 \end{equation}
 
 \end_inset
@@ -4408,9 +4513,9 @@ In order to simplify the computation, let us prove that the right hand side
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-L_{32}^{(i)}L_{32}^{(i)\dagger} & =-BB^{\dagger}L_{22}^{(i)-1}L_{22}^{(i)-\dagger}BB^{\dagger}\\
- & =-BB^{\dagger}\left(U_{i}+BB^{\dagger}\right)^{-1}BB^{\dagger}\\
- & =BB^{\dagger}-U_{i}+U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}
+L_{32}^{(i)}L_{32}^{(i)\dagger} & =-\nu_{i}^{2}BB^{\dagger}L_{22}^{(i)-1}L_{22}^{(i)-\dagger}BB^{\dagger}\\
+ & =-\nu_{i}^{2}BB^{\dagger}\left(U_{i}+BB^{\dagger}\right)^{-1}BB^{\dagger}\\
+ & =\nu_{i}^{2}BB^{\dagger}-U_{i}+U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}
 \end{align*}
 
 \end_inset
@@ -4425,7 +4530,7 @@ We have
 \begin_layout Standard
 \begin_inset Formula 
 \[
-U_{i}^{-1}\left(U_{i}+BB^{\dagger}\right)U_{i}^{-1}=U_{i}^{-1}+U_{i}^{-1}BB^{\dagger}U_{i}^{-1}\ge U_{i}^{-1}>0
+U_{i}^{-1}\left(U_{i}+\nu_{i}^{2}BB^{\dagger}\right)U_{i}^{-1}=U_{i}^{-1}+\nu_{i}^{2}U_{i}^{-1}BB^{\dagger}U_{i}^{-1}\ge U_{i}^{-1}>0
 \]
 
 \end_inset
@@ -4437,13 +4542,13 @@ U_{i}^{-1}\left(U_{i}+BB^{\dagger}\right)U_{i}^{-1}=U_{i}^{-1}+U_{i}^{-1}BB^{\da
 \begin_layout Standard
 \begin_inset Formula 
 \[
-U_{i}\ge U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}>0
+U_{i}\ge U_{i}\left(U_{i}+\nu_{i}^{2}BB^{\dagger}\right)^{-1}U_{i}>0
 \]
 
 \end_inset
 
  and hence 
-\begin_inset Formula $-U_{i}+U_{i}\left(U_{i}+BB^{\dagger}\right)^{-1}U_{i}$
+\begin_inset Formula $-U_{i}+U_{i}\left(U_{i}+\nu_{i}^{2}BB^{\dagger}\right)^{-1}U_{i}$
 \end_inset
 
  is positive semi-definite, which in turn implies that the right hand side
@@ -4466,7 +4571,7 @@ reference "eq:L33"
 \begin_layout Standard
 \begin_inset Formula 
 \[
-L_{33}^{(i)}L_{33}^{(i)\dagger}=V_{i}+BB^{\dagger}-L_{32}^{(i)}L_{32}^{(i)\dagger}
+L_{33}^{(i)}L_{33}^{(i)\dagger}=V_{i}+\nu_{i}^{2}BB^{\dagger}-L_{32}^{(i)}L_{32}^{(i)\dagger}
 \]
 
 \end_inset
@@ -4476,6 +4581,22 @@ and that
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Paragraph
+Solving 
+\begin_inset Formula $L_{41}$
+\end_inset
+
+, 
+\begin_inset Formula $L_{42}$
+\end_inset
+
+ and 
+\begin_inset Formula $L_{43}$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -4559,13 +4680,21 @@ L_{44}L_{44}^{\dagger}=\sum_{i=1}^{r}L_{42}^{(i)}L_{42}^{(i)\dagger}+L_{43}^{(i)
 
 \end_inset
 
+
+\end_layout
+
+\begin_layout Subsection
+Solving the linear system
+\end_layout
+
+\begin_layout Standard
 Here is the final structure of the decomposition:
 \begin_inset Formula 
 \begin{align*}
 L & =\left(\begin{array}{cccc}
-A_{r}\\
--B_{r} & L_{22}\\
-B_{r} & L_{32} & L_{33}\\
+A_{\times r}\\
+-L_{21} & L_{22}\\
+L_{21} & L_{32} & L_{33}\\
 \mathbf{0} & L_{42} & L_{43} & L_{44}
 \end{array}\right)\\
 D & =\left(\begin{array}{ccc}
@@ -4577,6 +4706,26 @@ D & =\left(\begin{array}{ccc}
 
 \end_inset
 
+with 
+\begin_inset Formula 
+\[
+L_{21}=\mbox{diag}\left(\begin{array}{ccc}
+-\nu_{1}B & \cdots & -\nu_{r}B\end{array}\right)
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 which gives the following systems to solve:
 \end_layout
 
@@ -4584,8 +4733,8 @@ which gives the following systems to solve:
 \begin_inset Formula 
 \begin{align*}
 A^{\text{}}x_{i}^{\prime} & =a_{i}\\
-L_{22}^{(i)}z_{i}^{\prime} & =-Bx_{i}^{\prime}-c_{i}\\
-L_{33}^{(i)}t_{i}^{\prime} & =Bx_{i}^{\prime}-L_{32}^{(i)}z_{i}^{\prime}-d_{i}\\
+L_{22}^{(i)}z_{i}^{\prime} & =-\nu_{i}Bx_{i}^{\prime}-c_{i}\\
+L_{33}^{(i)}t_{i}^{\prime} & =\nu_{i}Bx_{i}^{\prime}-L_{32}^{(i)}z_{i}^{\prime}-d_{i}\\
 L_{44}y^{\prime} & =b+\sum_{i=1}^{r}L_{43}^{(i)}t_{i}^{\prime}+L_{42}^{(i)}z_{i}^{\prime}
 \end{align*}
 
@@ -4601,7 +4750,7 @@ and finally
 L_{44}^{\dagger}y & =y^{\prime}\\
 L_{33}^{(i)\dagger}t_{i} & =t_{i}^{\prime}-L_{43}^{(i)\dagger}y\\
 L_{22}^{(i)\dagger}y_{i} & =y_{i}^{\prime}-L_{32}^{(i)\dagger}t_{i}-L_{42}^{(i)\dagger}y\\
-A^{\dagger}x_{i} & =x_{i}^{\prime}-B^{\dagger}t_{i}+B^{\dagger}z_{i}
+A^{\dagger}x_{i} & =x_{i}^{\prime}-\nu_{i}B^{\dagger}t_{i}+\nu_{i}B^{\dagger}z_{i}
 \end{align*}
 
 \end_inset
