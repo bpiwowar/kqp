@@ -4,7 +4,10 @@ title: Kernel Quantum Probability (KQP) library
 ---
 h1. Welcome to the Kernel Quantum Probability (KQP) library
 
-This project aims at providing an API that allows to compute quantum densities (semi-definite positive hermitian operators) or events (subspaces). It provides tools to compute quantum probabilities and update densities (conditionalisation), and supports the use of kernels to implicitly define the space, thus allowing working in very high dimensional spaces.
+This project aims at providing an API that allows to compute quantum densities (semi-definite positive hermitian operators) or events (subspaces). 
+It provides tools to compute quantum probabilities and update densities (conditionalisation), and supports the use of kernels to implicitly define the space, thus allowing working in very high dimensional spaces.
+
+If you use KQP, please cite the *"associated technical report":http://arxiv.org/abs/1203.6005*
 
 Features
 * L-GPL license
@@ -14,9 +17,9 @@ Features
 ** computation,
 ** conditionalisation,
 ** "entropy":http://en.wikipedia.org/wiki/Joint_quantum_entropy,
-** and divergence.
+** and "divergence":http://en.wikipedia.org/wiki/Quantum_relative_entropy.
 * Other modules:
-** Quadratic optimization,
+** Cone Quadratic Optimization (translated from python from "cvxopt":http://abel.ee.ucla.edu/cvxopt/),
 ** Pre-image removal, 
 ** rank-one fast EVD update
 

@@ -5,8 +5,36 @@
 		<script type="text/javascript"
 		  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 		</script>
+		<style type="text/css" media="screen">
+			body {
+				margin: 0;
+				padding: 0;
+			}
+			
+			/* Banner */
+			.banner { 
+				margin: 0;
+				padding: 5px;
+				width: 100%;
+				background: #fdd;
+				border-bottom: 1px solid black;
+				font-weight: bold;
+			}
+			.banner a {
+				text-decoration: none;
+				color: #800;
+			}
+			
+			/* Content */
+			.content {
+				margin: 10px;
+			}
+		</style>
 	</head>
 	<body>
+		<div class="banner"><a href="/">The Kernel Quantum Probability Library</a> - <a href="https://github.com/bpiwowar/kqp">On GitHub</a></div>
+		<div class="content">
 		{{ content }}
+		</div>
 	</body>
 </html>
