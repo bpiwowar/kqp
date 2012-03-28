@@ -18,6 +18,7 @@
 #ifndef __KQP_REDUCED_QP_APPROACH_H__
 #define __KQP_REDUCED_QP_APPROACH_H__
  
+#include <boost/type_traits/is_complex.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
@@ -34,16 +35,18 @@ namespace kqp {
 #   include <kqp/define_header_logger.hpp>
     DEFINE_KQP_HLOGGER("kqp.qp-approach");
     
-    /** \brief Solve the QP system associated to the reduced set problem.
+    /** \brief 
+     * Solve the QP system associated to the reduced set problem.
      * 
      * <p>Mimimise 
      * \f$ \sum_{q=1}^{r}\beta_{q}^{\dagger}K\beta_{q}-2\Re\left(\alpha_{q}^{\dagger}Kb_{q}\right)+\lambda\xi_{q} \f$
      * </p>
      * @param r The rank of the operator
      * @param gramMatrix The gram matrix \f$K\$
+     * @param complex If the original problem was in the complex field (changes the constraints)
      */
     template<typename Scalar>
-    void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);
+    void solve_qp(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);
     
     /// Structured used to estimate the lambda
     template<typename Scalar>
@@ -122,7 +125,7 @@ namespace kqp {
          * @param mY the 
          */
         //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::ScalarAltMatrix &mY, const RealVector &mD) {
+        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::ScalarAltMatrix &mY, const RealVector &mD) {            
             // Get the Gram matrix
             const ScalarMatrix &gram = mF.inner();
             
@@ -137,17 +140,22 @@ namespace kqp {
             //
             // (1) Estimate the regularization coefficient \f$lambda\f$
             //
+
+            // mAS_.j = sigma_j^1/2 A_.j
+            ScalarMatrix mAS = mY * mD.cwiseAbs().cwiseSqrt().asDiagonal();
+            
+            // a_sqrNorm[i] = sigma_j^2 * A'.j * K * A.j
+            RealVector a_sqrNorm(r);
+            for(Index j = 0; j < r; j++)
+                a_sqrNorm[j] = Eigen::internal::abs((mAS.col(j).transpose() * gram * mAS.col(j) * mD[j])(0,0));
             
             std::vector< LambdaError<Real> > errors;
             for(Index i = 0; i < n; i++) {
-                Real maxa = 0;
-                Real delta = 0;
-                for(Index j = 0; j < r; j++) {
-                    Real x = Eigen::internal::abs2(mY(i,j) * mD[j]); 
-                    delta += x;
-                    maxa = std::max(maxa, std::sqrt(x));
-                }
-                errors.push_back(LambdaError<Real>(delta * Eigen::internal::abs2(gram(i,i)), maxa, i));
+                
+                Real maxa = mAS.cwiseAbs().row(i).maxCoeff();
+                Real delta = Eigen::internal::abs2(gram(i,i)) * mAS.cwiseAbs2().row(i).dot(a_sqrNorm);
+
+                errors.push_back(LambdaError<Real>(delta, maxa, i));
             }
             
             
@@ -166,8 +174,8 @@ namespace kqp {
             //
             // (2) Solve the cone quadratic problem
             //
-            kqp::cvxopt::ConeQPReturn<Scalar> result;
-            solve_qp<Scalar>(r, lambda, gram, (mY * mD.asDiagonal()), result);
+            kqp::cvxopt::ConeQPReturn<Real> result;
+            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs(), result);
 
             if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
                 KQP_THROW_EXCEPTION_F(arithmetic_exception, "QP approach did not converge (singular KKT matrix)", %result.status);
@@ -231,14 +239,18 @@ namespace kqp {
      * @ingroup coneqp
      */
     template<typename Scalar>
-    class KQP_KKTPreSolver : public cvxopt::KKTPreSolver<Scalar> {
-        Eigen::LLT<KQP_MATRIX(Scalar)> lltOfK;
-        KQP_MATRIX(Scalar) B, BBT;
-        
+    class KQP_KKTPreSolver : public cvxopt::KKTPreSolver<typename Eigen::NumTraits<Scalar>::Real> {
     public:
-        KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix);
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+
+        KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix, const KQP_VECTOR(Real) &nu);
         
-        cvxopt::KKTSolver<Scalar> *get(const cvxopt::ScalingMatrix<Scalar> &w);
+        cvxopt::KKTSolver<Real> *get(const cvxopt::ScalingMatrix<Real> &w);
+    private:
+        Eigen::LLT<KQP_MATRIX(Real)> lltOfK;
+        KQP_MATRIX(Real) B, BBT;
+        KQP_VECTOR(Real) nu;
+
     };
     
 }

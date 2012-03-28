@@ -25,11 +25,13 @@ namespace kqp {
         const Eigen::LLT<KQP_MATRIX(Scalar)> &cholK;
         const KQP_MATRIX(Scalar) &B;
         const KQP_MATRIX(Scalar) &BBT;
+        const KQP_VECTOR(Scalar) &nu;
+
         // Number of pre-images
         int n;
         // Rank (number of basis vectors)
         int r;
-        
+               
         // Wdi
         KQP_VECTOR(Scalar) Wd;
         
@@ -37,8 +39,8 @@ namespace kqp {
         std::vector<KQP_MATRIX(Scalar)> L32, L42, L43;
         Eigen::LLT<KQP_MATRIX(Scalar)> L44;
     public:
-        KQP_KKTSolver(const Eigen::LLT<KQP_MATRIX(Scalar)> &cholK, const KQP_MATRIX(Scalar) &B, const KQP_MATRIX(Scalar) &BBT, const cvxopt::ScalingMatrix<Scalar> &w) 
-        : cholK(cholK), B(B), BBT(BBT), n(B.cols()), r(w.d.size() / n / 2) , Wd(w.d)
+        KQP_KKTSolver(const Eigen::LLT<KQP_MATRIX(Scalar)> &cholK, const KQP_MATRIX(Scalar) &B, const KQP_MATRIX(Scalar) &BBT, const cvxopt::ScalingMatrix<Scalar> &w, const KQP_VECTOR(Scalar) &nu) 
+        : cholK(cholK), B(B), BBT(BBT), nu(nu), n(B.cols()), r(w.d.size() / n / 2) , Wd(w.d)
         {
             // The scaling matrix has dimension r * n * 2
             KQP_LOG_DEBUG(logger, "Preparing the KKT solver of dimension r=" << convert(r) << " and n=" << convert(n));
@@ -53,7 +55,7 @@ namespace kqp {
             // Computes L22[i]
             L22.resize(r);
             for(int i = 0; i < r; i++) {
-                KQP_MATRIX(Scalar) mX = BBT;
+                KQP_MATRIX(Scalar) mX = nu[i] * nu[i] * BBT;
                 mX.diagonal() += U.segment(i*n, n);
                 L22[i].compute(mX);
             }
@@ -62,7 +64,7 @@ namespace kqp {
             L32.resize(r);
             for(int i = 0; i < r; i++) {
                 //  Solves L32 . L22' = - B . B^\top
-                L32[i] = -BBT;
+                L32[i] = -nu[i] * nu[i] * BBT;
                 L22[i].matrixU().template solveInPlace<Eigen::OnTheRight>(L32[i]);
             }
             
@@ -70,7 +72,7 @@ namespace kqp {
             L33.resize(r);
             for(int i = 0; i < r; i++) {
                 // Cholesky decomposition of V + BBT - L32 . L32.T
-                KQP_MATRIX(Scalar) mX = BBT - L32[i] * L32[i].adjoint();
+                KQP_MATRIX(Scalar) mX = nu[i] * nu[i] * BBT - L32[i] * L32[i].adjoint();
                 mX.diagonal() += V.segment(i*n, n);
                 L33[i].compute(mX);
                 
@@ -104,14 +106,15 @@ namespace kqp {
             
         }
         
+        //! Reconstruct for debug purposes
         void reconstruct(KQP_MATRIX(Scalar) &L) const {
             L.resize(n*(r+1) + 2*n*r, n*(r+1) + 2*n*r);
             
             for(int i = 0; i < r; i++) {
                 L.block(i*n, i*n, n, n) = cholK.matrixL();
                 L.block((i+r)*n, (i+r)*n, n,n) = L22[i].matrixL();
-                L.block((i+r)*n, i*n, n,n) = -B;
-                L.block((i+2*r)*n, i*n, n,n) = B;
+                L.block((i+r)*n, i*n, n,n) = - nu[i] * B;
+                L.block((i+2*r)*n, i*n, n,n) = nu[i] * B;
                 
                 L.block((i+2*r)*n, (i+r)*n, n,n) = L32[i];
                 L.block((i+2*r)*n, (i+2*r)*n, n,n) = L33[i].matrixL();
@@ -193,14 +196,35 @@ namespace kqp {
         
     };
     
+    //! Builds the pre-solver
     template<typename Scalar>
-    KQP_KKTPreSolver<Scalar>::KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix) :
+    KQP_KKTPreSolver<Scalar>::KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu) :
     // Compute the Cholesky decomposition of the gram matrix
-    lltOfK(Eigen::LLT<KQP_MATRIX(Scalar)>(gramMatrix))
+    nu(nu)
     {       
-        // Computes B in B A' = Id (L21 and L31)
-        // i.e.  computes A B' = Id
-        B.setIdentity(gramMatrix.rows(), gramMatrix.cols());
+        Index n =gramMatrix.rows();
+
+        // Computes B in B A' = G0 (L21 and L31)
+        // i.e.  computes A B' = G0
+        if (boost::is_complex<Scalar>::value) {
+            // FIXME: optimise using 2 Cholesky decompositions (see TR)
+            KQP_MATRIX(Real) dGram;
+            dGram.bottomRightCorner(n,n) = dGram.topLeftCorner(n,n) = gramMatrix.real();
+            dGram.bottomLeftCorner(n,n) = dGram.topRightCorner(n,n) = -gramMatrix.imag();
+            lltOfK.solve(dGram);
+            
+            // Complex case, G0 = [Id, Id; Id, -Id]
+            B.resize(2*n, 2*n);
+            auto Idn = Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic>::Identity(n,n);
+            B.topLeftCorner(n,n) = Idn;
+            B.topRightCorner(n,n) = Idn;
+            B.bottomLeftCorner(n,n) = Idn;
+            B.bottomRightCorner(n,n) = -Idn;            
+        } else {
+            lltOfK.solve(gramMatrix);
+            B.setIdentity(gramMatrix.rows(), gramMatrix.cols());
+        }
+        
         lltOfK.matrixU().template solveInPlace<Eigen::OnTheRight>(B);
         
         // Computing B * B.T
@@ -208,9 +232,9 @@ namespace kqp {
     }
     
     template<typename Scalar>
-    cvxopt::KKTSolver<Scalar> *KQP_KKTPreSolver<Scalar>::get(const cvxopt::ScalingMatrix<Scalar> &w) {
+    cvxopt::KKTSolver<typename KQP_KKTPreSolver<Scalar>::Real> *KQP_KKTPreSolver<Scalar>::get(const cvxopt::ScalingMatrix<typename KQP_KKTPreSolver<Scalar>::Real> &w) {
         KQP_LOG_DEBUG(logger, "Creating a new KKT solver");
-        return new KQP_KKTSolver<Scalar>(lltOfK, B, BBT, w);
+        return new KQP_KKTSolver<Real>(lltOfK, B, BBT, w, nu);
     }
     
     
@@ -218,29 +242,45 @@ namespace kqp {
      Class that knows how to multiply by
      
      \f$ \left(\begin{array}{ccc}
-     K\\
+     K'\\
      & \ddots\\
-     &  & K
+     &  & K'
      \end{array}\right)
      \f$
      
+     where \f$K'\f$ is \f$K\f$ (real case) or \f$ 
+     \left(\begin{array}{cc}
+        Re(K)  & -Im(K) \\
+        -Im(K) & Re(K)
+     \end{array}\right)
+     \f$
+     
+     @warning Assumes \f$K\f$ is Hermitian
+     
      */
     template<typename Scalar>
-    class KMult : public cvxopt::QPMatrix<Scalar> {
+    class KMult : public cvxopt::QPMatrix<KQP_REAL_OF(Scalar)> {
         Index n, r;
         const KQP_MATRIX(Scalar) &g;
     public:
+        typedef KQP_REAL_OF(Scalar) Real;
+        
         KMult(Index n, Index r, const KQP_MATRIX(Scalar) &g) : n(n), r(r), g(g) {}
         
-        virtual void mult(const KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, bool trans = false) const {
+        virtual void mult(const KQP_VECTOR(Real) &x, KQP_VECTOR(Real) &y, bool /*trans*/ = false) const {
             y.resize(x.rows());
             y.tail(n).setZero();
-            for(int i = 0; i < r; i++) 
-                if (trans)
-                    y.segment(i*n, n).noalias() = g.adjoint() * x.segment(i*n,n);
             
-                else                    
-                    y.segment(i*n, n).noalias() = g * x.segment(i*n,n);
+            if (boost::is_complex<Scalar>::value) {
+                for(int i = 0; i < r; i++) {
+                    const int i_re = 2 * i, i_im = 2 * i + 1;
+                    y.segment(i_re*n, n).noalias() = g.real() * x.segment(i_re*n,n) - x.segment(i_im*n,n);
+                    y.segment(i_im*n, n).noalias() = - g.imag() * x.segment(i_re*n,n) + g.real() * x.segment(i_im*n,n);
+                }
+            } else {
+                for(int i = 0; i < r; i++) 
+                    y.segment(i*n, n).noalias() = g.real() * x.segment(i*n,n);
+            }
         }
         virtual Index rows() const { return g.rows(); }
         virtual Index cols() const { return g.cols(); }
@@ -249,68 +289,137 @@ namespace kqp {
     
     /**
      * Multiplying with matrix G 
+     *
+     * Real case:
      * <pre>
-     * -Id           -Id
+     *  -G1          -Id
      *     ...       -Id
-     *          -Id  -Id
-     *  Id           -Id
+     *          -Gr  -Id
+     *  G1           -Id
      *     ...       -Id
-     *           Id  -Id
+     *           Gr  -Id
      * </pre>
+     * 
+     * where Gr is \f$ nu_i * Id_n \f$ (real case) or
+     * \f$ nu_i * [ Id_n, Id_n; Id_n -Id_n] \f$
      * of size 2nr x n (r+1)
      */
     template<typename Scalar>
-    class QPConstraints : public cvxopt::QPMatrix<Scalar> {
-        Index n, r;
+    class QPConstraints : public cvxopt::QPMatrix<KQP_REAL_OF(Scalar)> {
     public:
-        QPConstraints(Index n, Index r) : n(n), r(r) {}
+        typedef KQP_REAL_OF(Scalar) Real;
+    private:
+        Index n, r;
+        const KQP_VECTOR(Real) &nu;
+
+    public:
+        QPConstraints(Index n, Index r, const KQP_VECTOR(Real) &nu) : n(n), r(r), nu(nu) {}
         
-        virtual void mult(const KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, bool trans = false) const {
+        //! Get segments of size n (i.e. number of pre-images)
+        inline auto get(const KQP_VECTOR(Real) &x, Index i) const -> decltype((x.segment(i*n, n))) { return x.segment(i*n,n); }
+        inline auto get(KQP_VECTOR(Real) &x, Index i) const -> decltype((x.segment(i*n, n))) { return x.segment(i*n,n); }
+
+        virtual void mult(const KQP_VECTOR(Real) &x, KQP_VECTOR(Real) &y, bool trans = false) const {
             // assumes y and x are two different things
-            if (!trans) {
-                y.resize(2*n*r);
-                
-                for(int i = 0; i < r; i++) {
-                    y.segment(i*n, n) = - x.segment(i*n, n) - x.segment(n*r, n);
-                    y.segment((i+r)*n, n) = x.segment(i*n, n) - x.segment(n*r, n);
+            assert(&x != &y);
+            
+            if (boost::is_complex<Scalar>::value) {
+                // Complex case
+                if (!trans) {
+                    // y = G x
+                    y.resize(2*n*2*r);
+                    
+                    for(Index i = 0; i < 2 * r; i++) {
+                        // Index of the "real part"
+                        int di = i % 2 == 0 ? 0 : -1;
+                        Index ip = i + di;
+
+                        get(y, i+2*r) = nu[i] * (get(x,ip) + (nu[i] * (Real)di) * get(x,ip+1));
+                        get(y, i) = - get(y, i+2*r) - get(x, 2*r);
+                        get(y, i+2*r) -=  get(x, 2*r);
+                    }
+                } else {
+                    // y = G' x
+                    y.resize(n * (2*r+1));
+                    get(y, 2*r).array().setConstant(0);
+                    
+                    for(int i = 0; i < 2*r; i++) {
+                        // Index of the "real part"
+                        int di = i % 2 == 0 ? 0 : -1;
+                        Index ip = i + di;
+
+                        get(y,i) = nu[i] * (- get(x,ip)  - di * get(x,ip+1) + get(x,ip+r) + di * get(x,ip+1+r) );
+                        get(y,i) -= get(x,i) + get(x,i+r);
+                    }
+                    
                 }
             } else {
-                y.resize(n * (r+1));
-                y.segment(n * r, n).array().setConstant(0);
-                
-                for(int i = 0; i < r; i++) {
-                    y.segment(i*n, n) = - x.segment(i*n, n) + x.segment((i+r)*n, n);
-                    y.segment(n * r, n) -= x.segment(i*n, n) +  x.segment((i+r)*n, n);
+                // Real case
+                if (!trans) {
+                    // y = G x
+                    y.resize(2*n*r);
+                    
+                    for(int i = 0; i < r; i++) {
+                        y.segment(i*n, n) = - nu[i] * x.segment(i*n, n) - x.segment(n*r, n);
+                        y.segment((i+r)*n, n) = nu[i] * x.segment(i*n, n) - x.segment(n*r, n);
+                    }
+                } else {
+                    // y = G' x
+                    y.resize(n * (r+1));
+                    y.segment(n * r, n).array().setConstant(0);
+                    
+                    for(int i = 0; i < r; i++) {
+                        y.segment(i*n, n) =  nu[i] * (- x.segment(i*n, n) + x.segment((i+r)*n, n));
+                        y.segment(n * r, n) -= x.segment(i*n, n) +  x.segment((i+r)*n, n);
+                    }
+                    
                 }
-                
             }
-            
             
         }
         virtual Index rows() const { return 2*n*r; }
         virtual Index cols() const { return n * (r+1); }
+        
     };
     
     
     template<typename Scalar>
-    void solve_qp(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result) {
+    void solve_qp(int r, 
+                  KQP_REAL_OF(Scalar) lambda, 
+                  const KQP_MATRIX(Scalar) &gramMatrix, 
+                  const KQP_MATRIX(Scalar) &alpha, 
+                  const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu,
+                  kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result) {
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        const bool isComplex = boost::is_complex<Scalar>::value; 
+        
         KQP_LOG_DEBUG(logger, "Gram matrix:\n" << gramMatrix);
         KQP_LOG_DEBUG(logger,  "Alpha:\n" << alpha);
         
+        Index rp = isComplex ? 2 * r : r;
+        
         Index n = gramMatrix.rows();
-        KQP_VECTOR(Scalar) c(n*r + n);
-        for(int i = 0; i < r; i++) 
-            c.segment(i*n, n) = - 2 * gramMatrix * alpha.block(0, i, n, 1);
+        KQP_VECTOR(Real) c(n*rp + n);
         
-        c.segment(r*n,n).setConstant(lambda);
+        for(int i = 0; i < rp; i++) 
+            if (isComplex) {
+                Index j = i / 2;
+                if (i % 2 == 0) 
+                    c.segment(i*n, n) = -2 * (gramMatrix.real() * alpha.col(j).real()  + gramMatrix.imag() * alpha.col(j).imag());
+                else 
+                    c.segment(i*n, n) = -2 * (- gramMatrix.imag() * alpha.col(j).real()  + gramMatrix.real() * alpha.col(j).imag());
+            } else
+                c.segment(i*n, n) = - 2 * gramMatrix.real() * alpha.real().block(0, i, n, 1);
         
-        QPConstraints<Scalar> G(n, r);
-        KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix);
-        cvxopt::ConeQPOptions<Scalar> options;
+        c.segment(rp*n,n).setConstant(lambda);
+        
+        QPConstraints<Scalar> G(n, r, nu);
+        KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix, nu);
+        cvxopt::ConeQPOptions<Real> options;
         
         KQP_LOG_DEBUG(logger,  "c:\n" << c.transpose());
 
-        cvxopt::coneqp<Scalar>(KMult<Scalar>(n,r, gramMatrix), c, result, 
+        cvxopt::coneqp<Real>(KMult<Scalar>(n,r, gramMatrix), c, result, 
                                false /* No initial value */, 
                                cvxopt::Dimensions(),
                                &G, NULL, NULL, NULL,
@@ -323,10 +432,10 @@ namespace kqp {
     
     
 #define INSTANCE(Scalar) \
-template void solve_qp<Scalar>(int r, Scalar lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, kqp::cvxopt::ConeQPReturn<Scalar> &result);\
+template void solve_qp<Scalar>(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);\
 template class KQP_KKTPreSolver<Scalar>;
     
-    INSTANCE(float);
     INSTANCE(double);
+    INSTANCE(std::complex<double>);
     
 }

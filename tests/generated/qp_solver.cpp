@@ -1,6 +1,6 @@
 
 
-// ------- Generated from kkt_test.py ---
+// ------- Generated from qp_test.py ---
 template<typename Scalar> int qp_test_simple() {
 
 typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
@@ -18,7 +18,7 @@ g <<  1.000000000000000e+00 ,  0.000000000000000e+00 ,  0.000000000000000e+00 , 
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, result);
+solve_qp(r, lambda, g, a, Vector::Ones(n), result);
 
 /*
 Constructing P...
@@ -48,7 +48,7 @@ s_x <<  1.000000005975883e+00 ,  2.732153757115897e-21 ,  6.911898300492792e-23 
 
 
 
-// ------- Generated from kkt_test.py ---
+// ------- Generated from qp_test.py ---
 template<typename Scalar> int qp_test_random() {
 
 typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
@@ -66,7 +66,7 @@ g <<  1.849269677252957e+00 ,  1.943043025337374e+00 ,  8.562963225913708e-01 , 
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, result);
+solve_qp(r, lambda, g, a, Vector::Ones(n), result);
 
 /*
 Constructing P...

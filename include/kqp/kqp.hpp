@@ -116,6 +116,8 @@ namespace kqp {
     prefix std::complex<double> suffix; 
 
 
+# //! Real value type of a numeric type
+# define KQP_REAL_OF(Scalar) typename Eigen::NumTraits<Scalar>::Real
     
 # //! A matrix
 # define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 

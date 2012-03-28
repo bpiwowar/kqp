@@ -25,7 +25,7 @@ def doit(name, n,r, g, a, Lambda):
 
     print
     print
-    print "// ------- Generated from kkt_test.py ---"
+    print "// ------- Generated from qp_test.py ---"
     print "template<typename Scalar> int qp_test_%s() {" % name
     print
     print "typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;"
@@ -47,7 +47,7 @@ def doit(name, n,r, g, a, Lambda):
     print "// Solve"
 
     print "kqp::cvxopt::ConeQPReturn<Scalar> result;"
-    print "solve_qp(r, lambda, g, a, result);"
+    print "solve_qp(r, lambda, g, a, Vector::Ones(n), result);"
     print
 
     # Construct P

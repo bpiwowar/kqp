@@ -35,7 +35,7 @@ def doit(name, n,r, g,W, x,z):
 
     print
     print "// Solve"
-    print "KQP_KKTPreSolver<Scalar> kkt_presolver(g);"
+    print "KQP_KKTPreSolver<Scalar> kkt_presolver(g, Vector::Ones(n));"
     print "boost::shared_ptr<cvxopt::KKTSolver<Scalar> > kktSolver(kkt_presolver.get(w));"
     print "kktSolver->solve(x,y,z);"
     print
