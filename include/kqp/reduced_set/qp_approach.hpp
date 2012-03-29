@@ -18,6 +18,7 @@
 #ifndef __KQP_REDUCED_QP_APPROACH_H__
 #define __KQP_REDUCED_QP_APPROACH_H__
  
+#include <functional>
 #include <boost/type_traits/is_complex.hpp>
 
 #include <Eigen/Core>
@@ -67,7 +68,11 @@ namespace kqp {
         }
         
         struct Comparator {
-            bool operator() (const LambdaError &e1, const LambdaError &e2) { return e1.delta < e2.delta; }
+            bool operator() (const LambdaError &e1, const LambdaError &e2) { 
+                if (e1.maxa < EPSILON) 
+                    return e1.maxa < e2.maxa;
+                return e1.delta * e2.maxa < e2.delta * e1.maxa; 
+            }
         };
         
     };
@@ -91,6 +96,8 @@ namespace kqp {
         return IndirectComparator<Derived>(x);
     }
     
+    
+
  
     template <class FMatrix>
     struct ReducedSetWithQP {
@@ -141,20 +148,17 @@ namespace kqp {
             // (1) Estimate the regularization coefficient \f$lambda\f$
             //
 
+           
             // mAS_.j = sigma_j^1/2 A_.j
             ScalarMatrix mAS = mY * mD.cwiseAbs().cwiseSqrt().asDiagonal();
-            
-            // a_sqrNorm[i] = sigma_j^2 * A'.j * K * A.j
-            RealVector a_sqrNorm(r);
-            for(Index j = 0; j < r; j++)
-                a_sqrNorm[j] = Eigen::internal::abs((mAS.col(j).transpose() * gram * mAS.col(j) * mD[j])(0,0));
+           
             
             std::vector< LambdaError<Real> > errors;
             for(Index i = 0; i < n; i++) {
                 
                 Real maxa = mAS.cwiseAbs().row(i).maxCoeff();
-                Real delta = Eigen::internal::abs2(gram(i,i)) * mAS.cwiseAbs2().row(i).dot(a_sqrNorm);
-
+                Real delta = Eigen::internal::abs2(gram(i,i)) * mAS.cwiseAbs2().row(i).dot(mD.cwiseAbs().cwiseSqrt());
+                KQP_HLOG_DEBUG_F("[%d] We have max = %.3g/ delta = %.3g", %i %maxa %delta);
                 errors.push_back(LambdaError<Real>(delta, maxa, i));
             }
             
@@ -169,13 +173,18 @@ namespace kqp {
 //            std::cerr << boost::format("delta=%g and maxa=%g\n") %acc_lambda.delta % acc_lambda.maxa;
 
             Real lambda =  acc_lambda.delta / acc_lambda.maxa;   
+            if (acc_lambda.maxa <= EPSILON * acc_lambda.delta) {
+                KQP_HLOG_WARN("There are only trivial solutions, a call to cleanUnused would have been better");
+                lambda = 1;
+            }
+                
             KQP_HLOG_INFO_F("Lambda = %g", %lambda);                
             
             //
             // (2) Solve the cone quadratic problem
             //
             kqp::cvxopt::ConeQPReturn<Real> result;
-            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs(), result);
+            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseSqrt(), result);
 
             if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
                 KQP_THROW_EXCEPTION_F(arithmetic_exception, "QP approach did not converge (singular KKT matrix)", %result.status);

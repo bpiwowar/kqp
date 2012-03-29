@@ -54,8 +54,8 @@ namespace kqp {
             ScalarAltMatrix _mX;
             kqp::thinEVD(evd, _mX, d.mD);              
             
-            d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
             d.mX.swap(_mX);
+            d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
             return d;
         }
         

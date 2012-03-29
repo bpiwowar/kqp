@@ -19,7 +19,7 @@ def print_cxx(name, m, transpose=False):
     print ";"
 
 
-def doit(name, n,r, g, a, Lambda):
+def doit(name, n,r, g, a, nu, Lambda):
     zero_n = spmatrix([],[],[],(n,n))
     id_n = spmatrix(1., range(n), range(n))
 
@@ -35,19 +35,21 @@ def doit(name, n,r, g, a, Lambda):
     print "int n = %d;" % n
     print "int r = %d;" % r
     print "Matrix g(n,n);"
-
     print "Matrix a(r, n);"
+    print "Vector nu(n, 1);"
     print "Scalar lambda = %15e;" % Lambda
 
     print_cxx("a", a)
     print "a.adjointInPlace();"
     print_cxx("g", g)
+    
+    print_cxx("nu", nu)
 
     print
     print "// Solve"
 
     print "kqp::cvxopt::ConeQPReturn<Scalar> result;"
-    print "solve_qp(r, lambda, g, a, Vector::Ones(n), result);"
+    print "solve_qp(r, lambda, g, a, nu, result);"
     print
 
     # Construct P
@@ -68,22 +70,25 @@ def doit(name, n,r, g, a, Lambda):
     q = matrix(0., (n * r + n, 1))
     for i in range(r):
         if DEBUG > 0: print "a[%d] = %s" % (i, a[i*n:(i+1)*n,0].T),
-        q[i*n:(i+1)*n,0] = - 2 * g * a[i*n:(i+1)*n,0]
-    q[n*r:n*r+n] = Lambda
+        q[i*n:(i+1)*n,0] = - g * a[i*n:(i+1)*n,0]
+    q[n*r:n*r+n] = Lambda / 2.
     if DEBUG > 1: print "q = %s" % q.T,
 
     print "Constructing G (%d x %d) and q" % (2 * n*r, n*r + n)
-    id_nr = spmatrix(1., range(n*r), range(n*r))
+	
+    s = []
+    for i in range(r): s += [nu[i]] * n
+    s_nr = spmatrix(s, range(n*r), range(n*r))
     id_col = []
     for i in range(r):
         id_col.append(-id_n)
     id_col = sparse([id_col])
-    G = sparse([ [ -id_nr, id_nr ], [id_col, id_col ] ])
+    G = sparse([ [ -s_nr, s_nr ], [id_col, id_col ] ])
     h = matrix(0., (2*n*r,1))
 
     dims = {"l": h.size[0], "q": 0, "s": 0}
 
-    sol = solvers.coneqp(P, q, G, h, kktsolver=solver(n,r,g))
+    sol = solvers.coneqp(P, q, G, h) #, kktsolver=solver(n,r,g))
 
     print "*/"
     print
@@ -96,8 +101,8 @@ def doit(name, n,r, g, a, Lambda):
     print """
             double error_x = (result.x - s_x).norm() / (double)s_x.rows();
 
-            KQP_LOG_INFO(logger, "Average error (x): " << convert(error_x));
-            KQP_LOG_ASSERT(logger, error_x < EPSILON, "Error for x is too high");
+            KQP_LOG_INFO_F(logger, "Average error (x) = %g [threshold %g]", %error_x % (EPSILON * s_x.norm()));
+            KQP_LOG_ASSERT(logger, error_x < EPSILON * s_x.norm(), "Error for x is too high");
             return 0;
         }
 """
@@ -109,10 +114,11 @@ n = 2
 r = 2
 g = matrix([1,0, 0,1], (n,n), 'd')
 a = matrix([1, 0, 0, 0.4], (n*r,1), 'd')
-doit("simple", n, r, g, a, 1.)
+nu = matrix(1.,(n,1),'d')
+doit("simple", n, r, g, a, nu, 1.)
 
 
-# --- Simple test
+# --- Random test
 
 setseed(1)
 n = 8
@@ -120,4 +126,27 @@ r = 5
 g = uniform(n,n)
 g = g * g.T
 a = uniform(n*r,1)
-doit("random", n, r, g, a, 1.)
+nu = matrix(1.,(n,1),'d')
+doit("random", n, r, g, a, nu, 1.)
+
+# --- Simple test
+
+n = 2
+r = 2
+g = matrix([1,0, 0,1], (n,n), 'd')
+a = matrix([1, 0, 0, 0.4], (n*r,1), 'd')
+
+nu = uniform(n,1,0.1,2)
+doit("simple_nu", n, r, g, a, nu, 1.)
+
+
+# --- Random test
+
+n = 8
+r = 5
+g = uniform(n,n)
+g = g * g.T
+a = uniform(n*r,1)
+nu = uniform(n,1,0.1,2)
+doit("random_nu", n, r, g, a, nu, 5.)
+

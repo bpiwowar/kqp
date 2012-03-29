@@ -96,8 +96,9 @@ generate <- function(N, AN, rhoN, seed=0) {
 
   catVectors <- function(name, V) {
     cat("std::vector<Eigen::VectorXd>  ",name, "(", length(V), ");\n");
-    
+
     for(i in 1:length(V)) {
+      cat(name,"[",i-1,"].resize(", length(V[[i]]) ,");\n");    
       cat(name,"[",i-1,"] << ");
       catVector(V[[i]]);
       cat(";\n");

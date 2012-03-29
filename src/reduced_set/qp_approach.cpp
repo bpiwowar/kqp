@@ -211,7 +211,7 @@ namespace kqp {
             KQP_MATRIX(Real) dGram;
             dGram.bottomRightCorner(n,n) = dGram.topLeftCorner(n,n) = gramMatrix.real();
             dGram.bottomLeftCorner(n,n) = dGram.topRightCorner(n,n) = -gramMatrix.imag();
-            lltOfK.solve(dGram);
+            lltOfK.compute(dGram);
             
             // Complex case, G0 = [Id, Id; Id, -Id]
             B.resize(2*n, 2*n);
@@ -221,7 +221,7 @@ namespace kqp {
             B.bottomLeftCorner(n,n) = Idn;
             B.bottomRightCorner(n,n) = -Idn;            
         } else {
-            lltOfK.solve(gramMatrix);
+            lltOfK.compute(gramMatrix.real());
             B.setIdentity(gramMatrix.rows(), gramMatrix.cols());
         }
         

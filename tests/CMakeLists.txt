@@ -36,6 +36,9 @@ do_test(qp-kkt-random "kqp-qp-solver" "kkt-solver-random")
 do_test(kqp-qp-simple "kqp-qp-solver" "simple")
 do_test(kqp-qp-random "kqp-qp-solver" "random")
 
+do_test(kqp-qp-simple-nu "kqp-qp-solver" "simple/nu")
+do_test(kqp-qp-random-nu "kqp-qp-solver" "random/nu")
+
 # --- Reduced set methods
 
 run_test("reduced-set/unused")

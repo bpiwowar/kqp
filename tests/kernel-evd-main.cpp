@@ -75,6 +75,8 @@ namespace kqp {
         }
         
       
+        if (tests.find(task) == tests.end()) 
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown test definition %s", %task);
         Dense_evd_test test = tests[task];
         
         if (name == "direct") 

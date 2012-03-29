@@ -298,7 +298,7 @@ namespace kqp {
 
         static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
             ScalarMatrix lc;
-            noalias(lc) = event.Y().transpose() * inner(density.X(), density.X()) * density.Y() * density.S();
+            noalias(lc) = event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S();
             FMatrix mX = event.X().linear_combination(lc);
             ScalarAltMatrix mY = ScalarMatrix::Identity(mX.size(),mX.size());
             RealVector mS = RealVector::Ones(mX.size());

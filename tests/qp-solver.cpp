@@ -20,6 +20,8 @@ namespace kqp {
     
     int kqp_qp_solver_test(std::deque<std::string> &args) {
         KQP_LOG_INFO(logger, "Starting qp solver tests");
+        if (args.size() == 0)
+            KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Expected one argument, got %d", %args.size());
         std::string name = args[0];
         
         if (name == "kkt-solver-simple") 
@@ -40,6 +42,12 @@ namespace kqp {
             return qp_test_simple<double>();
         
         if (name == "random") 
+            return qp_test_random<double>();
+
+        if (name == "simple/nu") 
+            return qp_test_simple<double>();
+        
+        if (name == "random/nu") 
             return qp_test_random<double>();
         
         BOOST_THROW_EXCEPTION(illegal_argument_exception()

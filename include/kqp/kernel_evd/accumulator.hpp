@@ -154,7 +154,8 @@ namespace kqp{
             
             // Y <- A * Y * D^-1/2
             
-            _mY = _mY * d.mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            ScalarMatrix _mY2 = _mY * d.mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            _mY = _mY2;
             ScalarMatrix __mY(offsets_X.back(), _mY.cols());
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {

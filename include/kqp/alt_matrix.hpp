@@ -111,7 +111,7 @@ namespace kqp {
         }
         
         EIGEN_STRONG_INLINE Index rows() const { return m_xpr.rows(); }
-        EIGEN_STRONG_INLINE Index cols() const { return m_xpr.cols(); }
+        EIGEN_STRONG_INLINE Index cols() const { return m_xpr.rows(); }
         
         bool isT1() const { return m_xpr.derived().isT1(); }
         
