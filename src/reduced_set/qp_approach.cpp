@@ -405,13 +405,13 @@ namespace kqp {
             if (isComplex) {
                 Index j = i / 2;
                 if (i % 2 == 0) 
-                    c.segment(i*n, n) = -2 * (gramMatrix.real() * alpha.col(j).real()  + gramMatrix.imag() * alpha.col(j).imag());
+                    c.segment(i*n, n) = - (gramMatrix.real() * alpha.col(j).real()  + gramMatrix.imag() * alpha.col(j).imag());
                 else 
-                    c.segment(i*n, n) = -2 * (- gramMatrix.imag() * alpha.col(j).real()  + gramMatrix.real() * alpha.col(j).imag());
+                    c.segment(i*n, n) = - (- gramMatrix.imag() * alpha.col(j).real()  + gramMatrix.real() * alpha.col(j).imag());
             } else
-                c.segment(i*n, n) = - 2 * gramMatrix.real() * alpha.real().block(0, i, n, 1);
+                c.segment(i*n, n) = - gramMatrix.real() * alpha.real().block(0, i, n, 1);
         
-        c.segment(rp*n,n).setConstant(lambda);
+        c.segment(rp*n,n).setConstant(lambda / Real(2));
         
         QPConstraints<Scalar> G(n, r, nu);
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix, nu);
