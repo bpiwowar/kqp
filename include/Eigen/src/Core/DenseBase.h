@@ -169,8 +169,10 @@ template<typename Derived> class DenseBase
 
       IsRowMajor = int(Flags) & RowMajorBit, /**< True if this expression has row-major storage order. */
 
-      InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? SizeAtCompileTime
-                             : int(IsRowMajor) ? ColsAtCompileTime : RowsAtCompileTime,
+      InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? int(SizeAtCompileTime)
+      : int(IsRowMajor) ? int(ColsAtCompileTime) : int(RowsAtCompileTime),
+      // InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? SizeAtCompileTime
+      //                        : int(IsRowMajor) ? ColsAtCompileTime : RowsAtCompileTime,
 
       CoeffReadCost = internal::traits<Derived>::CoeffReadCost,
         /**< This is a rough measure of how expensive it is to read one coefficient from

@@ -98,6 +98,7 @@ namespace kqp {
         AltAsDiagonal<const Derived> asDiagonal() const {
             return this->derived();
         }
+        
     };
     
     
@@ -145,6 +146,10 @@ namespace kqp {
         typedef typename Eigen::internal::remove_all<decltype(m_xpr.derived().t2())>::type T2;
         Eigen::CwiseUnaryOp<UnaryOp,T2> t2() const  { 
             return Eigen::CwiseUnaryOp<UnaryOp,T2>(m_xpr.derived().t2(), m_functor); 
+        }
+        
+        template<typename Dest> inline void evalTo(Dest& dst) const {
+            if (isT1()) dst = t1(); else dst = t2();
         }
     };
     
@@ -196,6 +201,7 @@ namespace kqp {
         
         inline T1 t1() const  { return transpose(nested.t1()); }
         inline T2 t2() const  { return transpose(nested.t2()); }
+        
         
         void printExpression(std::ostream &out) const {
             out << "Transpose(";
@@ -315,7 +321,7 @@ namespace kqp {
         
         storage() : m_value(0), m_rows(0), m_cols(0) {}
         storage(const Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>,Derived> &value) 
-        : m_value(value.coeff(0,0)) {}
+        : m_value(value.coeff(0,0)), m_rows(value.rows()), m_cols(value.cols()) {}
         
         ReturnType get() const { return ReturnType(m_rows, m_cols, m_value); }
         
@@ -661,7 +667,7 @@ namespace kqp {
         
         template<typename OtherDerived>
         Derived &operator=(const Eigen::MatrixBase<OtherDerived> &expr) {
-            return m.noalias() = expr;
+            return m.noalias() = expr.derived();
         }
         
     };

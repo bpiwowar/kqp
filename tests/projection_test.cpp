@@ -28,16 +28,19 @@ namespace kqp {
     namespace {
         /// Returns 0 
         int isApproxEqual(const std::string & name, const Eigen::MatrixXd &a, const Eigen::MatrixXd &b) {
-            double error = (a - b).squaredNorm(); 
-            if (error > EPSILON) {
-                KQP_LOG_ERROR_F(logger, "Error for %s is too big (%g)", %name %error);
+            double error = (a - b).squaredNorm();
+            double rel_error = error / b.squaredNorm(); 
+            KQP_LOG_ERROR_F(logger, "Error and relative errors for %s are %g and %g", %name %error %rel_error);
+            if (rel_error > EPSILON) {
+                KQP_LOG_ERROR_F(logger, "Relative error for %s is too big (%g)", %name %rel_error);
                 return 1;
             }
             return 0;
         }
         
         int isApproxEqual(const std::string & name, const Density< DenseMatrix<double> > &a, const Eigen::MatrixXd &b) {
-            return isApproxEqual(name, a.matrix().get_matrix(), b);
+            KQP_MATRIX(double) op = a.matrix().get_matrix() * a.matrix().get_matrix().transpose();
+            return isApproxEqual(name, op, b);
         }
     }
     
@@ -78,7 +81,7 @@ namespace kqp {
         
     }
     
-
+    
     
     int projection_test(std::deque<std::string> &/*args*/) {
         typedef DenseMatrix<double> FMatrix;
@@ -97,6 +100,7 @@ namespace kqp {
         for (int i = 0; i < rhoVectorsCount; i++) 
             rhoTracker.add(FMatrix(rhoVectors[i]));
         Density<FMatrix> rho(rhoTracker);
+        rho.normalize();
         
         DensityTracker sbTracker(dimension);
         for (int j = 0; j < sbVectorsCount; j++) 
@@ -109,23 +113,29 @@ namespace kqp {
         // Fuzzy event
         Event<FMatrix> sb_fuzzy(sbTracker);
         
-        sb_fuzzy.multiplyBy(1. / std::sqrt(sb_fuzzy.squaredNorm()));
+        sb_fuzzy.multiplyBy(1. / sb_fuzzy.trace());
         
-        // Projection
-        code |= isApproxEqual("projection of rho onto A",
-                              sb.project(rho, false), wanted_pRho);
-        // Orthogonal projection
-        code |=isApproxEqual("projection of rho onto orth A",
-                             sb.project(rho, true), wanted_opRho);
-        
-        // Fuzzy projection
-        code |=isApproxEqual("fuzzy projection of rho onto A",
-                             sb_fuzzy.project(rho, false), wanted_fpRho);
-
-        // Fuzzy orthogonal projection
-        code |=isApproxEqual("fuzzy projection of rho onto orth A",
-                             sb_fuzzy.project(rho, true), wanted_ofpRho);
-        
+        for(int i = 0; i < 2; i++) {
+            sb.setUseLinearCombination(i == 0);
+            
+            KQP_LOG_INFO_F(logger, "=== Use linear combination = %s", %(i == 0 ? "yes" : "no"));
+            
+            // Projection
+            Density<FMatrix> pRho = sb.project(rho, false);
+            code |= isApproxEqual("projection of rho onto A", pRho.normalize(), wanted_pRho);
+            
+            // Orthogonal projection
+            Density<FMatrix> opRho = sb.project(rho, true);
+            code |=isApproxEqual("projection of rho onto orth A", opRho.normalize(), wanted_opRho);
+            
+            // Fuzzy projection
+            Density<FMatrix> fpRho = sb_fuzzy.project(rho, false);
+            code |=isApproxEqual("fuzzy projection of rho onto A", fpRho.normalize(), wanted_fpRho);
+            
+            // Fuzzy orthogonal projection
+            Density<FMatrix> ofpRho = sb_fuzzy.project(rho, true);
+            code |=isApproxEqual("fuzzy projection of rho onto orth A", ofpRho.normalize(), wanted_ofpRho);
+        }
         
         return code;
         

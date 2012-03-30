@@ -2,6 +2,10 @@
 ## Given a symmetric, positive-semidefinite matrix rho
 ## the projection on a fuzzy subspace A is A^1/2 rho A^1/2 (normalised so that trace is 1)
 
+# Maximum precision for output
+options(scipen=-10)
+options(digits=22)
+
 ## Builds rho and A
 
 N <- 10

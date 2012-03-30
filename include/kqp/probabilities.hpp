@@ -153,8 +153,8 @@ namespace kqp {
         }
         
         //! Computes the trace of the operator
-        Real trace() {
-            Scalar tr = kqp::trace(X(), Y(), S().cwiseAbs2());
+        Real trace() const {
+            Scalar tr = kqp::traceAAT(X(), Y(), RealVector(S()));
             // TODO: check if really real
             return (Real)tr;
         }
@@ -183,7 +183,7 @@ namespace kqp {
          * @throws An exception if the feature matrix cannot be linearly combined
          */
         FMatrix matrix() const {
-            return X().linear_combination(ScalarMatrix(Y() * S()));
+            return X().linear_combination(ScalarMatrix(Y() * S().asDiagonal()));
         }
         
     protected:
@@ -220,7 +220,7 @@ namespace kqp {
         //! The current decomposition
         Decomposition<FMatrix> m_operator;
     };
-    
+        
     
     // Foward declarations
     template <class FMatrix> class Density;
@@ -271,6 +271,10 @@ namespace kqp {
             init();
         }
 
+        //! (debug) Manually sets the linear combination
+        void setUseLinearCombination(bool b) {
+            this->useLinearCombination = b;
+        }
         
         /**
          * @brief Project onto a subspace.
@@ -297,11 +301,12 @@ namespace kqp {
         KQP_FMATRIX_TYPES(FMatrix);
 
         static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
+            event.orthonormalize();
             ScalarMatrix lc;
-            noalias(lc) = event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S();
+            noalias(lc) = event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal();
             FMatrix mX = event.X().linear_combination(lc);
             ScalarAltMatrix mY = ScalarMatrix::Identity(mX.size(),mX.size());
-            RealVector mS = RealVector::Ones(mX.size());
+            RealVector mS = RealVector::Ones(mY.size());
             return Density<FMatrix>(mX, mY, mS, false);
         }
         
@@ -340,9 +345,10 @@ namespace kqp {
         KQP_FMATRIX_TYPES(FMatrix);
         
         static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
+            event.orthonormalize();
             FMatrix mX = event.X();
-            ScalarAltMatrix mY(event.Y().transpose() * inner(density.X(), density.X()) * density.Y() * density.S());
-            RealVector mS = RealVector::Ones(mX.size());
+            ScalarAltMatrix mY(event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal());
+            RealVector mS = RealVector::Ones(mY.size());
             return Density<FMatrix>(mX, mY, mS, false);
         }
         

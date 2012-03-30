@@ -39,15 +39,15 @@ namespace kqp {
     /**
      * @brief Computes the trace of an operator.
      *
-     * Computes \f$ tr( X Y D Y^\dagger X^\dagger) \f$
+     * Computes \f$ tr( X Y D^2 Y^\dagger X^\dagger) \f$
      *
      */
     template<typename Derived, typename OtherDerived>
-    typename ftraits<Derived>::Scalar trace(const FeatureMatrix<Derived> &mX, 
+    typename ftraits<Derived>::Scalar traceAAT(const FeatureMatrix<Derived> &mX, 
                  const typename ftraits<Derived>::ScalarAltMatrix  &mY,
                  const Eigen::MatrixBase<OtherDerived> &mD) {
         typename ftraits<Derived>::ScalarMatrix m;
-        return (mY.transpose() * mX.inner() * mY * mD.asDiagonal()).trace();
+        return (mY.transpose() * mX.inner() * mY * mD.cwiseAbs2().asDiagonal()).trace();
     }
     
     
