@@ -306,7 +306,7 @@ namespace kqp {
             noalias(lc) = event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal();
             FMatrix mX = event.X().linear_combination(lc);
             ScalarAltMatrix mY = ScalarMatrix::Identity(mX.size(),mX.size());
-            RealVector mS = RealVector::Ones(mY.size());
+            RealVector mS = RealVector::Ones(mY.cols());
             return Density<FMatrix>(mX, mY, mS, false);
         }
         
@@ -348,7 +348,7 @@ namespace kqp {
             event.orthonormalize();
             FMatrix mX = event.X();
             ScalarAltMatrix mY(event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal());
-            RealVector mS = RealVector::Ones(mY.size());
+            RealVector mS = RealVector::Ones(mY.cols());
             return Density<FMatrix>(mX, mY, mS, false);
         }
         
@@ -360,11 +360,11 @@ namespace kqp {
             mX.add(event.X());
             
             // Computes the new linear combination matrix
-            ScalarMatrix _mY(density.X().size() + event.Y().size(), density.S().rows());
-            Index n = event.S().rows();
-            
-            _mY.topRows(density.X().size()) = ((Scalar)-1) * density.Y() * density.S();
+            ScalarMatrix _mY(density.X().size() + event.X().size(), density.S().rows());
             RealVector s = event.S();
+            Index n = s.rows();
+            
+            _mY.topRows(density.X().size()) = density.Y();
             _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y());
             
             ScalarAltMatrix mY; 

@@ -30,7 +30,7 @@ namespace kqp {
         int isApproxEqual(const std::string & name, const Eigen::MatrixXd &a, const Eigen::MatrixXd &b) {
             double error = (a - b).squaredNorm();
             double rel_error = error / b.squaredNorm(); 
-            KQP_LOG_ERROR_F(logger, "Error and relative errors for %s are %g and %g", %name %error %rel_error);
+            KQP_LOG_INFO_F(logger, "Error and relative errors for %s are %g and %g", %name %error %rel_error);
             if (rel_error > EPSILON) {
                 KQP_LOG_ERROR_F(logger, "Relative error for %s is too big (%g)", %name %rel_error);
                 return 1;
@@ -111,12 +111,13 @@ namespace kqp {
         
         
         // Fuzzy event
-        Event<FMatrix> sb_fuzzy(sbTracker);
+        Event<FMatrix> sb_fuzzy(sbTracker, true);
         
         sb_fuzzy.multiplyBy(1. / sb_fuzzy.trace());
         
         for(int i = 0; i < 2; i++) {
             sb.setUseLinearCombination(i == 0);
+            sb_fuzzy.setUseLinearCombination(i == 0);
             
             KQP_LOG_INFO_F(logger, "=== Use linear combination = %s", %(i == 0 ? "yes" : "no"));
             
