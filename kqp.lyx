@@ -3304,13 +3304,13 @@ If
 \end_inset
 
 ), then to minimise the above equation, we set 
-\begin_inset Formula $\xi_{i}=\max\sigma_{j}^{-1}|\sigma_{j}A_{ij}\sigma_{j}^{1/2}|$
+\begin_inset Formula $\xi_{i}=\max\sigma_{j}^{-1}|\sigma_{j}A_{ij}\sigma_{j}|$
 \end_inset
 
  and 
 \begin_inset Formula 
 \[
-E_{RS}^{(0)}=\lambda\sum_{i}\max_{j}|\sigma_{j}^{1/2}A_{ij}|
+E_{RS}^{(0)}=\lambda\sum_{i}\max_{j}|\sigma_{j}A_{ij}|
 \]
 
 \end_inset
@@ -3325,7 +3325,7 @@ If we remove the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\text{\sigma}_{j}^{1/2}A_{ij}\right|+\sum_{j}\underbrace{\left\Vert \sigma_{j}^{3/2}\left(\X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right)\right\Vert ^{2}}_{\sigma_{j}^{3}\left|K_{ii}A_{ij}\right|^{2}}
+E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\text{\sigma}_{j}A_{ij}\right|+\sum_{j}\underbrace{\left\Vert \sigma_{j}^{3/2}\left(\X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right)\right\Vert ^{2}}_{\sigma_{j}^{3}\left|K_{ii}A_{ij}\right|^{2}}
 \]
 
 \end_inset
@@ -3357,7 +3357,7 @@ where
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}^{1/2}A_{ij}\right|\ge0
+E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}A_{ij}\right|\le0
 \end{align*}
 
 \end_inset
@@ -3381,7 +3381,7 @@ E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}A_{\bullet j}^{\dagger}KA_{\bullet j}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{i}A_{ij}\right|}
+\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{j}A_{ij}\right|}
 \]
 
 \end_inset
@@ -3390,12 +3390,7 @@ As an heuristic, we set
 \begin_inset Formula $M$
 \end_inset
 
- to be the set of indices of pre-images with ,minimum 
-\begin_inset Formula $E_{RS}^{(i)}-E_{RS}^{(0)}$
-\end_inset
-
-.
- 
+ to be the set of indices of pre-images with minimum ratio.
 \end_layout
 
 \begin_layout Paragraph
@@ -3954,12 +3949,12 @@ Hence
 \beta_{q}^{\prime}\\
 \beta_{q}^{\second}
 \end{array}\right)^{\dagger}\left(\begin{array}{cc}
-\Re\left(K\right) & \Im(K)\\
-\Im(K) & \Re(K)
+\Re\left(K\right) & -\Im(K)\\
+-\Im(K) & \Re(K)
 \end{array}\right)\left(\begin{array}{c}
 \beta_{q}^{\prime}\\
 \beta_{q}^{\second}
-\end{array}\right)+\left(\begin{array}{c}
+\end{array}\right)-2\left(\begin{array}{c}
 \alpha^{\prime}\\
 \alpha^{\second}
 \end{array}\right)^{\dagger}\left(\begin{array}{cc}
