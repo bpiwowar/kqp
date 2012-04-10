@@ -13,8 +13,8 @@ def print_cxx(name, m, transpose=False):
         
     for i in xrange(rows):
         for j in xrange(cols):
-            if transpose: print "%.15e" % m[j,i],
-            else: print "%.15e" % m[i,j],
+            if transpose: print "%.50g" % m[j,i],
+            else: print "%.50g" % m[i,j],
             if i != rows-1 or j != cols - 1: print ", ",
     print ";"
 
@@ -37,7 +37,7 @@ def doit(name, n,r, g, a, nu, Lambda):
     print "Matrix g(n,n);"
     print "Matrix a(r, n);"
     print "Vector nu(n, 1);"
-    print "Scalar lambda = %15e;" % Lambda
+    print "Scalar lambda = %50g;" % Lambda
 
     print_cxx("a", a)
     print "a.adjointInPlace();"
@@ -99,10 +99,11 @@ def doit(name, n,r, g, a, nu, Lambda):
     print_cxx("s_x", sol["x"])
 
     print """
-            double error_x = (result.x - s_x).norm() / (double)s_x.rows();
-
-            KQP_LOG_INFO_F(logger, "Average error (x) = %g [threshold %g]", %error_x % (EPSILON * s_x.norm()));
-            KQP_LOG_ASSERT(logger, error_x < EPSILON * s_x.norm(), "Error for x is too high");
+            double error_x = (result.x - s_x).norm() / s_x.rows();
+            // const double threshold = std::max(EPSILON * s_x.norm() / s_x.rows(), EPSILON);
+            const double threshold = 1e-10;
+            KQP_LOG_INFO_F(logger, "Average error (x) = %g [threshold %g]", %error_x % threshold);
+            KQP_LOG_ASSERT(logger, error_x < threshold, "Error for x is too high");
             return 0;
         }
 """
@@ -136,7 +137,7 @@ r = 2
 g = matrix([1,0, 0,1], (n,n), 'd')
 a = matrix([1, 0, 0, 0.4], (n*r,1), 'd')
 
-nu = uniform(n,1,0.1,2)
+nu = uniform(n,1,2,10)
 doit("simple_nu", n, r, g, a, nu, 1.)
 
 

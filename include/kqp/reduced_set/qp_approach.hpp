@@ -184,7 +184,7 @@ namespace kqp {
             // (2) Solve the cone quadratic problem
             //
             kqp::cvxopt::ConeQPReturn<Real> result;
-            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseSqrt(), result);
+            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseInverse().cwiseSqrt(), result);
 
             if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
                 KQP_THROW_EXCEPTION_F(arithmetic_exception, "QP approach did not converge (singular KKT matrix)", %result.status);

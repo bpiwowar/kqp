@@ -149,7 +149,7 @@ namespace kqp {
                 cholK.matrixL().solveInPlace(ai);
                 
                 // Solves L22 x = - B * ai - ci
-                KQP_MATRIX(Scalar) Bai = B * ai;
+                KQP_MATRIX(Scalar) Bai = nu[i] * B * ai;
                 
                 ci *= -1.;
                 ci -= Bai;
@@ -177,7 +177,7 @@ namespace kqp {
                 ci -= L32[i].adjoint() * di + L42[i].adjoint() * b;
                 L22[i].matrixU().solveInPlace(ci);
                 
-                ai += B.adjoint() * (ci - di);
+                ai += B.adjoint() * nu[i] * (ci - di);
                 cholK.matrixU().solveInPlace(ai);
             }
             
@@ -395,6 +395,7 @@ namespace kqp {
         
         KQP_LOG_DEBUG(logger, "Gram matrix:\n" << gramMatrix);
         KQP_LOG_DEBUG(logger,  "Alpha:\n" << alpha);
+        KQP_LOG_DEBUG(logger,  "nu:\n" << nu);
         
         Index rp = isComplex ? 2 * r : r;
         

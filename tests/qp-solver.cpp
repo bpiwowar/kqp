@@ -45,10 +45,10 @@ namespace kqp {
             return qp_test_random<double>();
 
         if (name == "simple/nu") 
-            return qp_test_simple<double>();
+            return qp_test_simple_nu<double>();
         
         if (name == "random/nu") 
-            return qp_test_random<double>();
+            return qp_test_random_nu<double>();
         
         BOOST_THROW_EXCEPTION(illegal_argument_exception()
                               << errinfo_message((boost::format("Unknown evd_update_test [%s]") % name).str()));
