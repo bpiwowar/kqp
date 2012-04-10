@@ -443,7 +443,7 @@ namespace kqp {
             // --- Notation
             
             ScalarMatrix inners = inner(rho.X(), tau.X());
-            noalias(inners) = rho.Y().transpose() * inners * tau.Y() * tau.S().asDiagonal();
+            noalias(inners) = rho.S().asDiagonal() * rho.Y().transpose() * inners * tau.Y(); 
 
             // --- Compute tr(p log q)
             Scalar plogq = 0;
