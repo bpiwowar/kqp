@@ -1603,7 +1603,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\left(\Id-E\right)^{1/2} & = & \X_{E}V\left(\Id-\Sigma^{2}\right)^{1/2}Y_{E}^{\dagger}\X_{E}^{\dagger}+\left(\Id-\X_{E}Y_{E}Y_{E}^{\dagger}\X_{E}^{\dagger}\right)\nonumber \\
+\left(\Id-E\right)^{1/2} & = & \X_{E}Y_{E}\left(\Id-\Sigma^{2}\right)^{1/2}Y_{E}^{\dagger}\X_{E}^{\dagger}+\left(\Id-\X_{E}Y_{E}Y_{E}^{\dagger}\X_{E}^{\dagger}\right)\nonumber \\
  & = & \Id-\X_{E}Y_{E}\left[\Id-\left(\Id-\Sigma_{E}^{2}\right)^{1/2}\right]Y_{E}^{\dagger}\X_{E}^{\dagger}\label{eq:effect-orthogonal}
 \end{eqnarray}
 
