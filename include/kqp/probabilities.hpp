@@ -448,10 +448,12 @@ namespace kqp {
             // --- Compute tr(p log q)
             Scalar plogq = 0;
         
-            Index dimension = rho.X().dimension();
+           
+			// The background density span the subspace of rho
+            Index rank = rho.S().rows() + tau.S().rows();
+            if (rank > rho.X().dimension()) rank = rho.X().dimension();
             
-			// The background density span the subspace 
-			Real alpha = 1. / (Real)(dimension);
+			Real alpha = 1. / (Real)(rank);
 			Real alpha_noise = epsilon * alpha;
             
 			// Includes the smoothing probability if not too small
