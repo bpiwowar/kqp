@@ -92,6 +92,14 @@ namespace kqp {
         
         /** @brief Reduces the feature matrix to a subset of its vectors.
          * 
+         * @param list The list of boolean values (true = keep)
+         */
+        void subset(const std::vector<bool> &list) {
+            static_cast<Derived*>(this)->Derived::_subset(list.begin(), list.end(), *static_cast<Derived*>(this));
+        }
+        
+        /** @brief Reduces the feature matrix to a subset of its vectors.
+         * 
          * The list of indices is supposed to be ordered.
          *
          * @param begin Beginning of the list of indices

@@ -63,7 +63,7 @@ namespace kqp {
             LambdaError<Scalar> r;
             r.delta = this->delta + other.delta;
             r.maxa = this->maxa + other.maxa;
-            std::cerr << "[[" << *this << " + " << other << "]] = " << r << std::endl;
+//            std::cerr << "[[" << *this << " + " << other << "]] = " << r << std::endl;
             return r;
         }
         

@@ -29,8 +29,8 @@
 // Map from an ID to a test method
 namespace {
     typedef int (*arg_function)(std::deque<std::string>&);
-    typedef std::map<std::string, arg_function> TestMap;
-    TestMap tests;
+    typedef std::map<std::string, arg_function> BenchMap;
+    BenchMap tests;
     
     struct Declare {
         Declare(std::string name, arg_function f) {
@@ -41,13 +41,16 @@ namespace {
 
 namespace kqp {
 #define DEFINE_BENCHMARK(id,name) \
-    namespace kqp { int name(std::deque<std::string> &args); } \
-    namespace { Declare name ## _decl (id, &name); }
+    int name(std::deque<std::string> &args); \
+    namespace { Declare name ## _decl (id, &kqp::name); }
 
 DEFINE_BENCHMARK("kernel-evd", bm_kernel_evd);
 
 DEFINE_LOGGER(logger,  "kqp.benchmark.main");
 
+}
+
+using namespace kqp;
 int main(int argc, const char **argv) {  
     
     LOGGER_CONFIG.setDefaultLevel("INFO");
@@ -96,7 +99,7 @@ int main(int argc, const char **argv) {
         std::srand(seed);
         
         try {
-            const TestMap::const_iterator it = tests.find(name);
+            const BenchMap::const_iterator it = tests.find(name);
             if (it != tests.end())
                return it->second(args);
 
@@ -115,5 +118,4 @@ int main(int argc, const char **argv) {
         throw;
     }    
     return 1;
-}
 }

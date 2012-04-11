@@ -25,7 +25,7 @@ namespace kqp {
     /**
      * A list of eigenvalues that can be edited
      */
-    template<class Scalar>
+    template<typename Scalar>
     class EigenList {
     public:
         virtual ~EigenList();
@@ -55,6 +55,19 @@ namespace kqp {
          */
         virtual bool isSelected(size_t i) const = 0;
     };
+
+    
+    template<typename Scalar, bool absolute>
+    struct EigenListComparator {
+        const EigenList<Scalar> &list;
+        EigenListComparator(const EigenList<Scalar> &list) : list(list) {}
+        bool operator() (int i1, int i2) {
+            if (absolute) return std::abs(list.get(i1)) < std::abs(list.get(i2));
+            return list.get(i1) < list.get(i2);
+        }
+    };
+
+
     
     template<typename Scalar>
     class DecompositionList : public EigenList<Scalar> {
@@ -140,7 +153,7 @@ namespace kqp {
     public:
         ChainSelector();
         void add(const ChainSelector<Scalar> &);
-        virtual void selection(EigenList<Scalar>& eigenValues) const;
+        virtual void selection(EigenList<Scalar>& eigenValues) const override;
     };
     
     /**
@@ -150,7 +163,38 @@ namespace kqp {
     class MinimumSelector {
     public:
         MinimumSelector();
-        virtual void selection(EigenList<Scalar>& eigenValues) const;
+        virtual void selection(EigenList<Scalar>& eigenValues) const override;
+    };
+    
+    /**
+     * Minimum relative eigenvalue
+     */
+    template<typename Scalar, bool byMagnitude>
+    class RankSelector : public Selector<Scalar> {
+        Index rank;
+    public:
+        /**
+         * Selects the highest eigenvalues (either magnitude or values)
+         * @param rank The rank 
+         * @param byMagnitude If true, then eigenvalues will be sorted by absolute value
+         */
+        RankSelector(Index rank) : rank(rank) {}
+        
+        void selection(EigenList<Scalar>& eigenvalues) const override {
+            // exit if we have nothing to do
+            if (eigenvalues.getRank() <= rank) return;
+            
+            // Copy the values
+            std::vector<Scalar> values;
+            values.reserve(eigenvalues.size());
+            for(size_t i = 0; i < values.size(); i++) values[i] = i;
+            
+            // Sort and select
+            std::sort(values.begin(), values.end(), EigenListComparator<Scalar, byMagnitude>(eigenvalues)); 
+            
+            for(Index i = 0; i < eigenvalues.size() - rank; i++) 
+                eigenvalues.remove(i);
+        }
     };
 }
 

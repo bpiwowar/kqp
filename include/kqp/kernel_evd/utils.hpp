@@ -109,8 +109,9 @@ namespace kqp {
         kqp::thinEVD(evd, mY, mD);                    
         mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
     }
+
     
-    //! Re-orthonormalize a decomposition (complex case)
+    //! Re-orthonormalize a decomposition (real case)
     template<typename FMatrix>
     typename boost::disable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
     orthonormalize(const FMatrix &mX,
@@ -141,7 +142,7 @@ namespace kqp {
         kqp::thinEVD(evd, mY, mD);                    
         mY = mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
         
-        // FIXME: won't work in the real case if we have negative eigenvalues
+        // Handles negative eigenvalues
         if (n > 0) {
             m.resize(mD.rows(), mD.rows());
             auto _m = m.template selfadjointView<Eigen::Lower>();
@@ -154,6 +155,18 @@ namespace kqp {
         }
     }
 
+    //! Orthonormalization with Alt matrices
+    template<typename FMatrix>
+    void orthonormalize(const FMatrix &mX,
+                   typename ftraits<FMatrix>::ScalarAltMatrix &mY,
+                   typename ftraits<FMatrix>::RealAltVector &mD) {
+        // FIXME: should swap if dense types
+        typename ftraits<FMatrix>::ScalarMatrix _mY(mY);
+        typename ftraits<FMatrix>::RealVector _mD(mD);        
+        orthonormalize(mX, _mY, _mD);
+        mY.swap(_mY);
+        mD.swap(_mD);
+    }
 }
 
 #endif

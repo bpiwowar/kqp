@@ -50,17 +50,20 @@ namespace kqp {
         typedef AltMatrix<Diagonal,Identity> type;
     };
     
+    //! A dense vector or a constant vector
     template<typename Scalar> struct AltVector {
-        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1>  Vector;
-        typedef typename Eigen::Matrix<Scalar,Eigen::Dynamic,1>::ConstantReturnType ConstantReturnType;
+        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1>  VectorType;
+        typedef typename Eigen::Matrix<Scalar,Eigen::Dynamic,1>::ConstantReturnType ConstantVectorType;
         
-        typedef AltMatrix<Vector, ConstantReturnType> type;
+        typedef AltMatrix<VectorType, ConstantVectorType> type;
     };
     
     
     //! Dense or Identity matrix
     template<typename Scalar> struct AltDense {
-        typedef AltMatrix< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> , typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType > type;
+        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> DenseType;
+        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType IdentityType;
+        typedef AltMatrix<DenseType, IdentityType> type;
         
         static  inline type Identity(Index n) { 
             return Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>::Identity(n,n); 
@@ -118,6 +121,10 @@ namespace kqp {
         
         auto t1() const -> decltype(m_xpr.derived().t1().asDiagonal()) { return m_xpr.derived().t1().asDiagonal(); }
         auto t2() const -> decltype(m_xpr.derived().t2().asDiagonal()) { return m_xpr.derived().t2().asDiagonal(); }
+        
+        template<typename Dest> inline void evalTo(Dest& dst) const
+        { if (isT1()) dst = t1(); else dst = t2(); }
+
         
     };
     
@@ -270,6 +277,36 @@ namespace kqp {
     
     
     
+    // ---- Resizing
+
+    //! Resize of fully dynamic matrices
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (conservative) matrix.derived().conservativeResize(rows, cols); else matrix.derived().resize(rows, cols);
+    }
+    
+    
+    //! Resize of vectors
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime != Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (cols != matrix.cols())
+            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of columns in a fixed column-sized matrix (%d to %d)", %matrix.cols() %cols);
+        if (conservative) matrix.derived().conservativeResize(rows); else matrix.derived().resize(rows);
+    }
+    
+    //! Resize of row vectors
+    template<class Derived>
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime != Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
+        if (rows != matrix.rows())
+            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of rows in a fixed row-sized matrix (%d to %d)", %matrix.rows() %rows);
+        if (conservative) matrix.derived().conservativeResize(cols); else matrix.derived().resize(cols);
+    }
+
+    
+    // --- AltMatrix inner storage of Eigen matrices
     
     //! Default storage type for AltMatrix nested types
     template<typename Derived>
@@ -289,12 +326,13 @@ namespace kqp {
         Index cols() const { return m_value.cols(); }
         
         void resize(Index rows, Index cols) {
-            m_value.resize(rows,cols);
+            kqp::resize(m_value, false, rows, cols);
         }
         
         void conservativeResize(Index rows, Index cols) {
-            m_value.conservativeResize(rows,cols);
+            kqp::resize(m_value, true, rows, cols);
         }      
+        
         typename Eigen::internal::traits<Derived>::Scalar operator()(Index i, Index j) const {
             return m_value(i,j);
         }
@@ -306,7 +344,8 @@ namespace kqp {
         
         typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
         Real squaredNorm() const { return m_value.squaredNorm(); }
-        
+        const std::type_info &getTypeId() const { return typeid(Derived); }
+
     };
     
     //! Storage for a constant matrix
@@ -353,7 +392,7 @@ namespace kqp {
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         Real squaredNorm() const { return std::abs(m_value)*std::abs(m_value) * (Real)m_rows * (Real)m_cols; }
 
-        
+        const std::type_info &getTypeId() const { return typeid(ReturnType); }
     };
     
     //! Storage for a diagonal wrapper
@@ -375,12 +414,12 @@ namespace kqp {
         
         void resize(Index rows, Index cols) {
             if (rows != cols) KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot resize to a non diagonal size (%d x%d)", %rows%cols);
-            m_value.resize(rows,cols);
+            m_value.resize(rows);
         }
         
         void conservativeResize(Index rows, Index cols) {
             if (rows != cols) KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot resize to a non diagonal size (%d x%d)", %rows%cols);
-            m_value.conservativeResize(rows,cols);
+            m_value.conservativeResize(rows);
         }
         
         typename Eigen::internal::traits<Derived>::Scalar operator()(Index i, Index j) const {
@@ -394,7 +433,7 @@ namespace kqp {
         
         typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
         Real squaredNorm() const { return m_value.squaredNorm(); }
-
+        const std::type_info &getTypeId() const { return typeid(ReturnType); }
     };
     
     //! Storage for the identity
@@ -437,8 +476,8 @@ namespace kqp {
         }
         
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
-        Real squaredNorm() const { return (Real)m_rows * (Real)m_cols; }
-
+        Real squaredNorm() const { return std::min(m_rows, m_cols); }
+        const std::type_info &getTypeId() const { return typeid(Type); }
     };
     
     
@@ -471,7 +510,12 @@ namespace kqp {
         template<typename CwiseUnaryOp>
         void unaryExprInPlace(const CwiseUnaryOp &op) {
             if (isT1()) m_t1.unaryExprInPlace(op);
-            else        m_t2.unaryExprInPlace(op);
+                        m_t2.unaryExprInPlace(op);
+        }
+        
+        const std::type_info &getTypeId() const { 
+            if (isT1()) return m_t1.getTypeId();
+            return m_t2.getTypeId();
         }
         
         bool isT1() const { return m_isT1; }
@@ -541,7 +585,7 @@ namespace kqp {
         ConstBlock col(Index j) const { return ConstBlock(const_cast<Self&>(*this), 0, j, rows(), 1); }
         
         Block block(Index i, Index j, Index height, Index width) { return Block(*this, i, j, height, width); }
-        ConstBlock block(Index i, Index j, Index height, Index width) const { return ConstBlock(const_cast<Self&>(*this), i, j, width, height); }
+        ConstBlock block(Index i, Index j, Index height, Index width) const { return ConstBlock(const_cast<Self&>(*this), i, j, height, width); }
         
         const RowWise<AltMatrix> rowwise() const {
             return RowWise<AltMatrix>(const_cast<Self&>(*this));
@@ -603,11 +647,18 @@ namespace kqp {
         
         
         // Assignement 
-        
+
+        template<typename Scalar, typename Derived, typename OtherDerived>
+        void assign(const Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> &op1, 
+                    const Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> &op2, Index , Index ) {
+            if (op1(0,0) != op2(0,0))
+                KQP_THROW_EXCEPTION_F(not_implemented_exception, "Cannot assign a constant matrix to a constant matrix with different values (%g vs %g)", %op1(0,0) %op2(0,0));
+        }
+
         
         template<typename Op, typename Derived, typename OtherDerived>
-        void assign(const Eigen::CwiseNullaryOp<Op, Derived> &, const OtherDerived &, Index , Index ) {
-            KQP_THROW_EXCEPTION(not_implemented_exception, "Cannot assign a constant matrix to anything");
+        void assign(const Eigen::CwiseNullaryOp<Op, Derived> &, const OtherDerived &, Index, Index) {
+            KQP_THROW_EXCEPTION_F(not_implemented_exception, "Cannot assign a constant matrix to [%s]", % KQP_DEMANGLE(OtherDerived));
         }
         
         template<typename Derived, int Rows, int Cols, typename OtherDerived>
@@ -617,15 +668,15 @@ namespace kqp {
         
         
         template<typename Derived>
-        AltBlock<AltMatrix>& assignTo(const AltBlock<Derived> &m) {
-            if (m.height != this->height || m.width != this->width)
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Block sizes differ in assignement (%d x %d != %d x %d)", %height %width %m.height %m.width);
+        AltBlock<AltMatrix>& assignTo(const AltBlock<Derived> &from) {
+            if (from.height != this->height || from.width != this->width)
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Block sizes differ in assignement (%d x %d != %d x %d)", %height %width %from.height %from.width);
             if (alt_matrix.isT1()) {
-                if (m.alt_matrix.isT1()) this->assign(alt_matrix.t1(), m.alt_matrix.t1(), m.row, m.col);
-                else this->assign(alt_matrix.t1(), m.alt_matrix.t2(), m.row, m.col);
+                if (from.alt_matrix.isT1()) this->assign(alt_matrix.t1(), from.alt_matrix.t1(), from.row, from.col);
+                else this->assign(alt_matrix.t1(), from.alt_matrix.t2(), from.row, from.col);
             } else {
-                if (m.alt_matrix.isT1()) this->assign(alt_matrix.t2(), m.alt_matrix.t1(), m.row, m.col);
-                else this->assign(alt_matrix.t2(), m.alt_matrix.t2(), m.row, m.col);                
+                if (from.alt_matrix.isT1()) this->assign(alt_matrix.t2(), from.alt_matrix.t1(), from.row, from.col);
+                else this->assign(alt_matrix.t2(), from.alt_matrix.t2(), from.row, from.col);                
             }
             
             return *this;

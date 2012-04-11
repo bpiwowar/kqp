@@ -30,10 +30,16 @@ namespace kqp {
     template<typename FMatrix> class Cleaner {
     public:
 		typedef typename ftraits<FMatrix>::Real Real;
-		
+        
         //! Default constructor
-        Cleaner() : preImageRatios(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()) {}
+        Cleaner() : preImageRatios(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()), useLinearCombination(true) {}
+        
         virtual ~Cleaner() {}
+        
+        //! Sets the flag for linear combination use (debug)
+        void setUseLinearCombination(bool flag) {
+            useLinearCombination = flag; 
+        }
         
         //! Set constraints on the number of pre-images
         void setPreImagesPerRank(float minimum, float maximum) {
@@ -53,6 +59,9 @@ namespace kqp {
         //! Eigen value selector
         boost::shared_ptr< const Selector<Real> > selector;
 
+        //! Flag to use linear combination (debug)
+        bool useLinearCombination;
+
     };
     
     
@@ -67,18 +76,31 @@ namespace kqp {
         void cleanup(Decomposition<FMatrix> &d)  {
             // --- Rank selection   
             DecompositionList<Real> list(d.mD);
-            if (this->selector) this->selector->selection(list);
+            if (this->selector) {
+                
+                this->selector->selection(list);
+                
+                // Remove corresponding entries
+                select_rows(list.getSelected(), d.mD, d.mD);
+                
+                // Case where mY is the identity matrix
+                if (d.mY.getTypeId() == typeid(typename AltDense<Scalar>::IdentityType)) {
+                    d.mX.subset(list.getSelected());
+                    d.mY.conservativeResize(list.getRank(), list.getRank());
+                } else {
+                    select_columns(list.getSelected(), d.mY, d.mY);
+                }
+            }
             
-            // Remove corresponding entries
-            select_rows(list.getSelected(), d.mD, d.mD);
-            select_columns(list.getSelected(), d.mY, d.mY);
+            // --- Remove unused pre-images
+            removeUnusedPreImages(d.mX, d.mY);
             
             // --- Remove null space
             removePreImagesWithNullSpace(d.mX, d.mY);
             
             // --- Ensure we have a small enough number of pre-images
             if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
-                if (d.mX.can_linearly_combine()) {
+                if (d.mX.can_linearly_combine() && this->useLinearCombination) {
                     // Easy case: we can linearly combine pre-images
                     d.mX = d.mX.linear_combination(d.mY);
                     d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());

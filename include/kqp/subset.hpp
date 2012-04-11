@@ -64,32 +64,6 @@ namespace kqp {
     //! Reduces a set of indexed things by block
     void selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Mover &mover);
     
-    
-    //! Resize of fully dynamic matrices
-    template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
-    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
-        if (conservative) matrix.derived().conservativeResize(rows, cols); else matrix.derived().resize(rows, cols);
-    }
-
-    
-    //! Resize of vectors
-    template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime != Eigen::Dynamic), void>::type 
-    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
-        if (cols != matrix.cols())
-            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of columns in a fixed column-sized matrix (%d to %d)", %matrix.cols() %cols);
-        if (conservative) matrix.derived().conservativeResize(rows); else matrix.derived().resize(rows);
-    }
-
-    //! Resize of row vectors
-    template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime != Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
-    resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
-        if (rows != matrix.rows())
-            KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of rows in a fixed row-sized matrix (%d to %d)", %matrix.rows() %rows);
-        if (conservative) matrix.derived().conservativeResize(cols); else matrix.derived().resize(cols);
-    }
 
     
     //! Mover for columns

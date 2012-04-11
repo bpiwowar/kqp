@@ -116,18 +116,32 @@ namespace kqp {
             }
                               
             // (4) Clean-up
+            
 
+
+            // --- Rank selection   
+            DecompositionList<Real> list(mD);
+            if (this->selector) {
+                // Selects the eigenvalues
+                this->selector->selection(list);
+                
+                // Remove corresponding entries
+                select_rows(list.getSelected(), mD, mD);                
+                select_columns(list.getSelected(), mY, mY);
+            }
+            
+            
             // First, tries to remove unused pre-images images
-            removePreImagesWithNullSpace(mX, mY);
+            removeUnusedPreImages(mX, mY);
             
             // --- Ensure we have a small enough number of pre-images
             if (mX.size() > (this->preImageRatios.second * mD.rows())) {
                 
                 // Get rid of Z
                 mY = mY * mZ;
-                mZ = ScalarMatrix::Identity(mX.size(), mX.size());
+                mZ = ScalarMatrix::Identity(mY.cols(), mY.cols());
 
-                if (mX.can_linearly_combine()) {
+                if (mX.can_linearly_combine() && this->useLinearCombination) {
                     // Easy case: we can linearly combine pre-images
                     mX = mX.linear_combination(mY);
                     mY = ScalarMatrix::Identity(mX.size(), mX.size());
