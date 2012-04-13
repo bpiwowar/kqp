@@ -141,8 +141,7 @@ namespace kqp {
          * @param eigenValues
          *            The ordered list of eigenvalues
          */
-        virtual void selection(EigenList<Scalar>& eigenValues) const = 0;
-        
+        virtual void selection(EigenList<Scalar>& eigenvalues) const = 0;
     };
     
     /**
@@ -150,50 +149,87 @@ namespace kqp {
      */
     template<typename Scalar>
     class ChainSelector : public Selector<Scalar> {
+        std::vector<boost::shared_ptr<Selector<Scalar>>> selectors;
     public:
-        ChainSelector();
-        void add(const ChainSelector<Scalar> &);
-        virtual void selection(EigenList<Scalar>& eigenValues) const override;
+        ChainSelector() {}
+        void add(const boost::shared_ptr<Selector<Scalar>> &selector) {
+            selectors.push_back(selector);
+        }
+        
+        virtual void selection(EigenList<Scalar>& eigenvalues) const override {
+            for(auto i = selectors.begin(), end = selectors.end(); i != end; i++)
+                (*i)->selection(eigenvalues);
+        }
     };
     
     /**
      * Minimum relative eigenvalue
      */
     template<typename Scalar>
-    class MinimumSelector {
+    class MinimumSelector : public Selector<Scalar> {
+        Scalar minRatio;
     public:
-        MinimumSelector();
-        virtual void selection(EigenList<Scalar>& eigenValues) const override;
+        MinimumSelector() : minRatio(EPSILON) {}
+        virtual void selection(EigenList<Scalar>& eigenvalues) const override {
+            // Computes the maximum of eigenvalues
+            Scalar maxLambda = 0;
+            for(Index i = 0; i < eigenvalues.size(); i++) 
+                if (eigenvalues.isSelected(i)) 
+                    maxLambda = std::max(maxLambda, eigenvalues.get(i));
+            
+            // Remove those above the maximum * ratio
+            Scalar threshold = maxLambda * minRatio;
+            for(Index i = 0; i < eigenvalues.size(); i++) 
+                if (eigenvalues.isSelected(i)) 
+                    if (eigenvalues.get(i) < threshold)
+                        eigenvalues.remove(i);
+   
+        }
     };
     
     /**
-     * Minimum relative eigenvalue
+     * Select the highest eigenvalues (with a possible "reset" rank)
      */
     template<typename Scalar, bool byMagnitude>
     class RankSelector : public Selector<Scalar> {
-        Index rank;
+        //! Maximum rank
+        Index maxRank;
+        
+        //! Rank to select when the rank is above maxRank
+        Index resetRank;
     public:
         /**
          * Selects the highest eigenvalues (either magnitude or values)
-         * @param rank The rank 
+         * @param rank The maximum and selected rank
          * @param byMagnitude If true, then eigenvalues will be sorted by absolute value
          */
-        RankSelector(Index rank) : rank(rank) {}
+        RankSelector(Index maxRank) : maxRank(maxRank), resetRank(maxRank) {}
+        
+        /**
+         * Construct a selector that uses a reset rank
+         */
+        RankSelector(Index maxRank, Index resetRank) : maxRank(maxRank), resetRank(resetRank) {
+            if (resetRank > maxRank)
+                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "The maximum rank (%d) should be greater or equal to the reset rank (%d)", %maxRank %resetRank);
+        }
         
         void selection(EigenList<Scalar>& eigenvalues) const override {
             // exit if we have nothing to do
-            if (eigenvalues.getRank() <= rank) return;
+            if (eigenvalues.getRank() <= maxRank) return;
             
             // Copy the values
             std::vector<Scalar> values;
-            values.reserve(eigenvalues.size());
-            for(size_t i = 0; i < values.size(); i++) values[i] = i;
+            values.reserve(eigenvalues.getRank());
+            for(Index i = 0; i < eigenvalues.size(); i++) 
+                if (eigenvalues.isSelected(i)) 
+                    values.push_back(i);
             
             // Sort and select
             std::sort(values.begin(), values.end(), EigenListComparator<Scalar, byMagnitude>(eigenvalues)); 
-            
-            for(Index i = 0; i < eigenvalues.size() - rank; i++) 
-                eigenvalues.remove(i);
+
+            // Select the rank highest eigenvalues
+            for(Index i = 0; i < eigenvalues.size() - resetRank; i++) 
+                eigenvalues.remove(values[i]);
         }
     };
 }

@@ -437,6 +437,7 @@ template void solve_qp<Scalar>(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATR
 template class KQP_KKTPreSolver<Scalar>;
     
     INSTANCE(double);
+    INSTANCE(float);
     INSTANCE(std::complex<double>);
     
 }

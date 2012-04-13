@@ -70,6 +70,7 @@ namespace kqp {
         }
     };    
     
+    
     //! Storage type for AltMatrix
     struct AltMatrixStorage {};
     
@@ -313,18 +314,21 @@ namespace kqp {
     struct storage {
         typedef Derived & ReturnType; 
         typedef const Derived & ConstReturnType; 
-        
+        typedef typename Eigen::internal::traits<Derived>::Scalar Scalar;
+
         Derived m_value;
         
         storage() {}
         storage(const Derived &value) : m_value(value) {}
         ConstReturnType get() const { return m_value; }
         ReturnType get() { return m_value; }
-        
+
+        void swap(storage &other) { m_value.swap(other.m_value); }
         void swap(Derived &value) { m_value.swap(value); }
         Index rows() const { return m_value.rows(); }
         Index cols() const { return m_value.cols(); }
         
+        Scalar trace() const { return m_value.trace(); }
         void resize(Index rows, Index cols) {
             kqp::resize(m_value, false, rows, cols);
         }
@@ -353,6 +357,7 @@ namespace kqp {
     struct storage< typename Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> > {
         typedef typename Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Derived> ReturnType;
         typedef const ReturnType ConstReturnType;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
         Scalar m_value;
         Index m_rows;
@@ -363,7 +368,9 @@ namespace kqp {
         : m_value(value.coeff(0,0)), m_rows(value.rows()), m_cols(value.cols()) {}
         
         ReturnType get() const { return ReturnType(m_rows, m_cols, m_value); }
+
         
+        void swap(storage &)  { KQP_THROW_EXCEPTION(illegal_argument_exception, "Cannot swap a constant matrix"); }
         void swap(ReturnType &) { KQP_THROW_EXCEPTION(illegal_argument_exception, "Cannot swap a constant matrix"); }
         Index rows() const { return m_rows; }
         Index cols() const { return m_cols; }
@@ -389,7 +396,6 @@ namespace kqp {
             m_value = op(m_value);
         }
         
-        typedef typename Eigen::NumTraits<Scalar>::Real Real;
         Real squaredNorm() const { return std::abs(m_value)*std::abs(m_value) * (Real)m_rows * (Real)m_cols; }
 
         const std::type_info &getTypeId() const { return typeid(ReturnType); }
@@ -449,6 +455,9 @@ namespace kqp {
         storage(const Type &value) : m_rows(value.rows()), m_cols(value.cols()) {}
         ReturnType get() const { return  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(m_rows, m_cols); }
         
+        void swap(storage &) { 
+            KQP_THROW_EXCEPTION(not_implemented_exception, "Not sure what to do");
+        }
         void swap(Type &) { 
             KQP_THROW_EXCEPTION(not_implemented_exception, "Not sure what to do");
         }
@@ -505,7 +514,7 @@ namespace kqp {
         Index cols() const { return m_isT1 ? m_t1.cols() : m_t2.cols(); }
         
         Real squaredNorm() const { return m_isT1 ? m_t1.squaredNorm() : m_t2.squaredNorm(); }
-        Scalar trace() const { return m_isT1 ? m_t1.trace() : m_t2.trace(); }
+        Scalar trace() const { return m_isT1 ? m_t1.get().trace() : m_t2.get().trace(); }
         
         template<typename CwiseUnaryOp>
         void unaryExprInPlace(const CwiseUnaryOp &op) {
@@ -526,6 +535,12 @@ namespace kqp {
         inline typename storage<T1>::ReturnType t1() { return m_t1.get(); }
         inline typename storage<T2>::ReturnType t2() { return m_t2.get(); }
         
+        
+        void swap(AltMatrix &other) {
+            m_t1.swap(other.m_t1);
+            m_t2.swap(other.m_t2);
+            std::swap(m_isT1, other.m_isT1);
+        }
         
         void swap(T1 &t1) { m_isT1 = true; m_t1.swap(t1); }
         void swap(T2 &t2) { m_isT1 = true; m_t2.swap(t2); }
@@ -1029,5 +1044,17 @@ namespace Eigen {
         
         
     }
+
+
+} 
+
+namespace kqp {
+
+# define KQP_SCALAR_GEN(type)  \
+    extern template class AltMatrix<AltDense<type>::DenseType, AltDense<type>::IdentityType>; \
+    extern template class AltMatrix<AltVector<type>::VectorType, AltVector<type>::ConstantVectorType>;
+# include <kqp/for_all_scalar_gen>
+    
 }
+
 #endif

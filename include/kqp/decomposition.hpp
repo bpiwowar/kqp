@@ -14,10 +14,42 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #ifndef _KQP_DECOMPOSITION_H
 #define _KQP_DECOMPOSITION_H
 
+#include <utility>
 #include <kqp/feature_matrix.hpp>
+
+namespace std {
+    inline namespace kqp {
+        template<class _Ty>
+        struct _Remove_reference
+        {   // remove reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty>
+        struct _Remove_reference<_Ty&>
+        {   // remove reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty>
+        struct _Remove_reference<_Ty&&>
+        {   // remove rvalue reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty> inline
+        typename _Remove_reference<_Ty>::_Type&&
+        move(_Ty&& _Arg)
+        {   // forward _Arg as movable
+            return ((typename _Remove_reference<_Ty>::_Type&&)_Arg);
+        }
+
+    }
+}
 
 namespace kqp {
     
@@ -44,6 +76,36 @@ namespace kqp {
         //! Full constructor
         Decomposition(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
             : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal) {}
+        
+        //! Move constructor
+        Decomposition(Decomposition &&other) {
+            *this = std::move(other);
+        }
+
+        //! Copy constructor
+        Decomposition(const Decomposition &other) {
+            *this = other;
+        }
+
+        
+        //! Move assignement
+        Decomposition &operator=(Decomposition &&other) {
+            mX = std::move(other.mX);
+            mY.swap(other.mY);
+            mD.swap(other.mD);
+            std::swap(orthonormal, other.orthonormal);
+            return *this;
+        }
+        
+        //! Copy assignement
+        Decomposition &operator=(const Decomposition &other) {
+            mX = other.mX;
+            mY = other.mY;
+            mD = other.mD;
+            orthonormal = other.orthonormal;
+            return *this;
+        }
+
 };   
     
 

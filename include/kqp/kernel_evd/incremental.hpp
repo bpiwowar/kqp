@@ -28,7 +28,11 @@
 #include <kqp/kernel_evd/utils.hpp>
 
 namespace kqp {
+
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.kernel-evd.incremental");
     
+
     
     /**
      * @brief Uses other operator builders and combine them.
@@ -51,6 +55,11 @@ namespace kqp {
         
                
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
+            // --- Info
+            
+//            KQP_LOG_DEBUG_F(KQP_HLOGGER, "Dimensions: X [%d], Y [%dx%d], Z [%dx%d], D [%d], U [%d], A [%dx%d]", 
+//                           %mX.size() %mY.rows() %mY.cols() %mZ.rows() %mZ.cols() %mD.rows() %mU.size() %mA.rows() %mA.cols());
+            
             // --- Pre-computations
             
             // Compute W = Y^T X^T
@@ -66,23 +75,24 @@ namespace kqp {
             // (thin) eigen-value decomposition of V^T V
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(vtv);
             ScalarMatrix mQ;
-            ScalarMatrix mQ_null;
-            RealVector mQD;
-            kqp::thinEVD(evd, mQ, mQD, &mQ_null);
+            ScalarMatrix mQ0;
+            RealVector mDQ;
+            kqp::thinEVD(evd, mQ, mDQ, &mQ0);
 
             Index rank_Q = mQ.cols();             
-            mQD = mQD.cwiseAbs().cwiseSqrt();
+            mDQ = mDQ.cwiseAbs().cwiseSqrt();
             for(Index i = 0; i < rank_Q; i++)
-                mQ.col(i) /= mQD(i);
+                mQ.col(i) /= mDQ(i);
 
             // --- Update
            
+            // m is the matrix [WQD^1/2 WQ_0; D^1/2 0 ] 
             ScalarMatrix m(mW.rows() + rank_Q, mW.cols());
                         
-            m.topLeftCorner(mW.rows(), rank_Q) =  mW * mQ * mQD.asDiagonal();
-            m.topRightCorner(mW.rows(), mW.cols() - rank_Q) = mW * mQ_null;                
+            m.topLeftCorner(mW.rows(), rank_Q) =  mW * mQ * mDQ.asDiagonal();
+            m.topRightCorner(mW.rows(), mW.cols() - rank_Q) = mW * mQ0;                
             
-            m.bottomLeftCorner(rank_Q, rank_Q) = mQD.template cast<Scalar>().asDiagonal();
+            m.bottomLeftCorner(rank_Q, rank_Q) = mDQ.template cast<Scalar>().asDiagonal();
             m.bottomRightCorner(rank_Q, mW.cols() - rank_Q).setConstant(0) ;
             
 
@@ -94,7 +104,11 @@ namespace kqp {
                 v.tail(m.rows() - mZ.cols()) = m.col(i).tail(m.rows() - mZ.cols());
                 
                 
-                evdRankOneUpdate.update(mD, alpha, v, false, m_cleaner.get() ? m_cleaner->selector.get() : nullptr, false, result, &mZ);
+                // Rank-1 update:
+                // For better accuracy, we don't decrease the rank yet using the selector,
+                // but this might be an option in the future (so as to improve speed)
+                evdRankOneUpdate.update(mD, alpha, v, false, 0, false, result, &mZ);
+                
                 // Take the new diagonal
                 mD = result.mD;
             }
@@ -121,13 +135,17 @@ namespace kqp {
 
             // --- Rank selection   
             DecompositionList<Real> list(mD);
+            bool identityZ = false;
             if (this->selector) {
                 // Selects the eigenvalues
                 this->selector->selection(list);
                 
                 // Remove corresponding entries
                 select_rows(list.getSelected(), mD, mD);                
+                mY = mY * mZ;
                 select_columns(list.getSelected(), mY, mY);
+
+                identityZ = true;
             }
             
             
@@ -135,32 +153,45 @@ namespace kqp {
             removeUnusedPreImages(mX, mY);
             
             // --- Ensure we have a small enough number of pre-images
-            if (mX.size() > (this->preImageRatios.second * mD.rows())) {
+            Index maxRank = this->preImageRatios.second * (float)mD.rows();
+            if (mX.size() > maxRank) {
                 
                 // Get rid of Z
-                mY = mY * mZ;
-                mZ = ScalarMatrix::Identity(mY.cols(), mY.cols());
+                if (!identityZ) mY = mY * mZ;
+                identityZ = true;
 
-                if (mX.can_linearly_combine() && this->useLinearCombination) {
-                    // Easy case: we can linearly combine pre-images
-                    mX = mX.linear_combination(mY);
-                    mY = ScalarMatrix::Identity(mX.size(), mX.size());
-                } else {
-                    // Use QP approach
-                    ReducedSetWithQP<FMatrix> qp_rs;
-                    qp_rs.run(this->preImageRatios.first * mD.rows(), mX, mY, mD);
-                    
-                    // Get the decomposition
-                    mX = qp_rs.getFeatureMatrix();
-                    mY = qp_rs.getMixtureMatrix();
-                    mD = qp_rs.getEigenValues();
-                    
-                    // The decomposition is not orthonormal anymore
-                    kqp::orthonormalize(mX, mY, mD);
+                // Try again to remove unused pre-images
+                removeUnusedPreImages(mX, mY);
+                KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after unused pre-images algorithm: %d [%d]", %mY.rows() %maxRank);
+
+                // Try to remove null space pre-images
+                removePreImagesWithNullSpace(mX, mY);
+                KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
+
+                if (mX.size() > maxRank) {
+                    if (mX.can_linearly_combine() && this->useLinearCombination) {
+                        // Easy case: we can linearly combine pre-images
+                        mX = mX.linear_combination(mY);
+                        mY = ScalarMatrix::Identity(mX.size(), mX.size());
+                    } else {
+                        // Use QP approach
+                        ReducedSetWithQP<FMatrix> qp_rs;
+                        qp_rs.run(this->preImageRatios.first * (float)mD.rows(), mX, mY, mD);
+                        
+                        // Get the decomposition
+                        mX = qp_rs.getFeatureMatrix();
+                        mY = qp_rs.getMixtureMatrix();
+                        mD = qp_rs.getEigenValues();
+                        
+                        // The decomposition is not orthonormal anymore
+                        kqp::orthonormalize(mX, mY, mD);
+                    }
                 }
-                
-                
+            
             }
+            
+            if (identityZ) 
+                mZ = ScalarMatrix::Identity(mY.cols(), mY.cols());
             
         }
         
@@ -198,11 +229,8 @@ namespace kqp {
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
         
         // Used in computation
-        mutable ScalarMatrix k;
+        mutable ScalarMatrix k;       
         
-        
-        
-        boost::shared_ptr<Cleaner<FMatrix>> m_cleaner;
     };
     
     KQP_KERNEL_EVD_INSTANCIATION(extern, IncrementalKernelEVD);

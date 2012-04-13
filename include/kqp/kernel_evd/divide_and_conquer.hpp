@@ -18,19 +18,62 @@
 #ifndef __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 #define __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 
-
+#include <kqp/kernel_evd.hpp>
 
 namespace kqp {
+    
+    template<typename FMatrix> 
+    class KernelEVDFactory {
+    public:
+        virtual boost::shared_ptr<KernelEVD<FMatrix>> create() = 0;
+    };
+    
     /**
-     * @brief Uses other operator builders and combine them.
+     * @brief Meta builder: Uses other operator builders and combine them at regular intervals.
      * @ingroup KernelEVD
      */
     template <class FMatrix> class DivideAndConquerBuilder : public KernelEVD<FMatrix> {
     public:
-        virtual Decomposition<FMatrix> getDecomposition() const override {
-            Decomposition<FMatrix> d;
-            return d;
+        KQP_FMATRIX_TYPES(FMatrix);        
+
+        //! Set the maximum number of rank updates before using a combiner
+        void setBatchSize(Index batchSize) { 
+            this->batchSize = batchSize;
         }
+        
+        //! Sets the builder factory
+        void setBuilderFactory(const boost::shared_ptr<KernelEVDFactory<FMatrix>> &builderFactory) {
+            this->builderFactory = builderFactory;
+        }
+        
+        //! Sets the merger factory
+        void setMergerFactory(const boost::shared_ptr<KernelEVDFactory<FMatrix>> &mergerFactory) {
+            this->mergerFactory = mergerFactory;
+        }
+        
+        
+        virtual Decomposition<FMatrix> getDecomposition() const override {
+        }
+        
+    protected:
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
+            // Get a builder
+            
+            
+        }
+        
+    private:
+        //! Counts of rank updates for each builder/merger
+        std::vector<Index> counts; 
+        
+        //! Vector of kernel-EVD builder/merger
+        std::vector<boost::unique_ptr<KernelEVD<FMatrix>> builders;
+        
+        Index batchSize = 100;
+        
+        boost::shared_ptr<KernelEVDFactory<FMatrix>> builderFactory;
+        
+        boost::shared_ptr<KernelEVDFactory<FMatrix>> mergerFactory;        
     };
 }
 

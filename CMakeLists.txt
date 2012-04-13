@@ -13,19 +13,23 @@
 # You should have received a copy of the GNU General Public License
 # along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  
+
+# --- Basic information about the project
  
 cmake_minimum_required (VERSION 2.6)
+INCLUDE (CheckCXXSourceRuns)
+
+PROJECT (kqp) 
+SET (libkqp_VERSION "0.0.1")
+SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # --- Main options
 
-# Project name and version
-PROJECT (kqp) 
-SET (libkqp_VERSION "0.0.1")
+OPTION(CMAKE_BUILD_TYPE         "Type of building"             "Release")
+OPTION(JAVA_KQP                 "Build kqp JNI library"         ON)
+OPTION(OPEN_MP                  "Use Open MP (if available)"    OFF)
 
-# Build by default a release version of the library
-OPTION(CMAKE_BUILD_TYPE "Release")
-
-# --- Version number
+# --- Get version number from libkqp_VERSION
 
 STRING (REGEX MATCHALL "[0-9]" libkqp_VERSION_PARTS "${libkqp_VERSION}")
 
@@ -63,18 +67,18 @@ IF (CMAKE_GENERATOR MATCHES Xcode)
 	SET_PROPERTY(GLOBAL PROPERTY XCODE_BUILD_VARIANTS "Debug Release")
 	SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++0x")
 	SET(CMAKE_XCODE_GCC_OPTIMIZATION_LEVEL "0")
+    # SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
 ENDIF(CMAKE_GENERATOR MATCHES Xcode)
 
 
+# --- Check for compiler idiosyncrasy
 
-# --- Options
-
-OPTION(JAVA_KQP "Build kqp JNI library" ON)
-OPTION(OPEN_MP "Use Open MP (if available)" OFF)
-
+# std::move
+CHECK_CXX_SOURCE_RUNS("#include <utility>
+int main() { std::move(1);  return 0; }" HAS_STD_MOVE)
+    
 # --- Add our own modules
 
-SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Find Boost
@@ -99,7 +103,7 @@ ENDIF(OPEN_MP MATCHES "ON")
 # --- Build kqp library
 
 
-file(GLOB kqp_kqp_H  "include/kqp/*.hpp")
+file(GLOB kqp_kqp_H  "include/kqp/*.hpp" "include/kqp/for_all*")
 file(GLOB kqp_fmatrix_H "include/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
 file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
 file(GLOB kqp_reduced_set_H "include/kqp/reduced_set/*.hpp" "include/kqp/reduced_set.hpp")

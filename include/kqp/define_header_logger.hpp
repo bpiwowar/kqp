@@ -46,10 +46,10 @@
 #   if (KQP_HLOGGER_N == 1) 
 #     undef  KQP_HLOGGER_N
 #     define KQP_HLOGGER_N 2
-#   elseif (KQP_HLOGGER_N == 2) 
+#   elif (KQP_HLOGGER_N == 2) 
 #     undef  KQP_HLOGGER_N
 #     define KQP_HLOGGER_N 3
-#   elseif (KQP_HLOGGER_N == 3) 
+#   elif (KQP_HLOGGER_N == 3) 
 #     undef  KQP_HLOGGER_N
 #     define KQP_HLOGGER_N 4
 #   else

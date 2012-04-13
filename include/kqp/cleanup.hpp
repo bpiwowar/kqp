@@ -123,6 +123,12 @@ namespace kqp {
         
     };
 }
+
+# define KQP_FMATRIX_GEN_EXTERN(type)  \
+         extern template class kqp::Cleaner<type>; \
+         extern template class kqp::StandardCleaner<type>; 
+# include <kqp/for_all_fmatrix_gen>
+
 #endif
 
 

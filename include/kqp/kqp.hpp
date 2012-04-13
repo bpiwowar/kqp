@@ -100,6 +100,7 @@ namespace kqp {
         return strout.str();
     }
     
+    
     /** Convert anything to a string. Might be specialized */
     template<class T> T convert(const std::string &s) {
         T x;
@@ -114,6 +115,10 @@ namespace kqp {
 # define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix) \
     prefix double suffix; \
     prefix std::complex<double> suffix; 
+
+# //! Declaration / instanciation for all FMatrix types
+# define KQP_FOR_ALL_FMATRIX_TYPES(prefix, suffix) \
+KQP_FOR_ALL_SCALAR_TYPES(prefix DenseMatrix<, > suffix);
 
 
 # //! Real value type of a numeric type

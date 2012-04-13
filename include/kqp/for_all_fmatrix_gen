@@ -1,0 +1,45 @@
+/*
+ This file is part of the Kernel Quantum Probability library (KQP).
+ 
+ KQP is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ KQP is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+#ifndef _KQP_FOR_ALL_FMATRIX_H_
+#define _KQP_FOR_ALL_FMATRIX_H_
+
+# // Include headers only when instanciating
+
+# ifdef KQP_FMATRIX_GEN_EXTERN
+namespace kqp {
+    template <typename Scalar> class DenseMatrix;
+}
+// FIXME: would be better to have only forward declarations
+#   include <kqp/feature_matrix/dense.hpp>
+
+# else
+#   include <kqp/feature_matrix/dense.hpp>
+# endif
+
+#endif
+
+# ifdef KQP_FMATRIX_GEN_EXTERN
+#   define KQP_FMATRIX_GEN(type) KQP_FMATRIX_GEN_EXTERN(type)
+# endif
+ 
+#define  KQP_SCALAR_GEN(type) KQP_FMATRIX_GEN(kqp::DenseMatrix<type>);
+#include <kqp/for_all_scalar_gen>
+
+#undef KQP_FMATRIX_GEN
+#undef KQP_FMATRIX_GEN_EXTERN

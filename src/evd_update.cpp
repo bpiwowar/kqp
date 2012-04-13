@@ -166,11 +166,13 @@ namespace kqp {
         
         
         Real get(Index index) const {
+            check(index);
             return values[index]->lambda;
         }
         
         
         void remove(Index index) {
+            check(index);
             if (!values[index]->isRemoved()) {
                 minRemoved = std::min(index, minRemoved);
                 values[index]->setRemoved(true);
@@ -185,12 +187,18 @@ namespace kqp {
         
         
         bool isSelected(std::size_t i) const {
+            check(i);
             return !values[i]->isRemoved();
         }
         
         
         Index getRank() const {
             return rank;
+        }
+        
+    private:
+        inline void check(std::size_t i) const {
+            assert(i < (std::size_t)size());
         }
         
     };
@@ -529,8 +537,8 @@ namespace kqp {
         
         // Select the eigenvalues if needed
         static const LambdaComparator<Scalar> lambdaComparator;
-        sortValues(v, 0, lambdaComparator);
-        
+        std::sort(v.begin(), v.end(), lambdaComparator);
+               
         Index rank = v.size();
         if (selector) {
             EigenValues<Scalar> list(v);
@@ -539,7 +547,7 @@ namespace kqp {
             
             // Reorder if needed
             if (rank < N && (list.minRemoved != rank)) {
-                sortValues(v, list.minRemoved, lambdaComparator);
+                std::sort(v.begin() + list.minRemoved, v.end(), lambdaComparator);
             }
             
         }

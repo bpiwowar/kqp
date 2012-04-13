@@ -104,8 +104,8 @@ namespace kqp {
 }
 
 #include <kqp/feature_matrix/dense.hpp>
-#define KQP_KERNEL_EVD_INSTANCIATION(qualifier, type)\
-KQP_FOR_ALL_SCALAR_TYPES(qualifier template class type<DenseMatrix<, > >)
+#define KQP_KERNEL_EVD_INSTANCIATION(_extern, type)\
+    KQP_FOR_ALL_FMATRIX_TYPES(_extern template class type<, >)
 
 
 #endif

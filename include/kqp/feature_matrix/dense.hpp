@@ -53,6 +53,11 @@ namespace kqp {
         explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new ScalarMatrix(m)) {
         }
         
+        //! Construction by moving a dense matrix
+        explicit DenseMatrix(ScalarMatrix &&m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new ScalarMatrix()) {
+            matrix->swap(m);
+        }
+        
         Index size() const { 
             return _size;
         }
@@ -107,6 +112,7 @@ namespace kqp {
             }
             matrix->conservativeResize(matrix->rows(), last);
             _size--;
+            this->gramMatrix.resize(0,0);            
             return r;
         }
         

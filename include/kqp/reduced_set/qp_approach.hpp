@@ -203,7 +203,14 @@ namespace kqp {
             
             // Sort by increasing order: we will keep only the target last vectors
             std::sort(indices.begin(), indices.end(), getIndirectComparator(result.x.tail(n)));
-
+            
+            Real lowest   = result.x.tail(n)[indices[0]];
+            Real last_nsel = n-target-1 >= 0 ? result.x.tail(n)[indices[n-target-1]] : -1;
+            Real first_sel = result.x.tail(n)[indices[n-target]];
+            Real highest    = result.x.tail(n)[indices[n-1]];
+            KQP_HLOG_INFO_F("Lambda values [%d/%d]: lowest=%g, last non selected=%g, first selected=%g, highest=%g [ratios %g and %g]", 
+                            %target %n %lowest %last_nsel %first_sel %highest %(last_nsel/first_sel) %(last_nsel/highest));
+            
             if (KQP_IS_DEBUG_ENABLED(KQP_HLOGGER)) {
                 for(Index i = 0; i < n; i++) {
                     KQP_HLOG_DEBUG_F(boost::format("[%d] %g"), % indices[i] % result.x[result.x.size() - n + indices[i]]);
