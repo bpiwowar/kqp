@@ -33,12 +33,17 @@ namespace kqp {
         
         
         struct Dense_evd_test {
+            //! Number of updates to make
             int nb_add;
+            //! Dimension of the space
             int n; 
             
+            //! Minimum of pre-images for each updates
             int min_preimages;
+            //! Maximum of pre-images for each updates
             int max_preimages; 
             
+            //! Minimum and maximum number of vectors to add at each update
             int min_lc;
             int max_lc;
             
@@ -133,6 +138,9 @@ namespace kqp {
             virtual int run(const Dense_evd_test &) const;
         };
         
+        struct DivideAndConquer : public Builder {
+            virtual int run(const Dense_evd_test &) const;
+        };
         
     }
     

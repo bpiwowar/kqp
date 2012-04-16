@@ -90,9 +90,11 @@ namespace kqp {
             return kevd_tests::Accumulator(false).run(test);
         
         if (name == "incremental") 
-            return 
-            kevd_tests::Incremental().run(test);
-        
+            return kevd_tests::Incremental().run(test);
+
+        if (name == "divide-and-conquer") 
+            return kevd_tests::DivideAndConquer().run(test);
+
         
         KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown evd_update_test [%s]", %name);
         

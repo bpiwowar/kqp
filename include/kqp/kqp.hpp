@@ -232,4 +232,5 @@ KQP_FOR_ALL_SCALAR_TYPES(prefix DenseMatrix<, > suffix);
 
 } // NS kqp
 
+
 #endif

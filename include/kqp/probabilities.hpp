@@ -117,7 +117,7 @@ namespace kqp {
          */
         Index getRank() const {
             if (isOrthonormal()) 
-                return m_operator.mS.size();
+                return m_operator.mD.size();
             return -1;
         }
         
@@ -138,7 +138,7 @@ namespace kqp {
             const_cast<KernelOperator*>(this)->_orthonormalize();
         }
         
-        inline bool isOrthonormal() {
+        inline bool isOrthonormal() const {
             return m_operator.orthonormal;
         }
         
@@ -262,7 +262,7 @@ namespace kqp {
         }
         
         /** Construct an event from a basis */
-        Event(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarAltMatrix::Identity(mX.rows()), RealVector::Ones(mX.size()), orthonormal) {
+        Event(const FMatrix &mX, bool orthonormal) : KernelOperator<FMatrix>(mX, ScalarMatrix::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
             init();
         }
 
@@ -480,5 +480,15 @@ namespace kqp {
     
     
 }
+
+#define KQP_PROBABILITIES_FMATRIX_GEN(prefix, type) \
+    prefix template class kqp::KernelOperator<type>; \
+    prefix template class kqp::Density<type>; \
+    prefix template class kqp::Event<type>; \
+    prefix template struct kqp::Projection<type>;
+
+
+#define KQP_FMATRIX_GEN_EXTERN(type) KQP_PROBABILITIES_FMATRIX_GEN(extern,type)
+#include <kqp/for_all_fmatrix_gen>
 
 #endif

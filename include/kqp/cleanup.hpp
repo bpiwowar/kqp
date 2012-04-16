@@ -51,6 +51,9 @@ namespace kqp {
             this->selector = selector;
         }
         
+        //! Cleanup
+        virtual void cleanup(Decomposition<FMatrix> &) {}
+        
         /**
          * Minimum/Maximum number of pre-images per rank
          */

@@ -1,6 +1,6 @@
 #include <kqp/kernel_evd/dense_direct.hpp>
 
 namespace kqp {
-    // Instanciation of standard classes
-    KQP_FOR_ALL_SCALAR_TYPES(template class DenseDirectBuilder<, >;);
+#define KQP_SCALAR_GEN(scalar) template class DenseDirectBuilder<scalar>;
+#include <kqp/for_all_scalar_gen>
 }

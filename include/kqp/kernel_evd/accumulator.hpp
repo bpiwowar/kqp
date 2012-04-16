@@ -56,10 +56,12 @@ namespace kqp{
             fMatrix.add(fm);
         }
         
-        
+        void reset() {
+            *this = AccumulatorKernelEVD();
+        }
         
         //! Actually performs the computation
-        virtual Decomposition<FMatrix> getDecomposition() const override {
+        virtual Decomposition<FMatrix> _getDecomposition() const override {
             Decomposition<FMatrix> d;
             
             const ScalarMatrix& gram = fMatrix.inner();
@@ -115,9 +117,14 @@ namespace kqp{
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
+        void reset() {
+            *this = AccumulatorKernelEVD();
+        }
+
+        
     public:
         //! Actually performs the computation
-        virtual Decomposition<FMatrix> getDecomposition() const override {
+        virtual Decomposition<FMatrix> _getDecomposition() const override {
             Decomposition<FMatrix> d;
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
@@ -189,9 +196,9 @@ namespace kqp{
         
     };
     
-    KQP_KERNEL_EVD_INSTANCIATION(extern, AccumulatorKernelEVD);
-    
-    
 }
+
+#define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::AccumulatorKernelEVD<type>;
+#include <kqp/for_all_fmatrix_gen>
 
 #endif

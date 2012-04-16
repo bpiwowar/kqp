@@ -370,7 +370,11 @@ namespace kqp {
         ReturnType get() const { return ReturnType(m_rows, m_cols, m_value); }
 
         
-        void swap(storage &)  { KQP_THROW_EXCEPTION(illegal_argument_exception, "Cannot swap a constant matrix"); }
+        void swap(storage &other)  { 
+            std::swap(m_value,other.m_value);
+            std::swap(m_rows,other.m_rows);
+            std::swap(m_cols,other.m_cols);
+        }
         void swap(ReturnType &) { KQP_THROW_EXCEPTION(illegal_argument_exception, "Cannot swap a constant matrix"); }
         Index rows() const { return m_rows; }
         Index cols() const { return m_cols; }
@@ -414,6 +418,9 @@ namespace kqp {
         ConstReturnType get() const { return m_value.asDiagonal(); }
         ReturnType get() { return static_cast<ReturnType>(m_value.asDiagonal()); }
         
+        void swap(storage &other) { 
+            m_value.swap(other.m_value);
+        }
         void swap(ReturnType &value) { m_value.swap(value); }
         Index rows() const { return m_value.rows(); }
         Index cols() const { return m_value.rows(); }
@@ -455,8 +462,9 @@ namespace kqp {
         storage(const Type &value) : m_rows(value.rows()), m_cols(value.cols()) {}
         ReturnType get() const { return  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(m_rows, m_cols); }
         
-        void swap(storage &) { 
-            KQP_THROW_EXCEPTION(not_implemented_exception, "Not sure what to do");
+        void swap(storage &other) { 
+            std::swap(m_rows, other.m_rows);
+            std::swap(m_cols, other.m_cols);
         }
         void swap(Type &) { 
             KQP_THROW_EXCEPTION(not_implemented_exception, "Not sure what to do");

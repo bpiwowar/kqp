@@ -46,7 +46,7 @@ namespace kqp {
     public:
         KQP_FMATRIX_TYPES(FMatrix);        
         
-        KernelEVD()  {
+        KernelEVD() : nbUpdates(0)  {
         }
         
 
@@ -66,6 +66,7 @@ namespace kqp {
          */
         virtual void add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) {
             _add(alpha, mU, mA);
+            nbUpdates += mA.cols();
         }
 
         /** @brief Rank-n update.
@@ -74,13 +75,27 @@ namespace kqp {
          */
         inline void add(const FMatrix &mU) {
             add(1., mU, ScalarMatrix::Identity(mU.size(),mU.size()));
+            nbUpdates += mU.size();
         }
 
         /**
          * Get the current decomposition
          */
-        virtual Decomposition<FMatrix> getDecomposition() const = 0;
+        Decomposition<FMatrix> getDecomposition() const {
+            Decomposition<FMatrix> d(_getDecomposition());
+            d.updateCount = nbUpdates;
+            return d;
+        }
 
+        //! Resets the state of the builder
+        virtual void reset() {
+            nbUpdates = 0;
+        }
+        
+        //! Return the number of updates
+        Index getUpdateCount() const {
+            return nbUpdates;
+        }
     
     protected:
         /**
@@ -95,17 +110,16 @@ namespace kqp {
          */
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
 
+        /** Get the decomposition */
+        virtual Decomposition<FMatrix> _getDecomposition() const = 0;
     
-
+    private:
+        Index nbUpdates;
     };
 
     
         
 }
-
-#include <kqp/feature_matrix/dense.hpp>
-#define KQP_KERNEL_EVD_INSTANCIATION(_extern, type)\
-    KQP_FOR_ALL_FMATRIX_TYPES(_extern template class type<, >)
 
 
 #endif

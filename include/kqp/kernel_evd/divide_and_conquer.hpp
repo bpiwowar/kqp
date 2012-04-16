@@ -18,15 +18,10 @@
 #ifndef __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 #define __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 
+#include <kqp/cleanup.hpp>
 #include <kqp/kernel_evd.hpp>
 
 namespace kqp {
-    
-    template<typename FMatrix> 
-    class KernelEVDFactory {
-    public:
-        virtual boost::shared_ptr<KernelEVD<FMatrix>> create() = 0;
-    };
     
     /**
      * @brief Meta builder: Uses other operator builders and combine them at regular intervals.
@@ -35,47 +30,164 @@ namespace kqp {
     template <class FMatrix> class DivideAndConquerBuilder : public KernelEVD<FMatrix> {
     public:
         KQP_FMATRIX_TYPES(FMatrix);        
-
+        
         //! Set the maximum number of rank updates before using a combiner
         void setBatchSize(Index batchSize) { 
             this->batchSize = batchSize;
         }
         
-        //! Sets the builder factory
-        void setBuilderFactory(const boost::shared_ptr<KernelEVDFactory<FMatrix>> &builderFactory) {
-            this->builderFactory = builderFactory;
+        //! Sets the builder
+        void setBuilder(const boost::shared_ptr<KernelEVD<FMatrix>> &builder) {
+            this->builder = builder;
         }
         
-        //! Sets the merger factory
-        void setMergerFactory(const boost::shared_ptr<KernelEVDFactory<FMatrix>> &mergerFactory) {
-            this->mergerFactory = mergerFactory;
+        //! Sets the builder cleaner
+        void setBuilderCleaner(const boost::shared_ptr<Cleaner<FMatrix>> &builderCleaner) {
+            this->builderCleaner = builderCleaner;
         }
         
-        
-        virtual Decomposition<FMatrix> getDecomposition() const override {
+        //! Sets the merger
+        void setMerger(const boost::shared_ptr<KernelEVD<FMatrix>> &merger) {
+            this->merger = merger;
         }
+        
+        //! Sets the merger cleaner
+        void setMergerCleaner(const boost::shared_ptr<Cleaner<FMatrix>> &mergerCleaner) {
+            this->mergerCleaner = mergerCleaner;
+        }
+        
         
     protected:
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
-            // Get a builder
+        void reset() {
+            *this = DivideAndConquerBuilder();
+        }
+
+        virtual Decomposition<FMatrix> _getDecomposition() const override {
+            // Flush last merger
+            const_cast<DivideAndConquerBuilder&>(*this).flushBuilder();
             
+            // Empty decomposition if we had no data
+            if (decompositions.size() == 0) 
+                return Decomposition<FMatrix>();
+            
+            
+            // Merge everything
+            const_cast<DivideAndConquerBuilder&>(*this).merge(true);
+            return decompositions[0];
+        }
+        
+        // Rank update
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
+            // Prepare
+            if (builder->getUpdateCount() > batchSize)  {
+                flushBuilder();
+                merge(false);
+            }
+            // Update the decomposition
+            builder->add(alpha, mU, mA);
             
         }
         
     private:
-        //! Counts of rank updates for each builder/merger
-        std::vector<Index> counts; 
+        // Add the current decomposition to the stack
+        void flushBuilder() {
+            if (builder->getUpdateCount() == 0) return;
+            
+            // Get & clean
+            decompositions.push_back(builder->getDecomposition());
+            if (builderCleaner.get())
+                builderCleaner->cleanup(decompositions.back());
+            
+            // Resets the builder
+            builder->reset();
+        }
         
-        //! Vector of kernel-EVD builder/merger
-        std::vector<boost::unique_ptr<KernelEVD<FMatrix>> builders;
+        template<typename Scalar, class enable = void> struct Merge;
         
+        template<typename Scalar> struct Merge<Scalar, typename boost::enable_if<boost::is_complex<Scalar>>::type> {
+            static void merge(KernelEVD<FMatrix> &merger, const Decomposition<FMatrix> &d) {
+                ScalarMatrix mY = d.mY * d.mD.asDiagonal();
+                merger.add(1, d.mX, d.mY.cwiseSqrt());
+            }
+        };
+        
+        template<typename Scalar> struct Merge<Scalar, typename boost::disable_if<boost::is_complex<Scalar>>::type> {
+            static void merge(KernelEVD<FMatrix> &merger, const Decomposition<FMatrix> &d) {
+
+                Index posCount = 0;
+
+                for(Index j = 0; j <  d.mD.size(); j++) 
+                    if (d.mD(j,0) >= 0) posCount++;
+                Index negCount = d.mD.size() - posCount;
+                
+                // FIXME: block expression for Alt expression
+                ScalarMatrix mY = d.mY * d.mD.cwiseAbs().cwiseSqrt().asDiagonal();
+                
+                Index jPos = 0;                
+                ScalarMatrix _mYPos(mY.rows(), posCount);
+                for(Index j = 0; j <  d.mD.size(); j++) 
+                     if (d.mD(j,0) >= 0)
+                         _mYPos.col(jPos++) = mY.col(j);
+                ScalarMatrix mYPos;
+                mYPos.swap(_mYPos);
+                
+                jPos = 0;
+                ScalarMatrix _mYNeg(mY.rows(), negCount);
+                for(Index j = 0; j <  d.mD.size(); j++) 
+                    if (d.mD(j,0) < 0)
+                        _mYPos.col(jPos++) = mY.col(j);
+                ScalarAltMatrix mYNeg;
+                mYNeg.swap(_mYNeg);
+                
+                if (posCount > 0) 
+                    merger.add(1,d.mX, mYPos);
+                if (negCount > 0) 
+                    merger.add(-1,d.mX, mYNeg);
+            }
+        };
+
+        
+        /**
+         * Merge the decompositions
+         * @param force true if we want to merge all decompositions (i.e. not ensuring that mergings are balanced)
+         */
+        void merge(bool force) {
+            // Merge while the number of merged decompositions is the same for the two last decompositions
+            // (or less, to handle the case of previous unbalanced merges)
+            while (decompositions.size() >= 2 && (force || (decompositions.back().updateCount >= (decompositions.end()-1)->updateCount))) {
+                merger->reset();
+                for(int i = 0; i < 2; i++) {
+                    const Decomposition<FMatrix> &d = decompositions.back();
+                    Merge<Scalar>::merge(*merger, d);
+                    decompositions.pop_back();
+                } 
+                
+                // Push back new decomposition
+                decompositions.push_back(merger->getDecomposition());
+                if (mergerCleaner.get())
+                    mergerCleaner->cleanup(decompositions.back());
+            }
+        }
+        
+        
+    private:
+        
+        //! Vector of decompositions
+        std::vector<Decomposition<FMatrix>> decompositions;
+        
+        //! Number of rank updates
         Index batchSize = 100;
         
-        boost::shared_ptr<KernelEVDFactory<FMatrix>> builderFactory;
+        boost::shared_ptr<KernelEVD<FMatrix>> builder;
+        boost::shared_ptr<Cleaner<FMatrix>> builderCleaner;
         
-        boost::shared_ptr<KernelEVDFactory<FMatrix>> mergerFactory;        
+        boost::shared_ptr<KernelEVD<FMatrix>> merger;        
+        boost::shared_ptr<Cleaner<FMatrix>> mergerCleaner;
     };
 }
+
+#define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::DivideAndConquerBuilder<type>;
+#include <kqp/for_all_fmatrix_gen>
 
 #endif
 

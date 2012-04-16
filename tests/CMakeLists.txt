@@ -58,7 +58,7 @@ do_kevd_test(kernel-evd-direct direct)
 do_kevd_test(kernel-evd-accumulator accumulator)
 do_kevd_test(kernel-evd-accumulator-no-lc  accumulator-no-lc)
 do_kevd_test(kernel-evd-incremental incremental)
-
+do_kevd_test(kernel-evd-divide-and-conquer divide-and-conquer)
 
 # --- Approximate Kernel EVD
 

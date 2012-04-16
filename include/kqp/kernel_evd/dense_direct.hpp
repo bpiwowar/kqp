@@ -40,14 +40,15 @@ namespace kqp {
         KQP_FMATRIX_TYPES(DenseMatrix<_Scalar>);        
         
         DenseDirectBuilder(int dimension) : matrix(dimension, dimension) {
-            matrix.setConstant(0);
+            reset();
         }
+        
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.get_matrix() * mA), alpha);
         }
         
-        virtual Decomposition<FMatrix> getDecomposition() const override {
+        virtual Decomposition<FMatrix> _getDecomposition() const override {
             Decomposition<FMatrix> d;
             Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
@@ -59,13 +60,19 @@ namespace kqp {
             return d;
         }
         
+    protected:
+        void reset() {
+            matrix.setConstant(0);
+            KernelEVD<DenseMatrix<Scalar>>::reset();
+        }
+        
     public:
         
         ScalarMatrix matrix;
     };
     
-    KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseDirectBuilder<, >;);
-    
+#define KQP_SCALAR_GEN(scalar) extern template class DenseDirectBuilder<scalar>;
+#include <kqp/for_all_scalar_gen>
     
 } // end namespace kqp
 

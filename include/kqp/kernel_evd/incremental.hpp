@@ -53,6 +53,9 @@ namespace kqp {
         
         IncrementalKernelEVD() {}
         
+        void reset() {
+            *this = IncrementalKernelEVD();
+        }
                
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
             // --- Info
@@ -196,7 +199,7 @@ namespace kqp {
         }
         
         // Gets the decomposition
-        virtual Decomposition<FMatrix> getDecomposition() const override {
+        virtual Decomposition<FMatrix> _getDecomposition() const override {
             Decomposition<FMatrix> d;
             
             d.mX = this->mX;
@@ -233,7 +236,8 @@ namespace kqp {
         
     };
     
-    KQP_KERNEL_EVD_INSTANCIATION(extern, IncrementalKernelEVD);
+#define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::IncrementalKernelEVD<type>;
+#include <kqp/for_all_fmatrix_gen>
     
 }
 

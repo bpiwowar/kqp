@@ -70,12 +70,15 @@ namespace kqp {
         //! If this is a real decomposition
         bool orthonormal;
         
+        //! Number of rank updates
+        Index updateCount;
+        
         //! Default constructor (sets orthonormal to true)
         Decomposition() : orthonormal(true) {}
 
         //! Full constructor
         Decomposition(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
-            : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal) {}
+            : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
         
         //! Move constructor
         Decomposition(Decomposition &&other) {
@@ -94,6 +97,7 @@ namespace kqp {
             mY.swap(other.mY);
             mD.swap(other.mD);
             std::swap(orthonormal, other.orthonormal);
+            std::swap(updateCount, other.updateCount);
             return *this;
         }
         
@@ -103,6 +107,7 @@ namespace kqp {
             mY = other.mY;
             mD = other.mD;
             orthonormal = other.orthonormal;
+            updateCount = other.updateCount;
             return *this;
         }
 
