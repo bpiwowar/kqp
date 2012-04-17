@@ -16,9 +16,6 @@
  */
 
 
-// Fixme: __COUNTER__ might not be compatible with some compilers
-// Works with GCC, clang, MSVC
-
 #include <boost/preprocessor/cat.hpp>
 
 #include <kqp/kqp.hpp>

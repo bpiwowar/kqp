@@ -51,8 +51,8 @@ namespace kqp {
         
         // Compare
         
-        Eigen::MatrixXd m1 = qp_rs.getFeatureMatrix().get_matrix() * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
-            * qp_rs.getMixtureMatrix().transpose() * qp_rs.getFeatureMatrix().get_matrix().transpose();
+        Eigen::MatrixXd m1 = qp_rs.getFeatureMatrix().getMatrix() * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
+            * qp_rs.getMixtureMatrix().transpose() * qp_rs.getFeatureMatrix().getMatrix().transpose();
         Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.transpose() * _mF.transpose();
         double error = (m1 - m2).norm() / m2.norm();
         
@@ -65,16 +65,16 @@ namespace kqp {
     }
     
     namespace {
-        Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index> getRandomPermutation(const Index n) {
+        Eigen::PermutationMatrix<Dynamic, Dynamic, Index> getRandomPermutation(const Index n) {
             // build up
             std::vector<Index> permutation;
             for(Index i = 0; i < n; i++) permutation.push_back(i);
             std::random_shuffle(permutation.begin(), permutation.end());
             
             // copy to Eigen 
-            Eigen::Matrix<Index, Eigen::Dynamic,1> v(n);
+            Eigen::Matrix<Index,Dynamic,1> v(n);
             for(Index i = 0; i < n; i++) v[i] = permutation[i];
-            return Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index>(v);
+            return Eigen::PermutationMatrix<Dynamic, Dynamic, Index>(v);
             
         }
     }
@@ -148,7 +148,7 @@ namespace kqp {
         
         // Compare
         
-        const ScalarMatrix &mX_r = qp_rs.getFeatureMatrix().get_matrix();
+        const ScalarMatrix &mX_r = qp_rs.getFeatureMatrix().getMatrix();
 //        std::cerr << "mX_r\n" << mX_r << std::endl;
         Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().transpose() * mX_r.transpose();
         double diff = (m1 - pX0 * opX * pX0).norm();

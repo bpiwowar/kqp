@@ -19,9 +19,10 @@
 #define _KQP_CONEPROG_H_
 
 #include <vector>
-#include <Eigen/Core>
 
 #include <kqp/kqp.hpp>
+#include <Eigen/Core>
+
 
 namespace kqp {
     namespace cvxopt {

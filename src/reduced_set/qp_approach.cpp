@@ -125,7 +125,7 @@ namespace kqp {
             L.block((3*r)*n, (3*r)*n, n,n) = L44.matrixL();
             
             
-            Eigen::DiagonalMatrix<double, Eigen::Dynamic> D(L.rows());
+            Eigen::DiagonalMatrix<double, Dynamic> D(L.rows());
             D.diagonal().setConstant(1.);
             D.diagonal().segment(r*n,2*r*n).setConstant(-1);
             
@@ -215,7 +215,7 @@ namespace kqp {
             
             // Complex case, G0 = [Id, Id; Id, -Id]
             B.resize(2*n, 2*n);
-            auto Idn = Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic>::Identity(n,n);
+            auto Idn = Eigen::Matrix<Real,Dynamic,Dynamic>::Identity(n,n);
             B.topLeftCorner(n,n) = Idn;
             B.topRightCorner(n,n) = Idn;
             B.bottomLeftCorner(n,n) = Idn;

@@ -27,10 +27,10 @@ namespace kqp {
      * @param nzeroZ Number of zero entries in vector
      */
     template<typename scalar> int evd_update_random(const double * rhos, long seed, int dim, int /*nzeroD*/, int /*nzeroZ*/, bool use_update = false) {
-        typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+        typedef Eigen::Matrix<scalar,Dynamic,Dynamic> Matrix;
         typedef typename Eigen::NumTraits<scalar>::Real Real;
-        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
-        typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> ScalarVector;
+        typedef Eigen::Matrix<Real,Dynamic,1> RealVector;
+        typedef Eigen::Matrix<scalar,Dynamic,1> ScalarVector;
         
         std::srand(seed);
 
@@ -95,4 +95,11 @@ int evd_update_test(std::deque<std::string> &args) {
 }
 
 
+}
+
+int main(int argc, const char **argv) {
+    std::deque<std::string> args;
+    for(int i = 1; i < argc; i++) 
+        args.push_back(argv[i]);
+    kqp::evd_update_test(args);
 }

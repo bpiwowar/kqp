@@ -101,4 +101,12 @@ namespace kqp {
     }
     
     
+    
+}
+
+int main(int argc, const char **argv) {
+    std::deque<std::string> args;
+    for(int i = 1; i < argc; i++) 
+        args.push_back(argv[i]);
+    kqp::do_kevd_tests(args);
 }

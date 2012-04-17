@@ -158,7 +158,7 @@ namespace kqp { namespace cvxopt {
      
      */
     template <typename Scalar, int ColsAtCompileTime>
-    void scale(Eigen::Matrix<Scalar, Eigen::Dynamic, ColsAtCompileTime> &x, const ScalingMatrix<Scalar> &W, bool trans = false, bool inverse = false) {
+    void scale(Eigen::Matrix<Scalar, Dynamic, ColsAtCompileTime> &x, const ScalingMatrix<Scalar> &W, bool trans = false, bool inverse = false) {
         (void)trans;
         
         size_t ind = 0;

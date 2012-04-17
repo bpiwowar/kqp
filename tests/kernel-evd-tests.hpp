@@ -53,8 +53,8 @@ namespace kqp {
             int run(const log4cxx::LoggerPtr &logger, T &builder) const {
                 typedef typename T::FTraits FTraits;
                 typedef typename FTraits::Scalar Scalar;
-                typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
-                typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+                typedef Eigen::Matrix<Scalar,Dynamic,1> Vector;
+                typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> Matrix;
                 
                 KQP_LOG_INFO_F(logger, "Kernel EVD with dense vectors and builder \"%s\" (pre-images = %d, linear combination = %d)", %KQP_DEMANGLE(builder) %max_preimages %max_lc);
                 
@@ -90,7 +90,7 @@ namespace kqp {
                 Matrix mL = ldlt.matrixL();
                 mL = ldlt.transpositionsP().transpose() * mL;
                 DenseMatrix<Scalar>  mU(mL);
-                Eigen::Matrix<Scalar, Eigen::Dynamic, 1> mU_d = ldlt.vectorD();
+                Eigen::Matrix<Scalar,Dynamic,1> mU_d = ldlt.vectorD();
                 
                 
                 

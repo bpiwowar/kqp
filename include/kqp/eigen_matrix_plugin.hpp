@@ -15,10 +15,13 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KQP_NO_EXTERN_TEMPLATE 
-KQP_SCALAR_GEN(double);
-KQP_SCALAR_GEN(float);
-#endif
+    // Add move semantics to MatrixBase
+    Matrix(Matrix &&other) : Base() {
+        Base::_check_template_params();
+        this->swap(other);
+    }
 
-#undef  KQP_SCALAR_GEN
-
+    Matrix &operator=(Matrix &&other) {
+        this->swap(other);
+        return *this;
+    }

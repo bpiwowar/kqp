@@ -20,12 +20,11 @@
  
 #include <functional>
 #include <boost/type_traits/is_complex.hpp>
-
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
 #include <numeric>
 
 #include <kqp/kqp.hpp>
+#include <Eigen/Eigenvalues>
+
 #include <kqp/feature_matrix.hpp>
 #include <kqp/coneprog.hpp>
 

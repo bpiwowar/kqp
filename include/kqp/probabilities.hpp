@@ -18,7 +18,6 @@
 #ifndef __KQP_PROBABILITIES_H__
 #define __KQP_PROBABILITIES_H__
 
-#include <Eigen/Core>
 
 #include <kqp/kqp.hpp>
 #include <kqp/alt_matrix.hpp>
@@ -27,9 +26,16 @@
 #include <kqp/kernel_evd/utils.hpp>
 
 namespace kqp {
-    
-    //! Helper class for linear combination
+
+    // Foward declarations
+    template <class FMatrix> class Density;
+    template<typename FMatrix, class Enable = void> struct ProjectionWithLC;
+    template<typename FMatrix> struct Projection;
+
     template<typename FMatrix, class Enable = void> struct LinearCombination;
+    
+    
+    // Linear comnbination classes
     
     template<typename FMatrix>
     struct LinearCombination<FMatrix, typename boost::enable_if_c<ftraits<FMatrix>::can_linearly_combine>::type>  {
@@ -175,7 +181,7 @@ namespace kqp {
          *         and each column to one dimension of the subspace
          */
         ScalarMatrix inners(const KernelOperator<FMatrix>& that) const {
-            return that.S().asDiagonal() * that.Y().transpose() * inner(that.X(), this->X()) * this->Y() * this->S().asDiagonal();
+            return m_operator.innerXYD(that.m_operator);
         }
         
         /**
@@ -194,7 +200,8 @@ namespace kqp {
             if (isOrthonormal()) return;
             
             // TODO: Eigen should only the needed part
-            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m = ScalarMatrix(S().asDiagonal() * Y().transpose() * X().inner() * Y() * S().asDiagonal());
+            ScalarMatrix m_full(m_operator.innerXYD(m_operator));
+            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m(m_full);
             
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
             
@@ -219,15 +226,13 @@ namespace kqp {
 
         //! The current decomposition
         Decomposition<FMatrix> m_operator;
+        
+        friend struct ProjectionWithLC<FMatrix, void>;
+        friend struct Projection<FMatrix>;
+
     };
         
     
-    // Foward declarations
-    template <class FMatrix> class Density;
-    
-    // Projection helper classes
-    template<typename FMatrix, class Enable = void> struct ProjectionWithLC;
-    template<typename FMatrix> struct Projection;
 
     /**
      * A document subspace is defined by the basis vectors (matrix {@linkplain #mU}
@@ -290,6 +295,8 @@ namespace kqp {
         }
                 
         friend class Density<FMatrix>;
+        friend struct ProjectionWithLC<FMatrix, void>;
+        friend struct Projection<FMatrix>;
     };
     
     
@@ -303,7 +310,8 @@ namespace kqp {
         static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
             event.orthonormalize();
             ScalarMatrix lc;
-            noalias(lc) = event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal();
+            noalias(lc) = event.Y() * event.m_operator.innerXYD(density.m_operator);
+            
             FMatrix mX = event.X().linear_combination(lc);
             ScalarAltMatrix mY = ScalarMatrix::Identity(mX.size(),mX.size());
             RealVector mS = RealVector::Ones(mY.cols());
@@ -318,7 +326,8 @@ namespace kqp {
             
             // FIXME
             RealVector s = event.S();
-            ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y()));
+            ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() 
+                                 * event.m_operator.innerXY(density.m_operator));
             
             FMatrix mX = density.X().linear_combination(density.Y(), 1., event.X(), e_mY, -1.);
             

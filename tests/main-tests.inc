@@ -45,27 +45,20 @@ namespace {
     namespace kqp { int name(std::deque<std::string> &args); } \
     namespace { Declare name ## _decl (id, &name); }
 
-DEFINE_TEST("alt-matrix", altmatrix_test);
+// 
+// DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
+// DEFINE_TEST("kernel-evd", do_kevd_tests)
+// 
+// DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
+// DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
+// DEFINE_TEST("reduced-set/qp/exact", test_reduced_set_qp_exact)
+// DEFINE_TEST("reduced-set/qp/approximate", test_reduced_set_qp_approximate)
+// 
+// DEFINE_TEST("probabilities", do_probabilities_tests);
+// DEFINE_TEST("projections", projection_test);
+// 
 
-DEFINE_TEST("evd-update", evd_update_test);
-
-DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
-DEFINE_TEST("kernel-evd", do_kevd_tests)
-
-DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
-DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
-DEFINE_TEST("reduced-set/qp/exact", test_reduced_set_qp_exact)
-DEFINE_TEST("reduced-set/qp/approximate", test_reduced_set_qp_approximate)
-
-DEFINE_TEST("probabilities", do_probabilities_tests);
-DEFINE_TEST("projections", projection_test);
-
-DEFINE_TEST("divergence/simple", divergence_simpleTest);
-DEFINE_TEST("divergence/full", divergence_fullTest);
-DEFINE_TEST("divergence/simple-epsilon", divergence_simpleEpsilonTest);
-DEFINE_TEST("divergence/zero", divergence_zeroTest);
-
-DEFINE_LOGGER(logger,  "kqp.test.main");
+DEFINE_LOGGER(main_test_logger,  "kqp.test.main");
 
 int main(int argc, const char **argv) {  
     
@@ -111,11 +104,16 @@ int main(int argc, const char **argv) {
         std::string name = args[0];
         args.pop_front(); 
         
-        KQP_LOG_INFO_F(logger, "Setting the seed to %d", %seed);
+        KQP_LOG_INFO_F(main_test_logger, "Setting the seed to %d", %seed);
         std::srand(seed);
         
         try {
-            const TestMap::const_iterator it = tests.find(name);
+            TestMap::const_iterator it = tests.find(name);
+            if (it != tests.end())
+               return it->second(args);
+               
+            // Searching default
+            it = tests.find("");
             if (it != tests.end())
                return it->second(args);
 

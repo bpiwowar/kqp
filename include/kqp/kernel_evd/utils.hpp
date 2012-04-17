@@ -23,8 +23,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/type_traits/is_complex.hpp>
 
+#include <kqp/kqp.hpp>
 #include <Eigen/Eigenvalues>
-#include <Eigen/Core>
 
 #include <kqp/kernel_evd.hpp>
 #include <kqp/subset.hpp>
@@ -32,9 +32,9 @@
 namespace kqp {
     template <class Derived> 
     void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, 
-                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> &eigenvectors, 
-                 Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> &eigenvalues,
-                 Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> *nullEigenvectors = nullptr
+                 Eigen::Matrix<typename Derived::Scalar, Dynamic, Dynamic> &eigenvectors, 
+                 Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Dynamic, 1> &eigenvalues,
+                 Eigen::Matrix<typename Derived::Scalar, Dynamic, Dynamic> *nullEigenvectors = nullptr
                  ) {
         typedef typename Derived::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
@@ -42,7 +42,7 @@ namespace kqp {
         // We expect eigenvalues to be sorted by increasing order
         Index dimension = evd.eigenvectors().rows();
         
-        const Eigen::Matrix<Real, Eigen::Dynamic, 1> &d = evd.eigenvalues();
+        const Eigen::Matrix<Real,Dynamic,1> &d = evd.eigenvalues();
         Real threshold = EPSILON * (Real)d.size();
         
         Index n = d.rows();
@@ -78,10 +78,10 @@ namespace kqp {
                  typename AltVector<typename Eigen::NumTraits<typename Derived::Scalar>::Real>::type &eigenvalues,
                  typename AltDense<typename Derived::Scalar>::type *nullEigenvectors = nullptr) {
         
-        typedef Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<typename Derived::Scalar, Dynamic, Dynamic> ScalarMatrix;
         
         ScalarMatrix _eigenvectors;
-        Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Eigen::Dynamic, 1> _eigenvalues;
+        Eigen::Matrix<typename Eigen::NumTraits<typename Derived::Scalar>::Real, Dynamic, 1> _eigenvalues;
         boost::scoped_ptr<ScalarMatrix> _nullEigenvectors;
         
         
@@ -102,8 +102,8 @@ namespace kqp {
     template<typename FMatrix>
     typename boost::enable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
     orthonormalize(const FMatrix &mX,
-                        Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
-                        Eigen::Matrix<typename ftraits<FMatrix>::Real, Eigen::Dynamic, 1> &mD) {
+                        Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Dynamic, Dynamic> &mY,
+                        Eigen::Matrix<typename ftraits<FMatrix>::Real, Dynamic, 1> &mD) {
         typename ftraits<FMatrix>::ScalarMatrix m = mD.cwiseSqrt().asDiagonal() * mY.transpose() * mX.inner() * mY * mD.cwiseSqrt().asDiagonal();
         Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
         kqp::thinEVD(evd, mY, mD);                    
@@ -115,8 +115,8 @@ namespace kqp {
     template<typename FMatrix>
     typename boost::disable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
     orthonormalize(const FMatrix &mX,
-                   Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Eigen::Dynamic, Eigen::Dynamic> &mY,
-                   Eigen::Matrix<typename ftraits<FMatrix>::Real, Eigen::Dynamic, 1> &mD) {
+                   Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Dynamic, Dynamic> &mY,
+                   Eigen::Matrix<typename ftraits<FMatrix>::Real, Dynamic, 1> &mD) {
         
         // Negative case: copy what we need
         auto negatives = mD.array() < 0;

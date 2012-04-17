@@ -25,7 +25,7 @@ int main(int, const char**) {
     
     // Definitions
     using namespace kqp;
-    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+    typedef Eigen::Matrix<double,Dynamic,Dynamic> Matrix;
     int dim = 10;
     
     // Creating an incremental builder
@@ -41,7 +41,7 @@ int main(int, const char**) {
     // Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
     DenseMatrix<double> mX;
     typename AltDense<double>::type mY;
-    Eigen::Matrix<double, Eigen::Dynamic,1>  mD;
+    Eigen::Matrix<double,Dynamic,1>  mD;
     
     kevd.get_decomposition(mX, mY, mD);
 

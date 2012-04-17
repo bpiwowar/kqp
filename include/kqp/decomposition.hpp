@@ -21,36 +21,6 @@
 #include <utility>
 #include <kqp/feature_matrix.hpp>
 
-namespace std {
-    inline namespace kqp {
-        template<class _Ty>
-        struct _Remove_reference
-        {   // remove reference
-            typedef _Ty _Type;
-        };
-        
-        template<class _Ty>
-        struct _Remove_reference<_Ty&>
-        {   // remove reference
-            typedef _Ty _Type;
-        };
-        
-        template<class _Ty>
-        struct _Remove_reference<_Ty&&>
-        {   // remove rvalue reference
-            typedef _Ty _Type;
-        };
-        
-        template<class _Ty> inline
-        typename _Remove_reference<_Ty>::_Type&&
-        move(_Ty&& _Arg)
-        {   // forward _Arg as movable
-            return ((typename _Remove_reference<_Ty>::_Type&&)_Arg);
-        }
-
-    }
-}
-
 namespace kqp {
     
     //! An "EVD" decomposition
@@ -75,21 +45,25 @@ namespace kqp {
         
         //! Default constructor (sets orthonormal to true)
         Decomposition() : orthonormal(true) {}
-
+        
         //! Full constructor
         Decomposition(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
-            : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
-        
+        : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
+
+        //! Full constructor
+        Decomposition(const FMatrix &&mX, const ScalarAltMatrix &&mY, const RealAltVector &&mD, bool orthonormal) 
+        : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
+
         //! Move constructor
         Decomposition(Decomposition &&other) {
             *this = std::move(other);
         }
-
+        
         //! Copy constructor
         Decomposition(const Decomposition &other) {
             *this = other;
         }
-
+        
         
         //! Move assignement
         Decomposition &operator=(Decomposition &&other) {
@@ -110,11 +84,24 @@ namespace kqp {
             updateCount = other.updateCount;
             return *this;
         }
+        
+        
+        ScalarMatrix innerXY(const Decomposition<FMatrix>& that) const {
+            return  mY.transpose() * inner(mX, that.mX) * that.mY;
+        }
+        
+        ScalarMatrix innerXYD(const Decomposition<FMatrix>& that) const {
+            return mD.asDiagonal() * mY.transpose() * inner(mX, that.mX) * that.mY * that.mD.asDiagonal();
+        }
 
-};   
+        
+    };   
     
-
-    
+        
 }
+
+#define KQP_FMATRIX_GEN_EXTERN(type) extern template struct kqp::Decomposition<type>;
+#include <kqp/for_all_fmatrix_gen>
+
 #endif
 

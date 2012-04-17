@@ -20,7 +20,7 @@ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <numeric>
 
-#include <Eigen/Dense>
+#include <kqp/kqp.hpp>
 
 
 #include "coneprog.hpp"

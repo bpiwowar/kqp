@@ -20,6 +20,7 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <kqp/kqp.hpp>
 #include <Eigen/Core>
 #include <kqp/rank_selector.hpp>
 
@@ -37,12 +38,12 @@ namespace kqp {
         /**
          * The eigenvalues
          */
-        Eigen::Matrix<Real, Eigen::Dynamic, 1> mD;
+        Eigen::Matrix<Real,Dynamic,1> mD;
         
         /**
          * The eigenvectors
          */
-        Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> mQ;
+        Eigen::Matrix<scalar,Dynamic,Dynamic> mQ;
 	};
     
 
@@ -63,9 +64,9 @@ namespace kqp {
         
     public:
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
-        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
-        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> ScalarVector;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<Real,Dynamic,1> RealVector;
+        typedef Eigen::Matrix<Real,Dynamic,1> ScalarVector;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> ScalarMatrix;
         
         /**
          * Default constructor
@@ -87,7 +88,7 @@ namespace kqp {
          *
          */
         void update(const RealVector & D, 
-                    double rho, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> & z,
+                    double rho, const Eigen::Matrix<Scalar,Dynamic,1> & z,
                     bool computeEigenvectors, const Selector<Real> *selector, bool keep,
                     EvdUpdateResult<Scalar> &result,
                     ScalarMatrix * Z = 0);

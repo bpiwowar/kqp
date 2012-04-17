@@ -20,6 +20,7 @@
 
 #include <algorithm> // sort
 
+#include <kqp/kqp.hpp>
 #include <Eigen/LU> // LU decomposition
 
 #include <kqp/feature_matrix.hpp>
@@ -50,18 +51,18 @@ namespace kqp {
      */
     template <class FMatrix>
     void removeNullSpacePreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &kernel, 
-                                  Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index>& mP, const typename ftraits<FMatrix>::RealVector &weights, double delta = 1e-4) {
+                                  Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const typename ftraits<FMatrix>::RealVector &weights, double delta = 1e-4) {
         typedef typename ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
         typedef typename ftraits<FMatrix>::ScalarVector ScalarVector;
         typedef typename ftraits<FMatrix>::RealVector RealVector;
         typedef typename ftraits<FMatrix>::Real Real;
-        typedef typename Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index> Permutation;
+        typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
 
         // --- Look up at the indices to remove
         
         // Get the pre-images available for removal (one per vector of the null space, i.e. by columns in kernel)
         // Summarize the result per pre-image (number of vectors where it appears)
-        Eigen::Matrix<int, Eigen::Dynamic, 1> num_vectors = (kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta).template cast<int>().rowwise().sum();
+        Eigen::Matrix<int,Dynamic,1> num_vectors = (kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta).template cast<int>().rowwise().sum();
         
         std::vector<Index> to_remove;
         for(Index i = 0; i < num_vectors.rows(); i++)
@@ -161,7 +162,7 @@ namespace kqp {
         // Remove pre-images using the kernel
         ScalarMatrix kernel = lu_decomposition.kernel();
         RealVector weights = mY.rowwise().squaredNorm().array() * mF.inner().diagonal().array().abs();
-        Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, Index> mP;
+        Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
         removeNullSpacePreImages(mF, kernel, mP, weights);
         
         // Y <- (Id A) P Y

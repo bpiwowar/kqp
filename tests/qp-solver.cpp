@@ -15,8 +15,8 @@ DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 namespace kqp {
    
     
-#include "generated/kkt_solver.cpp"
-#include "generated/qp_solver.cpp"
+#include "generated/kkt_solver.inc"
+#include "generated/qp_solver.inc"
     
     int kqp_qp_solver_test(std::deque<std::string> &args) {
         KQP_LOG_INFO(logger, "Starting qp solver tests");
@@ -57,3 +57,12 @@ namespace kqp {
     }
     
 }
+
+
+int main(int argc, const char **argv) {
+    std::deque<std::string> args;
+    for(int i = 1; i < argc; i++) 
+        args.push_back(argv[i]);
+    kqp::kqp_qp_solver_test(args);
+}
+

@@ -18,21 +18,22 @@
 #include <iostream>
 #include <ctime>
 
+#define KQP_NO_EXTERN_TEMPLATE
 #include <kqp/alt_matrix.hpp>
 
 using namespace std;
 using namespace kqp;
 using namespace Eigen;
 
-#define RANDOM_M(scalar, rows, cols) Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>::Random(rows,cols).eval()
-#define RANDOM_V(scalar, size) Eigen::Matrix<scalar, Eigen::Dynamic, 1>::Random(size).eval()
+#define RANDOM_M(scalar, rows, cols) Eigen::Matrix<scalar,Dynamic,Dynamic>::Random(rows,cols).eval()
+#define RANDOM_V(scalar, size) Eigen::Matrix<scalar,Dynamic,1>::Random(size).eval()
 #define RANDOM_D(scalar, size) RANDOM_V(scalar,size).asDiagonal()
 
 namespace {
     
     // Dense or Identity matrix
     template<typename Scalar> struct AltDenseDiagonal {
-        typedef AltMatrix< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> , Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Eigen::Dynamic,1> > > type;
+        typedef AltMatrix< Eigen::Matrix<Scalar,Dynamic,Dynamic> , Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Dynamic,1> > > type;
     };    
     
     template<typename Derived>
@@ -49,7 +50,7 @@ namespace {
     template<class Lhs, class Rhs>
     int test_pre_product(const Lhs &mA, const Rhs &mB) {
         typedef typename kqp::scalar<Lhs>::type Scalar;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> ScalarMatrix;
         
         std::cerr << "Alt(" << KQP_DEMANGLE(mA) << ") x " << KQP_DEMANGLE(mB) << " : ";
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mA);
@@ -65,7 +66,7 @@ namespace {
     template<class Lhs, class Rhs>
     int test_post_product(const Lhs &mA, const Rhs &mB) {
         typedef typename kqp::scalar<Lhs>::type Scalar;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> ScalarMatrix;
         
         std::cerr << KQP_DEMANGLE(mA)  << " x Alt(" << KQP_DEMANGLE(mB)  << "): " ;
         typename AltDenseDiagonal<Scalar>::type alt(mB);
@@ -82,7 +83,7 @@ namespace {
     
     template<class A, class B, class D>
     int test_pre_post_product(const A &a, const B &b, const D &d) {
-        typedef Eigen::Matrix<typename A::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<typename A::Scalar, Dynamic, Dynamic> ScalarMatrix;
         typename AltDenseDiagonal< typename B::Scalar >::type alt_b(b);
         
         
@@ -101,7 +102,7 @@ namespace {
     
     template<class A, class B, class D>
     int test_pre_post_product_2(const A &a, const B &b, const D &d) {
-        typedef Eigen::Matrix<typename A::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<typename A::Scalar,Dynamic,Dynamic> ScalarMatrix;
         typename AltDenseDiagonal< typename B::Scalar >::type alt_b(b);
         
         ScalarMatrix m = d * b.transpose() * a * b * d;
@@ -120,7 +121,7 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_adjoint_pre_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<typename Lhs::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<typename Lhs::Scalar, Dynamic, Dynamic> ScalarMatrix;
         
         std::cerr << "T(" << KQP_DEMANGLE(mB) << ") x " << "T(Alt(" << KQP_DEMANGLE(mA) << ")) : ";
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mA);
@@ -136,7 +137,7 @@ namespace {
     
     template<class Lhs, class Rhs>
     int test_adjoint_post_product(const Lhs &mA, const Rhs &mB) {
-        typedef Eigen::Matrix<typename Lhs::Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<typename Lhs::Scalar,Dynamic,Dynamic> ScalarMatrix;
         
         std::cerr << KQP_DEMANGLE(mA)  << " x Alt(" << KQP_DEMANGLE(mB)  << "): " ;
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mB);
@@ -171,7 +172,7 @@ namespace {
         
         altm.unaryExprInPlace(Eigen::internal::scalar_multiple_op<double>(2.));
         
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> m2 = altm;
+        Eigen::Matrix<Scalar,Dynamic,Dynamic> m2 = altm;
         
         double error = (m2 - 2 * m).squaredNorm();
         std::cerr << "Unary error: " << error << std::endl;
@@ -189,8 +190,7 @@ test_adjoint_pre_product(x,y); \
 test_adjoint_post_product(x,y);
 
 
-namespace kqp {
-    int altmatrix_test (std::deque<std::string> &) {
+    int main (int, const char **) {
         
         int code = 0;
         
@@ -218,6 +218,6 @@ namespace kqp {
         
         code |= test_unary<double>();
         return code;
-    }
+    
 }
 

@@ -44,16 +44,16 @@ namespace kqp {
     
     //! Diagonal or Identity matrix
     template<typename Scalar> struct AltDiagonal {
-        typedef Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Eigen::Dynamic,1>> Diagonal;
-        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType Identity;
+        typedef Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Dynamic,1>> Diagonal;
+        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar,Dynamic,Dynamic> >::IdentityReturnType Identity;
         
         typedef AltMatrix<Diagonal,Identity> type;
     };
     
     //! A dense vector or a constant vector
     template<typename Scalar> struct AltVector {
-        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1>  VectorType;
-        typedef typename Eigen::Matrix<Scalar,Eigen::Dynamic,1>::ConstantReturnType ConstantVectorType;
+        typedef Eigen::Matrix<Scalar,Dynamic,1>  VectorType;
+        typedef typename Eigen::Matrix<Scalar,Dynamic,1>::ConstantReturnType ConstantVectorType;
         
         typedef AltMatrix<VectorType, ConstantVectorType> type;
     };
@@ -61,12 +61,12 @@ namespace kqp {
     
     //! Dense or Identity matrix
     template<typename Scalar> struct AltDense {
-        typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> DenseType;
-        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic> >::IdentityReturnType IdentityType;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> DenseType;
+        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar,Dynamic,Dynamic>>::IdentityReturnType IdentityType;
         typedef AltMatrix<DenseType, IdentityType> type;
         
         static  inline type Identity(Index n) { 
-            return Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>::Identity(n,n); 
+            return Eigen::Matrix<Scalar,Dynamic,Dynamic>::Identity(n,n); 
         }
     };    
     
@@ -282,7 +282,7 @@ namespace kqp {
 
     //! Resize of fully dynamic matrices
     template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Dynamic), void>::type 
     resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
         if (conservative) matrix.derived().conservativeResize(rows, cols); else matrix.derived().resize(rows, cols);
     }
@@ -290,7 +290,7 @@ namespace kqp {
     
     //! Resize of vectors
     template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime != Eigen::Dynamic), void>::type 
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime == Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime != Dynamic), void>::type 
     resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
         if (cols != matrix.cols())
             KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of columns in a fixed column-sized matrix (%d to %d)", %matrix.cols() %cols);
@@ -299,7 +299,7 @@ namespace kqp {
     
     //! Resize of row vectors
     template<class Derived>
-    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime != Eigen::Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Eigen::Dynamic), void>::type 
+    typename boost::enable_if_c<(Eigen::internal::traits<Derived>::RowsAtCompileTime != Dynamic) && (Eigen::internal::traits<Derived>::ColsAtCompileTime == Dynamic), void>::type 
     resize(Eigen::EigenBase<Derived> &matrix, bool conservative, Index rows, Index cols) {
         if (rows != matrix.rows())
             KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of rows in a fixed row-sized matrix (%d to %d)", %matrix.rows() %rows);
@@ -408,8 +408,8 @@ namespace kqp {
     //! Storage for a diagonal wrapper
     template<typename Derived>
     struct storage< Eigen::DiagonalWrapper<Derived> > {
-        typedef const Eigen::DiagonalWrapper<const Derived> ConstReturnType;
-        typedef const Eigen::DiagonalWrapper<Derived> ReturnType;
+        typedef Eigen::DiagonalWrapper<const Derived> ConstReturnType;
+        typedef Eigen::DiagonalWrapper<const Derived> ReturnType;
         
         Derived m_value;
         
@@ -451,16 +451,16 @@ namespace kqp {
     
     //! Storage for the identity
     template<typename Scalar>
-    struct storage< Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >  > {
+    struct storage< Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,Dynamic> >  > {
         Index m_rows, m_cols; 
         
-        typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > Type;
+        typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,Dynamic> > Type;
         typedef Type ReturnType;
         typedef const Type ConstReturnType;
         
         storage() {}
         storage(const Type &value) : m_rows(value.rows()), m_cols(value.cols()) {}
-        ReturnType get() const { return  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(m_rows, m_cols); }
+        ReturnType get() const { return  Eigen::Matrix<Scalar,Dynamic,Dynamic>::Identity(m_rows, m_cols); }
         
         void swap(storage &other) { 
             std::swap(m_rows, other.m_rows);
@@ -527,7 +527,7 @@ namespace kqp {
         template<typename CwiseUnaryOp>
         void unaryExprInPlace(const CwiseUnaryOp &op) {
             if (isT1()) m_t1.unaryExprInPlace(op);
-                        m_t2.unaryExprInPlace(op);
+            else m_t2.unaryExprInPlace(op);
         }
         
         const std::type_info &getTypeId() const { 
@@ -637,7 +637,7 @@ namespace kqp {
     public:
         typedef typename AltMatrix::Scalar Scalar;
         typedef typename Eigen::NumTraits< Scalar >::Real Real;
-        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
+        typedef Eigen::Matrix<Real,Dynamic,1> RealVector;
         
         RowWise(AltMatrix &alt_matrix) : alt_matrix(alt_matrix) {
         }
@@ -968,8 +968,8 @@ namespace Eigen {
             
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
             
         };
@@ -982,8 +982,8 @@ namespace Eigen {
             typedef typename traits<T1>::Scalar Scalar;
             enum {
                 Flags = NestByRefBit,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         
@@ -995,8 +995,8 @@ namespace Eigen {
             typedef typename traits<Derived>::Scalar Scalar;
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         
@@ -1007,8 +1007,8 @@ namespace Eigen {
             typedef typename traits< kqp::AltMatrix<BaseT1, BaseT2> >::Scalar Scalar;
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         template<typename UnaryOp, typename Derived>
@@ -1018,8 +1018,8 @@ namespace Eigen {
             typedef typename traits<Derived>::Scalar Scalar;
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         
@@ -1030,8 +1030,8 @@ namespace Eigen {
             typedef typename traits<Derived>::Scalar Scalar;
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         
@@ -1045,8 +1045,8 @@ namespace Eigen {
             typedef typename scalar_product_traits<typename kqp::scalar<Lhs>::type, typename kqp::scalar<Rhs>::type>::ReturnType Scalar;
             enum {
                 Flags = 0,
-                RowsAtCompileTime = Eigen::Dynamic,
-                ColsAtCompileTime = Eigen::Dynamic
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
             };
         };
         

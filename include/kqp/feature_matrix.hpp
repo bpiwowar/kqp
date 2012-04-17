@@ -23,6 +23,22 @@
 #include <kqp/alt_matrix.hpp>
 
 namespace kqp {
+
+    
+#define KQP_FMATRIX_TYPES(FMatrix) \
+typedef ftraits< FMatrix > FTraits; \
+typedef typename FTraits::Scalar Scalar; \
+typedef typename FTraits::ScalarMatrix  ScalarMatrix; \
+typedef typename FTraits::ScalarVector  ScalarVector; \
+typedef typename FTraits::Real Real; \
+typedef typename FTraits::RealVector RealMatrix; \
+typedef typename FTraits::RealVector RealVector; \
+typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; \
+typedef typename FTraits::RealAltVector  RealAltVector; \
+typedef typename FTraits::GramMatrix & GramMatrix; \
+typedef typename FTraits::InnerMatrix InnerMatrix;
+    
+
     //! Traits for feature matrices
     template <class Derived> struct ftraits;
     
@@ -30,12 +46,14 @@ namespace kqp {
      * @brief Base for all feature matrix classes
      * 
      * This class holds a list of vectors whose exact representation might not be
-     * known. All sub-classes must implement basic list operations (add, remove).
+     * known. 
      *
-     * Vectors added to the feature matrix are considered as immutable by default.
-     *
-     * Copy constructor are not assumed to perform a deep copy.
-     * 
+     * The subclasses must define the following methods:
+     * - _subset(begin, end, other) 
+     * - _linear_combination(mA, alpha, ptr_mY, ptr_mB, beta)
+     * - _inner() The gram matrix
+     * - _inner(other, result) The inner product between pre-images in the other matrix, storing the result in result
+     * - 
      * @ingroup FeatureMatrix
      * @param _FVector the type of the feature vectors
      * @author B. Piwowarski <benjamin@bpiwowar.net>
@@ -45,11 +63,7 @@ namespace kqp {
     public:       
 
         typedef _Derived Derived;
-        typedef ftraits<Derived> FTraits;
-        typedef typename FTraits::FMatrix FMatrix;
-        typedef typename FTraits::Scalar Scalar;
-        
-        typedef typename FTraits::ScalarAltMatrix ScalarAltMatrix;
+        KQP_FMATRIX_TYPES(Derived);
 
         /**
          * Returns true if the vectors can be linearly combined
@@ -58,11 +72,6 @@ namespace kqp {
             return FTraits::can_linearly_combine;
         }
 
-        /** Add all vectors */
-        virtual void add(const Derived &f) {
-            for(Index i = 0; i < f.size(); i++)
-                this->add(f.view(i));
-        }
         
         inline Derived &derived() {
             return static_cast<Derived&>(*this);
@@ -72,11 +81,9 @@ namespace kqp {
             return static_cast<const Derived&>(*this);
         }
 
-        /**
-         * Set the feature matrix to another one
-         */
-        inline void set(Index i, const Derived &f) {
-            this->view(i)._set(f);
+        /** Add pre-images vectors */
+        void add(const Derived &f, const std::vector<bool> *which = NULL) {
+            static_cast<Derived*>(this)->Derived::_add(f, which);
         }
 
         /** @brief Reduces the feature matrix to a subset of its vectors.
@@ -109,40 +116,6 @@ namespace kqp {
             static_cast<const Derived*>(this)->Derived::_subset(begin, end, other);
         }
 
-        //! View on the i<sup>th</sup> feature vector
-        const Derived view(Index i) const { 
-            return this->view(i,1);
-        }
-
-        //! View on the i<sup>th</sup> feature vector
-        const Derived view(Index i) { 
-            return this->view(i,1);
-        }
-
-        /** Get a view of a range of pre-images */
-        inline const Derived view(Index start, Index size) const {
-            if (start + size >= this->size())
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
-            
-            return static_cast<const Derived*>(this)->Derived::view(start, size);
-        }
-        
-        /** Get a view of a range of pre-images */
-        inline Derived view(Index start, Index size) {
-            if (start + size >= this->size())
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", %(start+1) % (start+size+1) % this->size());
-            
-            return static_cast<Derived*>(this)->Derived::view(start, size);
-        }
-        
-        /** Assignation operator */
-        inline void set(const Derived &f) {
-            if (f.size() != this->size())
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Can only assign feature matrices of same size (%d vs %d)", %this->size() %f.size());
-            if (f.size() != 0)
-                static_cast<Derived*>(this)->Derived::_set(f);
-        }
-        
         
         /** 
          * @brief Linear combination of the feature vectors.
@@ -187,7 +160,7 @@ namespace kqp {
 
         /** Get the number of feature vectors */
         inline Index size() const {
-            return static_cast<const Derived*>(this)->Derived::size();            
+            return static_cast<const Derived*>(this)->Derived::_size();            
         }
         
         
@@ -197,7 +170,7 @@ namespace kqp {
          * \todo Say what to do when infinite
          */
         inline Index dimension() const {
-            return static_cast<const Derived*>(this)->Derived::dimension();            
+            return static_cast<const Derived*>(this)->Derived::_dimension();            
         }
         
         /**
@@ -205,16 +178,9 @@ namespace kqp {
          * @return A dense self-adjoint matrix
          */
         const typename FTraits::ScalarMatrix & inner() const {
-            return static_cast<const Derived*>(this)->Derived::inner();
+            return static_cast<const Derived*>(this)->Derived::_inner();
         }
         
-        /** 
-         * Remove the i<sup>th</sup> feature vector 
-         * @param if swap is true, then the last vector will be swapped with one to remove (faster)
-         */
-        inline Index remove(Index i, bool swap = false) {
-            return static_cast<Derived*>(this)->Derived::remove(i, swap);
-        }
         
     };
     
@@ -235,7 +201,7 @@ namespace kqp {
             // No need to compute anything - we just resize for consistency
             _result.derived().resize(mA.size(), mB.size());
         else
-            mA.derived().inner<DerivedMatrix>(mB.derived(), _result);
+            mA.derived().template _inner<DerivedMatrix>(mB.derived(), _result);
     }
 
     /// Compute the inner product between two feature matrices and return
@@ -251,26 +217,12 @@ namespace kqp {
             result.resize(mA.size(), mB.size());
         else
             // Compute
-            mA.derived().inner<ScalarMatrix>(mB.derived(), result);
+            mA.derived().template _inner<ScalarMatrix>(mB.derived(), result);
 
         return result;
     }
 
     
-    
-#define KQP_FMATRIX_TYPES(FMatrix) \
-    typedef ftraits< FMatrix > FTraits; \
-    typedef typename FTraits::Scalar Scalar; \
-    typedef typename FTraits::ScalarMatrix  ScalarMatrix; \
-    typedef typename FTraits::ScalarVector  ScalarVector; \
-    typedef typename FTraits::Real Real; \
-    typedef typename FTraits::RealVector RealMatrix; \
-    typedef typename FTraits::RealVector RealVector; \
-    typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; \
-    typedef typename FTraits::RealAltVector  RealAltVector; \
-    typedef typename FTraits::GramMatrix & GramMatrix; \
-    typedef typename FTraits::InnerMatrix InnerMatrix;
-  
     
     /**
      * Feature Vector traits
@@ -289,16 +241,16 @@ namespace kqp {
         typedef typename FeatureMatrixTypes<FMatrix>::Scalar Scalar;
                         
         //! Vector of scalars
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> ScalarVector;
+        typedef Eigen::Matrix<Scalar,Dynamic,1> ScalarVector;
         
         //! Real value associated to the scalar one
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
         //! Vector with reals
-        typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector;
+        typedef Eigen::Matrix<Real,Dynamic,1> RealVector;
                        
         //! Inner product matrix
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> ScalarMatrix;
 
         //! Gram matrix type
         typedef ScalarMatrix& InnerMatrix;

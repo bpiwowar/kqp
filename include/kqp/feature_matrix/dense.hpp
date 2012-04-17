@@ -17,10 +17,61 @@
 #ifndef __KQP_DENSE_FEATURE_MATRIX_H__
 #define __KQP_DENSE_FEATURE_MATRIX_H__
 
+#include <numeric>
 #include <kqp/subset.hpp>
 #include <kqp/feature_matrix.hpp>
 
 namespace kqp {
+    
+    struct Intervals {
+        std::vector<bool> which;
+        size_t _selected;
+        
+        //! An interval iterator
+        struct Iterator {
+            const std::vector<bool> &which;
+            std::pair<size_t, size_t> current;
+
+            Iterator &operator++(int) { 
+                current.first  = std::find(current.second + 1 + which.begin(), which.end(), true) - which.begin();
+                current.second = std::find(which.begin() + current.first, which.end(), false) - which.begin();
+                return *this;
+            }
+
+            Iterator(const std::vector<bool> &which) : which(which), current(0,0) {
+                (*this)++;
+            }
+            Iterator(const std::vector<bool> &which, size_t begin, size_t end) : which(which), current(begin,end) {
+            }
+            const std::pair<size_t, size_t> & operator*() const {
+                return current;
+            }
+            const std::pair<size_t, size_t> *operator->() const {
+                return &current;
+            }
+            bool operator!=(const Iterator &other) {
+                return &which != &other.which || current != other.current;
+            }
+        };
+        
+        const Iterator _end;
+        
+        Intervals(const std::vector<bool> &which) : which(which), _end(which, which.size(), which.size()) {             
+            _selected = std::accumulate(which.begin(), which.end(), 0);
+        }
+        size_t size() const { return which.size(); }
+        size_t selected() const { return _selected; }
+        
+        Iterator begin() { 
+            return Iterator(which);
+        }
+        const Iterator &end() { 
+            return _end;
+        }
+    };
+    
+
+    
     template <typename Scalar> class DenseMatrix;
     
     /**
@@ -29,142 +80,107 @@ namespace kqp {
      */
     template <typename _Scalar> 
     class DenseMatrix : public FeatureMatrix< DenseMatrix<_Scalar> > {
-    public:
-        //! Scalar
-        typedef _Scalar Scalar;
-        
+    public:       
         //! Ourselves
-        typedef DenseMatrix<Scalar> Self;
+        typedef DenseMatrix<_Scalar> Self;
         
-        //! Our traits
-        typedef ftraits<DenseMatrix<Scalar> > FTraits;
-        
-        //! The type of inner product matrices
-        typedef typename FTraits::ScalarMatrix ScalarMatrix;
-        typedef typename FTraits::ScalarAltMatrix ScalarAltMatrix;
-        
+        KQP_FMATRIX_TYPES(Self);
+   
         //! Null constructor: will set the dimension with the first feature vector
-        DenseMatrix() : view_mode(false), column_start(0), _size(0) {}
+        DenseMatrix() {}
         
-        DenseMatrix(Index dimension) : view_mode(false), column_start(0), _size(0), matrix(new ScalarMatrix(dimension, 0)) {
+        //! Construct an empty feature matrix of a given dimension
+        DenseMatrix(Index dimension) : matrix(dimension, 0) {
         }
-        
-        template<class Derived>
-        explicit DenseMatrix(const Eigen::EigenBase<Derived> &m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new ScalarMatrix(m)) {
-        }
-        
-        //! Construction by moving a dense matrix
-        explicit DenseMatrix(ScalarMatrix &&m) : view_mode(false), column_start(0), _size(m.cols()), matrix(new ScalarMatrix()) {
-            matrix->swap(m);
-        }
-        
-        Index size() const { 
-            return _size;
-        }
-        
-        
-        Index dimension() const {
-            return matrix.get() ? matrix->rows() : 0;
-        }
-        
-        //! Adds a list of pre-images
-        void add(const Self &other)  {
-            this->check_can_modify();
-            
-            if (!matrix.get()) 
-                matrix.reset(new ScalarMatrix(other.dimension(), 0));
-            
-            this->add(other.get_matrix());
-        }
-        
 
-        
+        //! Construction by moving a dense matrix
+        DenseMatrix(ScalarMatrix &&m) : matrix(m) {}
+
+        //! Construction by copying a dense matrix
+        DenseMatrix(const ScalarMatrix &m) : matrix(m) {}
+
+   
         /**
          * Add a vector (from a template expression)
          */
         template<typename Derived>
         void add(const Eigen::DenseBase<Derived> &m) {
-            this->check_can_modify();
-            
-            if (m.rows() != dimension())
+            if (matrix.cols() == 0) 
+                matrix.resize(m.rows(), 0);
+            else if (m.rows() != _dimension())
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
-                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % dimension());
-            
-            Index n = matrix->cols();
-            matrix->conservativeResize(matrix->rows(), n + m.cols());
-            _size += m.cols();
-            this->matrix->block(0, n+column_start, dimension(), m.cols()) = m; 
+                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % _dimension());
+
+            Index n = matrix.cols();
+            matrix.conservativeResize(matrix.rows(), n + m.cols());
+            this->matrix.block(0, n, _dimension(), m.cols()) = m; 
         }
         
-        
-        Index remove(Index i, bool swap) {
-            this->check_can_modify();
-            Index r = -1;
-            Index last = matrix->cols() - 1;
-            if (swap) {
-                if (i != last) {
-                    matrix->col(i) = matrix->col(last);
-                    r = last;
-                }
-            } else {
-                for(Index j = i + 1; j <= last; j++)
-                    matrix->col(i-1) = matrix->col(i);
-            }
-            matrix->conservativeResize(matrix->rows(), last);
-            _size--;
-            this->gramMatrix.resize(0,0);            
-            return r;
-        }
-        
-        /**
-         * Swap with another matrix
+          /**
+         * Add a vector (from a template expression)
          */
-        template<class Derived>
-        void swap(Eigen::MatrixBase<Derived> &m) {
-            if (!matrix.get()) 
-                matrix.reset(new ScalarMatrix());
-            matrix->swap(m.derived());
-            view_mode = false;
-            column_start = 0;
-            _size = matrix->cols();
-            this->gramMatrix.resize(0,0);
+        template<typename Derived>
+        void add(const Eigen::DenseBase<Derived> &m, const std::vector<bool> &which) {
+            if (matrix.cols() == 0) 
+                matrix.resize(m.rows(), 0);
+            if (m.rows() != _dimension())
+                KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
+                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % _dimension());
+            
+            Index s = std::accumulate(which.begin(), which.end(), 0);
+            matrix.conservativeResize(matrix.rows(), s + m.cols());
+
+            Intervals intervals(which);
+            Index offset = _size();
+            for(auto i = intervals.begin(); i != intervals.end(); i++) {
+                Index cols = i->second - i->first;
+                this->matrix.block(0, offset, _dimension(), cols) = m.block(0, i->first, _dimension(), cols);
+                offset += cols;
+            }
+                                
         }
         
-        void swap(typename AltDense<Scalar>::type &m) {
-            if (!matrix.get()) 
-                matrix.reset(new ScalarMatrix());
-            m.swap(*this->matrix);
-            view_mode = false;
-            column_start = 0;
-            _size = matrix->cols();
-            this->gramMatrix.resize(0,0);            
+        void add(const Self &other, std::vector<bool> *which = NULL)  {
+            if (which) this->add(other.getMatrix(), *which);
+            else this->add(other.getMatrix());
+        }
+        
+        
+
+        //! Get a const reference to the matrix
+        const ScalarMatrix& getMatrix() const {
+            return this->matrix;
         }
 
+               
+        // --- Base methods 
         
-        //! Get a reference to the matrix
-        const Eigen::Block<ScalarMatrix> get_matrix() const {
-            return this->matrix->block(0, column_start, matrix->rows(), _size);
+        Index _size() const { 
+            return matrix.cols();
         }
+        
+        Index _dimension() const {
+            return matrix.rows();
+        }
+        
+        inline void _add(const Self &other, std::vector<bool> *which = NULL)  {
+            this->add(other,which);
+        }
+        
 
-        //! Get a non-const reference to the matrix
-        Eigen::Block<ScalarMatrix> get_matrix() {
-            return this->matrix->block(0, column_start, matrix->rows(), _size);
-        }
-        
-        // Computes the Gram matrix
-        const ScalarMatrix & inner() const {
-            if (_size == 0) return gramMatrix;
+        const ScalarMatrix &_inner() const {
+            if (_size() == 0) return gramMatrix;
             
             // We lose space here, could be used otherwise???
             Index current = gramMatrix.rows();
-            if (current < size()) 
-                gramMatrix.conservativeResize(size(), size());
+            if (current < _size()) 
+                gramMatrix.conservativeResize(_size(), _size());
             
-            Index tofill = size() - current;
+            Index tofill = _size() - current;
             
             // Compute the remaining inner products
-            gramMatrix.bottomRightCorner(tofill, tofill).noalias() = this->get_matrix().rightCols(tofill).adjoint() * this->get_matrix().rightCols(tofill);
-            gramMatrix.topRightCorner(current, tofill).noalias() = this->get_matrix().leftCols(current).adjoint() * this->get_matrix().rightCols(tofill);
+            gramMatrix.bottomRightCorner(tofill, tofill).noalias() = this->getMatrix().rightCols(tofill).adjoint() * this->getMatrix().rightCols(tofill);
+            gramMatrix.topRightCorner(current, tofill).noalias() = this->getMatrix().leftCols(current).adjoint() * this->getMatrix().rightCols(tofill);
             gramMatrix.bottomLeftCorner(tofill, current) = gramMatrix.topRightCorner(current, tofill).adjoint().eval();
             
             return gramMatrix;
@@ -172,94 +188,40 @@ namespace kqp {
         
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
-        void inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
-            const_cast<Eigen::MatrixBase<DerivedMatrix>&>(result)= this->get_matrix().adjoint() * other.get_matrix();
-        }
-        
-        bool is_view() {
-            return this->view_mode; 
+        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
+            const_cast<Eigen::MatrixBase<DerivedMatrix>&>(result)= this->getMatrix().adjoint() * other.getMatrix();
         }
         
         
-    protected:        
         Self _linear_combination(const ScalarAltMatrix & mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
             if (mY == 0) 
-                return Self(ScalarMatrix(alpha * (get_matrix() * mA)));
-            else {
-                ScalarMatrix m(alpha * get_matrix() * mA);
-                m += beta * mY->get_matrix() * *mB;
-             return Self(m);   
-            }
+                return Self(ScalarMatrix(alpha * (getMatrix() * mA)));
+            ScalarMatrix m(alpha * getMatrix() * mA);
+            m += beta * mY->getMatrix() * *mB;
+            return Self(std::move(m));   
         }
         
 
-
-        /// Makes a subset
         void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
-            if (&into == this) 
-                into.check_can_modify();
-            
-            boost::shared_ptr<ScalarMatrix> m(new ScalarMatrix());
-            select_columns(begin, end, *this->matrix, *m);
-            into = Self(m);
+            ScalarMatrix m;
+            select_columns(begin, end, this->matrix, m);
+            into = Self(std::move(m));
         }
 
-        
-
-        /// Copy from another dense matrix
-        void _set(const Self &f) {            
-            view_mode = false;
-            column_start = 0;
-            
-            this->get_matrix() = f.get_matrix();            
-            this->gramMatrix.resize(0,0);
-        }
-        
-        
-    private:   
-        friend class FeatureMatrix<Self>;
-        
-        // New featuer matrix from shared pointer
-        explicit DenseMatrix(const boost::shared_ptr<ScalarMatrix> &m) : view_mode(false), column_start(0), _size(m->cols()), matrix(m) {
-        }
-        
-        //! Creates a view
-        DenseMatrix(const Self &other, Index i, Index size) : 
-        view_mode(true), column_start(other.column_start+i), _size(size), matrix(other.matrix) {
-            
-        }
-        
-        const Self _view(Index i, Index view_size) const { 
-            if (i + view_size >= this->size() - column_start)
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot get the %d-%d vector range among %d vectors", 
-                                      % (i+1) % (i+view_size+1) % size());
-            return Self(*this, i, view_size);
-        }
-        
-        
-        inline void check_can_modify() const {
-            if (view_mode)
-                KQP_THROW_EXCEPTION(illegal_operation_exception, "Cannot change the dimension of a view: clone it first");
-        }
-        
-        //! Are we a view
-        bool view_mode;
-        
-        //! Our view
-        Index column_start, _size;
-        
-        //! Our inner product
+               
+    private:        
+        //! Cache of the gram matrix
         mutable ScalarMatrix gramMatrix;
         
         //! Our matrix
-        boost::shared_ptr<ScalarMatrix> matrix;
+        ScalarMatrix matrix;
     };
     
     
     
     template<typename Scalar>
     std::ostream& operator<<(std::ostream &out, const DenseMatrix<Scalar> &f) {
-        return out << "[Dense Matrix with scalar " << KQP_DEMANGLE((Scalar)0) << "]" << std::endl << f.get_matrix();
+        return out << "[Dense Matrix with scalar " << KQP_DEMANGLE((Scalar)0) << "]" << std::endl << f.getMatrix();
     }
     
     
@@ -273,7 +235,8 @@ namespace kqp {
     
     
     // Extern templates
-    KQP_FOR_ALL_SCALAR_TYPES(extern template class DenseMatrix<, >;);
+#define KQP_SCALAR_GEN(scalar) extern template class DenseMatrix<scalar>;
+#include <kqp/for_all_scalar_gen>
     
 } // end namespace kqp
 

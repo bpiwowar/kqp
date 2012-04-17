@@ -39,7 +39,7 @@ namespace kqp {
         }
         
         int isApproxEqual(const std::string & name, const Density< DenseMatrix<double> > &a, const Eigen::MatrixXd &b) {
-            KQP_MATRIX(double) op = a.matrix().get_matrix() * a.matrix().get_matrix().transpose();
+            KQP_MATRIX(double) op = a.matrix().getMatrix() * a.matrix().getMatrix().transpose();
             return isApproxEqual(name, op, b);
         }
     }
@@ -74,9 +74,9 @@ namespace kqp {
         
         // Check that v = v1 + v2
         return  inners.squaredNorm() < EPSILON 
-        && v1_p.matrix().get_matrix().squaredNorm() < EPSILON
-        && v2_p.matrix().get_matrix().squaredNorm() < EPSILON
-        && (v1.matrix().get_matrix() + v2.matrix().get_matrix() - v.get_matrix()).squaredNorm() < EPSILON 
+        && v1_p.matrix().getMatrix().squaredNorm() < EPSILON
+        && v2_p.matrix().getMatrix().squaredNorm() < EPSILON
+        && (v1.matrix().getMatrix() + v2.matrix().getMatrix() - v.getMatrix()).squaredNorm() < EPSILON 
         ? 0 : 1;
         
     }
@@ -90,7 +90,7 @@ namespace kqp {
         // From R script src/R/projections.R
         // generate(10,3,5,10)
         
-#include "generated/projections_R.cpp"
+#include "generated/projections_R.inc"
         
         int code = 0;
         
@@ -143,3 +143,6 @@ namespace kqp {
     }
 }
 
+#include "main-tests.inc"
+DEFINE_TEST("simple", simple_projection_test);
+DEFINE_TEST("normal", projection_test);

@@ -276,14 +276,14 @@ namespace kqp {
     
     
     template <typename Scalar>
-    void FastRankOneUpdate<Scalar>::update(const Eigen::Matrix<Real, Eigen::Dynamic, 1> & D, 
-                                   double rho, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> & z,
+    void FastRankOneUpdate<Scalar>::update(const Eigen::Matrix<Real,Dynamic,1> & D, 
+                                   double rho, const Eigen::Matrix<Scalar,Dynamic,1> & z,
                                            bool computeEigenvectors, const Selector<typename FastRankOneUpdate<Scalar>::Real> *selector, bool keep,
                                    EvdUpdateResult<Scalar> &result,
-                                   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> * Z) {
+                                   Eigen::Matrix<Scalar,Dynamic,Dynamic> * Z) {
         
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> Matrix;
+        typedef Eigen::Matrix<Scalar,Dynamic,1> Vector;
         
         
         // ---

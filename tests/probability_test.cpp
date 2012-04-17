@@ -17,8 +17,13 @@
 #include <string>
 #include <deque>
 
-namespace kqp {
-    int do_probabilities_tests(std::deque<std::string> &/*args*/) {
-        return 0;
-    }
-}
+//namespace kqp {
+//    int do_probabilities_tests(std::deque<std::string> &/*args*/) {
+//        return 0;
+//    }
+//}
+//
+//#include "main-tests.inc"
+//DEFINE_TEST("", do_probabilities_tests);
+
+int main(int,char**) { return 0; }

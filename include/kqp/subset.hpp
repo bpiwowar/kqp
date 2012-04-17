@@ -18,7 +18,6 @@
 #ifndef __KQP_SUBSET_H__
 #define __KQP_SUBSET_H__
 
-#include <Eigen/Core>
 #include <kqp/kqp.hpp>
 #include <kqp/alt_matrix.hpp>
 
@@ -149,7 +148,7 @@ namespace kqp {
     //! Reduces the eigenpair given the current selection pattern
     template<typename Scalar>
     void value_selection(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, 
-                         const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &values, const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &new_values)  {
+                         const Eigen::Matrix<Scalar,Dynamic,1> &values, const Eigen::Matrix<Scalar,Dynamic,1> &new_values)  {
         selection(begin, end, values, new_values);
     }
     

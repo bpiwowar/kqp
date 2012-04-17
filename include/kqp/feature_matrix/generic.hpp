@@ -22,13 +22,14 @@
 
 namespace kqp {
     
+    
     /**
      * @brief A class that supposes that feature vectors know how to compute their inner product, i.e. inner(a,b)
      *        is defined.
      * @ingroup FeatureMatrix
      */
     template <class FVector> 
-    class FeatureList : public FeatureMatrix<FVector> {
+    class FeatureList : public FeatureMatrix<FeatureList<FVector>> {
     public:
         
         Index size() const { return this->list.size(); }
@@ -39,10 +40,46 @@ namespace kqp {
             this->list.push_back(f);
         }
         
+        
+        const ScalarMatrix & inner() const {
+            kqp::inner(list[i],list[j]);
+        }
+        
     private:
+        //! Our inner product
+        mutable ScalarMatrix gramMatrix;
+        
+        //! Our list of pre-images
         std::vector<FVector> list;
     };
     
+    
+    // Informations about the generic feature matrix
+    template <typename FVector> struct FeatureMatrixTypes<FVector> {
+        typedef FVector::Scalar Scalar;
+        enum {
+            can_linearly_combine = FVector::can_linearly_combine
+        };
+    };
+    
+    
+    //! A generic vector
+    template<typename _Scalar, bool _can_linearly_combine>
+    struct GenericVector<Scalar> {
+        typedef _Scalar Scalar;
+        enum {
+            can_linearly_combine = _can_linearly_combine;
+        }
+        
+        virtual Scalar inner() = 0;
+        virtual Scalar inner(const GenericVector<Scalar> &other) = 0;
+    };
+    
+    typename<typedef Scalar>
+    Scalar 
+
+#define KQP_SCALAR_GEN(scalar) \
+    extern template class FeatureList<GenericVector<scalar>
 } // end namespace kqp
 
 #endif

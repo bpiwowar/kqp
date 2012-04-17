@@ -17,6 +17,10 @@
 #ifndef __KQP_H__
 #define __KQP_H__
 
+
+#define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.hpp>
+#include "Eigen/Core"
+
 #include <boost/exception/errinfo_at_line.hpp>
 #include <boost/exception/info.hpp>
 #include <boost/exception/exception.hpp>
@@ -25,7 +29,7 @@
 #include <complex>
 #include "cxxabi.h"
 
-#include "Eigen/Core"
+
 
 #ifndef NOLOGGING
 #include "log4cxx/logger.h"
@@ -40,8 +44,44 @@
 #endif // GCC
 
 
+namespace std {
+    inline namespace _kqp {
+        template<class _Ty>
+        struct _Remove_reference
+        {   // remove reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty>
+        struct _Remove_reference<_Ty&>
+        {   // remove reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty>
+        struct _Remove_reference<_Ty&&>
+        {   // remove rvalue reference
+            typedef _Ty _Type;
+        };
+        
+        template<class _Ty> inline
+        typename _Remove_reference<_Ty>::_Type&&
+        move(_Ty&& _Arg)
+        {   // forward _Arg as movable
+            return ((typename _Remove_reference<_Ty>::_Type&&)_Arg);
+        }
+        
+    }
+}
+
+
 namespace kqp {
+
+    // Using declarations
+    using Eigen::Dynamic;
+    using Eigen::Matrix;
     
+    // The index type
     typedef Eigen::DenseIndex Index;
     
     /** Check if the value is a NaN */
@@ -110,25 +150,19 @@ namespace kqp {
         return x;
     }
     
+    
 
-# //! Usefull to instanciate / declare a series of templates
-# define KQP_FOR_ALL_SCALAR_TYPES(prefix, suffix) \
-    prefix double suffix; \
-    prefix std::complex<double> suffix; 
 
-# //! Declaration / instanciation for all FMatrix types
-# define KQP_FOR_ALL_FMATRIX_TYPES(prefix, suffix) \
-KQP_FOR_ALL_SCALAR_TYPES(prefix DenseMatrix<, > suffix);
-
+    
 
 # //! Real value type of a numeric type
 # define KQP_REAL_OF(Scalar) typename Eigen::NumTraits<Scalar>::Real
     
 # //! A matrix
-# define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> 
+# define KQP_MATRIX(Scalar) Eigen::Matrix<Scalar, Dynamic, Dynamic> 
     
 # //! A vector
-# define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Eigen::Dynamic, 1> 
+# define KQP_VECTOR(Scalar) Eigen::Matrix<Scalar, Dynamic, 1> 
     
     
     

@@ -1,5 +1,6 @@
 #include <kqp/feature_matrix/dense.hpp>
 
 namespace kqp {
-    KQP_FOR_ALL_SCALAR_TYPES(template class DenseMatrix<, >;);
+#define KQP_SCALAR_GEN(scalar) template class DenseMatrix<scalar>;
+#include <kqp/for_all_scalar_gen>
 }

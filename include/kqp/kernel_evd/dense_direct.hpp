@@ -20,9 +20,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <kqp/kqp.hpp>
 #include <Eigen/Eigenvalues>
-
-#include <Eigen/Core>
 
 #include <kqp/kernel_evd.hpp>
 #include <kqp/feature_matrix/dense.hpp>
@@ -45,7 +44,7 @@ namespace kqp {
         
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
-            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.get_matrix() * mA), alpha);
+            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.getMatrix() * mA), alpha);
         }
         
         virtual Decomposition<FMatrix> _getDecomposition() const override {
@@ -55,7 +54,7 @@ namespace kqp {
             ScalarAltMatrix _mX;
             kqp::thinEVD(evd, _mX, d.mD);              
             
-            d.mX.swap(_mX);
+            d.mX = std::move(ScalarMatrix(_mX));
             d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
             return d;
         }

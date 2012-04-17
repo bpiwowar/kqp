@@ -18,7 +18,6 @@
 #ifndef __KQP_RANK_SELECTOR_H__
 #define __KQP_RANK_SELECTOR_H__
 
-#include <Eigen/Core>
 #include <kqp/kqp.hpp>
 
 namespace kqp {
@@ -72,8 +71,8 @@ namespace kqp {
     template<typename Scalar>
     class DecompositionList : public EigenList<Scalar> {
     public:
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-        typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vector;
+        typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> Matrix;
+        typedef Eigen::Matrix<Scalar,Dynamic,1> Vector;
         
         
         DecompositionList(const Vector &eigenvalues) 

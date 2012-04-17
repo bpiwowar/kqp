@@ -26,7 +26,7 @@ namespace kqp {
         
         kqp::removePreImagesWithNullSpace(mF, mY);
         
-        Eigen::MatrixXd m1 = mF.get_matrix() * mY;
+        Eigen::MatrixXd m1 = mF.getMatrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;
         double error = (m1 - m2).norm();
         
