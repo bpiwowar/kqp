@@ -152,7 +152,7 @@ namespace {
     
     int test_block() {
         Eigen::MatrixXd m = RANDOM_M(double, 7, 7);
-        typename AltDenseDiagonal<double>::type alt_m(m);
+        typename AltDense<double>::type alt_m(m);
         
         double error = std::abs(m.block(2, 3, 2, 3).squaredNorm() - alt_m.block(2, 3, 2, 3).squaredNorm());
         std::cerr << "Block error [dense]: " << error << std::endl;
@@ -164,6 +164,51 @@ namespace {
         
         return error < EPSILON && error2 < EPSILON;
     }
+    
+    int test_block_pre_mult() {
+        Eigen::MatrixXd m = RANDOM_M(double, 7, 7);
+        typename AltDense<double>::type alt_m(m);
+        
+        Eigen::MatrixXd m2 = RANDOM_M(double, 4, 4);
+        
+        double error = (m.block(1,1,5,4) * m2 - Eigen::MatrixXd(alt_m.block(1,1,5,4) * m2)).squaredNorm();
+        std::cerr << "AltDense block * Dense [Dense] error: " << error << std::endl;
+        
+        
+        alt_m = Eigen::MatrixXd::Identity(7,7);
+        Eigen::MatrixXd id7 = Eigen::MatrixXd::Identity(7,7);
+        double error2 = (id7.block(2,1,5,4) * m2 - Eigen::MatrixXd(alt_m.block(2,1,5,4) * m2)).squaredNorm();
+        std::cerr << "AltDense block * Dense [Identity] error: " << error2 << std::endl;
+        
+        double error3 = (id7.block(1,2,3,4) * m2 - Eigen::MatrixXd(alt_m.block(1,2,3,4) * m2)).squaredNorm();
+        std::cerr << "AltDense block * Dense [Identity/2] error: " << error3 << std::endl;
+        
+        return error < EPSILON  && error2 < EPSILON && error3 < EPSILON;
+    }
+    
+    
+    int test_block_post_mult() {
+        Eigen::MatrixXd m = RANDOM_M(double, 7, 7);
+        typename AltDense<double>::type alt_m(m);
+        
+        Eigen::MatrixXd m2 = RANDOM_M(double, 4, 4);
+        
+        double error = (m2 * m.block(1,1,4,5) - Eigen::MatrixXd(m2 * alt_m.block(1,1,4,5))).squaredNorm();
+        std::cerr << "Dense * AltDense block [Dense] error: " << error << std::endl;
+        
+        
+        alt_m = Eigen::MatrixXd::Identity(7,7);
+        Eigen::MatrixXd id7 = Eigen::MatrixXd::Identity(7,7);
+        double error2 = (m2 * id7.block(2,1,4,5) - Eigen::MatrixXd(m2 * alt_m.block(2,1,4,5))).squaredNorm();
+        std::cerr << "Dense * AltDense block [Identity] error: " << error2 << std::endl;
+        
+        double error3 = (m2 * id7.block(1,2,4,3) - Eigen::MatrixXd(m2 * alt_m.block(1,2,4,3))).squaredNorm();
+        std::cerr << "Dense * AltDense block [Identity/2] error: " << error3 << std::endl;
+        
+        return error < EPSILON  && error2 < EPSILON && error3 < EPSILON;
+    }
+    
+    
     
     template <typename Scalar>
     int test_unary() {
@@ -213,6 +258,9 @@ test_adjoint_post_product(x,y);
         // Block tests
         
         code |= test_block();
+        
+        code |= test_block_pre_mult();
+        code |= test_block_post_mult();
         
         // Unary op
         

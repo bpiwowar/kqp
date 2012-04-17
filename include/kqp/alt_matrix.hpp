@@ -17,6 +17,8 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
+#include <algorithm>
+
 #include <kqp/kqp.hpp>
 #include <Eigen/Core>
 
@@ -30,7 +32,7 @@ namespace kqp {
     template<typename _AltMatrix> class AltBlock;
     template<typename _AltMatrix> class RowWise;
     template<typename Derived> struct scalar;
-    
+    template<typename Derived> struct DiagonalBlockWrapper;
     
     // Returns the associated scalar
     template<typename Derived> struct scalar { typedef typename Eigen::internal::traits<Derived>::Scalar type; };
@@ -350,6 +352,15 @@ namespace kqp {
         Real squaredNorm() const { return m_value.squaredNorm(); }
         const std::type_info &getTypeId() const { return typeid(Derived); }
 
+        auto block(Index startRow, Index startCol, Index blockRows, Index blockCols) -> decltype(m_value.block(0,0,0,0)) {
+            return m_value.block(startRow, startCol, blockRows, blockCols);
+        }
+
+        auto block(Index startRow, Index startCol, Index blockRows, Index blockCols) const 
+            -> decltype(const_cast<ConstReturnType>(m_value).block(0,0,0,0)) {
+            return m_value.block(startRow, startCol, blockRows, blockCols);
+        }
+
     };
     
     //! Storage for a constant matrix
@@ -403,8 +414,16 @@ namespace kqp {
         Real squaredNorm() const { return std::abs(m_value)*std::abs(m_value) * (Real)m_rows * (Real)m_cols; }
 
         const std::type_info &getTypeId() const { return typeid(ReturnType); }
+        
+        
+        ReturnType block(Index, Index, Index blockRows, Index blockCols) const {
+            return ReturnType(blockRows, blockCols, m_value);
+        }
+
     };
     
+    
+
     //! Storage for a diagonal wrapper
     template<typename Derived>
     struct storage< Eigen::DiagonalWrapper<Derived> > {
@@ -447,6 +466,11 @@ namespace kqp {
         typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
         Real squaredNorm() const { return m_value.squaredNorm(); }
         const std::type_info &getTypeId() const { return typeid(ReturnType); }
+        
+        DiagonalBlockWrapper<Derived> block(Index startRow, Index startCol, Index blockRows, Index blockCols) const {
+            return DiagonalBlockWrapper<Derived>(m_value, startRow, startCol, blockRows, blockCols);
+        }
+
     };
     
     //! Storage for the identity
@@ -455,9 +479,10 @@ namespace kqp {
         Index m_rows, m_cols; 
         
         typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,Dynamic> > Type;
+        typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,1> > VectorType;
         typedef Type ReturnType;
         typedef const Type ConstReturnType;
-        
+
         storage() {}
         storage(const Type &value) : m_rows(value.rows()), m_cols(value.cols()) {}
         ReturnType get() const { return  Eigen::Matrix<Scalar,Dynamic,Dynamic>::Identity(m_rows, m_cols); }
@@ -495,6 +520,13 @@ namespace kqp {
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         Real squaredNorm() const { return std::min(m_rows, m_cols); }
         const std::type_info &getTypeId() const { return typeid(Type); }
+        
+        
+        
+         DiagonalBlockWrapper<VectorType> block(Index startCol, Index startRow, Index blockRows, Index blockCols) const {
+             return DiagonalBlockWrapper<VectorType>(VectorType(std::min(m_rows,m_cols),1,1),  startCol, startRow, blockRows, blockCols);
+        }
+
     };
     
     
@@ -598,8 +630,12 @@ namespace kqp {
         // ---- Blocks ----
         
         typedef AltMatrix<T1,T2> Self;
+        
         typedef AltBlock< Self > Block;
-        typedef const AltBlock< Self > ConstBlock;
+        typedef AltBlock< const Self > ConstBlock;
+
+        friend class AltBlock<Self> ;
+        friend class AltBlock<const Self>;
         
         Block row(Index i) { return Block(*this, i, 0, 1, cols()); }
         ConstBlock row(Index i) const { return ConstBlock(const_cast<Self&>(*this), i, 0, 1, cols()); }
@@ -610,6 +646,12 @@ namespace kqp {
         Block block(Index i, Index j, Index height, Index width) { return Block(*this, i, j, height, width); }
         ConstBlock block(Index i, Index j, Index height, Index width) const { return ConstBlock(const_cast<Self&>(*this), i, j, height, width); }
         
+        ConstBlock topRows(Index h) const { return ConstBlock(*this, 0, 0, h, cols()); }
+        Block topRows(Index h)  { return Block(*this, 0, 0, h, cols()); }
+
+        ConstBlock bottomRows(Index h) const { return ConstBlock(*this, rows() - h, 0, h, cols()); }
+        Block bottomRows(Index h) { return Block(*this, rows() - h, 0, h, cols()); }
+
         const RowWise<AltMatrix> rowwise() const {
             return RowWise<AltMatrix>(const_cast<Self&>(*this));
         }
@@ -648,8 +690,15 @@ namespace kqp {
         }
     };
     
-    //! Block view of an AltMatrix
-    template<typename AltMatrix> class AltBlock  {
+    
+    
+    
+    
+    
+    // ---- Block view of an AltMatrix
+
+    
+    template<typename AltMatrix> class AltBlock : public AltMatrixBase<AltBlock<AltMatrix>>  {
     public:
         typedef typename AltMatrix::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
@@ -661,6 +710,9 @@ namespace kqp {
         {
         }
         
+        
+        bool isT1() const { return alt_matrix.isT1(); }
+        
         Real squaredNorm() const {
             if (alt_matrix.isT1())
                 return kqp::blockSquaredNorm(alt_matrix.t1(),row,col,height,width);
@@ -668,6 +720,8 @@ namespace kqp {
                 return kqp::blockSquaredNorm(alt_matrix.t2(),row,col,height,width);
         }
         
+        Index rows() const { return width; }
+        Index cols() const { return height; }
         
         // Assignement 
 
@@ -689,6 +743,7 @@ namespace kqp {
             mTo.block(row,col,height,width) = mFrom.derived().block(fromRow, fromCol, height, width);
         }
         
+        template<typename T> friend class AltBlock;
         
         template<typename Derived>
         AltBlock<AltMatrix>& assignTo(const AltBlock<Derived> &from) {
@@ -710,6 +765,15 @@ namespace kqp {
         AltMatrix &alt_matrix;
         Index row, col, height, width;
         std::pair<Index, Index> range;
+    public:
+        // Type dependent return
+        
+        auto t1() -> decltype(alt_matrix.m_t1.block(0,0,0,0)) { return alt_matrix.m_t1.block(row, col, height, width); };
+        auto t2() -> decltype(alt_matrix.m_t2.block(0,0,0,0)) { return alt_matrix.m_t2.block(row, col, height, width); };
+        auto t1() const -> decltype(alt_matrix.m_t1.block(0,0,0,0)) { return alt_matrix.m_t1.block(row, col, height, width); };
+        auto t2() const -> decltype(alt_matrix.m_t2.block(0,0,0,0)) { return alt_matrix.m_t2.block(row, col, height, width); };
+        
+
     };
     
     
@@ -895,6 +959,7 @@ namespace kqp {
     };
     
     
+    
     // --- Alt * Dense
     template<class Derived,class OtherDerived>
     inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
@@ -938,6 +1003,104 @@ namespace kqp {
     operator*(typename Eigen::internal::traits<Derived>::Scalar alpha, const kqp::AltMatrixBase<Derived> &a) {
         return AltEigenProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>(alpha, a.derived());
     }  
+    
+    
+    
+    
+    // ---- Diagonal Wrapper
+    template<typename Derived> struct DiagonalBlockWrapper {
+        typename Derived::Nested m_value;
+        Index startRow, startCol;
+        Index rows, cols;
+        DiagonalBlockWrapper(const Derived &value, Index startRow, Index startCol, Index blockRows, Index blockCols) 
+        : m_value(value), startRow(startRow), startCol(startCol), rows(blockRows), cols(blockCols) {}
+        const Derived &derived() const { return m_value; }
+    };
+    
+    
+   
+    template<typename Lhs, typename Rhs, int side> struct DiagonalBlockWrapperDenseMult;
+    
+    template<typename Lhs, typename Rhs> struct DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheRight>
+    : public Eigen::MatrixBase<DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheRight>> {
+        DiagonalBlockWrapper<Lhs> m_lhs;
+        typename Rhs::Nested m_rhs;
+        typedef typename Eigen::internal::traits<DiagonalBlockWrapperDenseMult>::Scalar Scalar;
+        
+        Index zerosAbove, zerosLeft, first, size;
+        
+        DiagonalBlockWrapperDenseMult(const DiagonalBlockWrapper<Lhs>& lhs, const Rhs& rhs) : m_lhs(lhs), m_rhs(rhs) {
+            zerosAbove = std::max(0l, m_lhs.startCol - m_lhs.startRow);
+            zerosLeft = std::max(0l,  m_lhs.startRow - m_lhs.startCol);
+            // First index of the diagonal
+            first = std::max(m_lhs.startCol, m_lhs.startRow);
+            // Number of values
+            size = std::min(m_lhs.rows - zerosAbove, m_lhs.cols - zerosLeft);
+        }
+        
+        
+        Scalar coeff(Index row, Index col) const {            
+            if (row < zerosAbove || row >= zerosAbove + size) return 0;
+            return m_lhs.m_value[first+row-zerosAbove] * m_rhs(row+zerosLeft-zerosAbove, col);
+            
+        }
+        
+        template<typename Dest> inline void evalTo(Dest&) const {
+            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo")
+        }
+        
+        
+        Index rows() const { return m_lhs.rows; }
+        Index cols() const { return m_rhs.cols(); }
+    };
+    
+    template<typename Lhs, typename Rhs> struct DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheLeft>
+    : public Eigen::MatrixBase<DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheLeft>> {
+        typename Lhs::Nested m_lhs;
+        DiagonalBlockWrapper<Rhs> m_rhs;
+        typedef typename Eigen::internal::traits<DiagonalBlockWrapperDenseMult>::Scalar Scalar;
+        
+        Index zerosAbove, zerosLeft, first, size;
+        
+        DiagonalBlockWrapperDenseMult(const Lhs& lhs, const DiagonalBlockWrapper<Rhs>& rhs) : m_lhs(lhs), m_rhs(rhs) {
+            zerosAbove = std::max(0l, m_rhs.startCol - m_rhs.startRow);
+            zerosLeft = std::max(0l,  m_rhs.startRow - m_rhs.startCol);
+            // First index of the diagonal
+            first = std::max(m_rhs.startCol, m_rhs.startRow);
+            // Number of values
+            size = std::min(m_rhs.rows - zerosAbove, m_rhs.cols - zerosLeft);
+        }
+        
+        
+        Scalar coeff(Index row, Index col) const {            
+            if (col < zerosLeft || col >= zerosLeft + size) return 0;
+            return  m_lhs(row, col+zerosAbove-zerosLeft) * m_rhs.m_value[first+col-zerosLeft];
+            
+        }
+        
+        template<typename Dest> inline void evalTo(Dest&) const {
+            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo")
+        }
+        
+        
+        Index rows() const { return m_lhs.rows(); }
+        Index cols() const { return m_rhs.cols; }
+    };
+
+    
+    // --- DiagonalBlockWrapper * Dense
+    template<class Lhs,class Rhs>
+    DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheRight> operator*(const kqp::DiagonalBlockWrapper<Lhs> &a, const Eigen::MatrixBase<Rhs> &b) 
+    {
+        return DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheRight>(a, b.derived());
+    }
+
+    template<class Lhs,class Rhs>
+    DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheLeft> operator*(const Eigen::MatrixBase<Lhs> &a, const kqp::DiagonalBlockWrapper<Rhs> &b) 
+    {
+        return DiagonalBlockWrapperDenseMult<Lhs,Rhs,Eigen::OnTheLeft>(a.derived(), b);
+    }
+
     
 }
 
@@ -1032,6 +1195,34 @@ namespace Eigen {
                 Flags = 0,
                 RowsAtCompileTime = Dynamic,
                 ColsAtCompileTime = Dynamic
+            };
+        };
+        
+        template<typename AltMatrix>
+        struct traits<kqp::AltBlock<AltMatrix>> {
+            typedef kqp::AltMatrixStorage StorageKind;
+            typedef typename MatrixXd::Index Index;
+            typedef typename traits<AltMatrix>::Scalar Scalar;
+            enum {
+                Flags = 0,
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic
+            };
+        };
+        
+        template<typename Lhs, typename Rhs, int Side>
+        struct traits<kqp::DiagonalBlockWrapperDenseMult<Lhs,Rhs,Side>> {
+            typedef Dense StorageKind;
+            typedef typename MatrixXd::Index Index;
+            typedef typename scalar_product_traits<typename kqp::scalar<Lhs>::type, typename kqp::scalar<Rhs>::type>::ReturnType Scalar;
+            typedef MatrixXpr XprKind;
+            enum {
+                Flags = 0,
+                RowsAtCompileTime = Dynamic,
+                ColsAtCompileTime = Dynamic,
+                MaxRowsAtCompileTime = Dynamic,
+                MaxColsAtCompileTime = Dynamic,
+                CoeffReadCost = 1,
             };
         };
         
