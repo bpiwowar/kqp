@@ -169,10 +169,8 @@ template<typename Derived> class DenseBase
 
       IsRowMajor = int(Flags) & RowMajorBit, /**< True if this expression has row-major storage order. */
 
-      InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? int(SizeAtCompileTime)
-      : int(IsRowMajor) ? int(ColsAtCompileTime) : int(RowsAtCompileTime),
-      // InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? SizeAtCompileTime
-      //                        : int(IsRowMajor) ? ColsAtCompileTime : RowsAtCompileTime,
+      InnerSizeAtCompileTime = int(IsVectorAtCompileTime) ? SizeAtCompileTime
+                             : int(IsRowMajor) ? ColsAtCompileTime : RowsAtCompileTime,
 
       CoeffReadCost = internal::traits<Derived>::CoeffReadCost,
         /**< This is a rough measure of how expensive it is to read one coefficient from
@@ -378,12 +376,13 @@ template<typename Derived> class DenseBase
     inline Derived& operator*=(const Scalar& other);
     inline Derived& operator/=(const Scalar& other);
 
+    typedef typename internal::add_const_on_value_type<typename internal::eval<Derived>::type>::type EvalReturnType;
     /** \returns the matrix or vector obtained by evaluating this expression.
       *
       * Notice that in the case of a plain matrix or vector (not an expression) this function just returns
       * a const reference, in order to avoid a useless copy.
       */
-    EIGEN_STRONG_INLINE const typename internal::eval<Derived>::type eval() const
+    EIGEN_STRONG_INLINE EvalReturnType eval() const
     {
       // Even though MSVC does not honor strong inlining when the return type
       // is a dynamic matrix, we desperately need strong inlining for fixed
