@@ -50,6 +50,9 @@ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
           <extensions>true</extensions>
           <configuration>
             <libraries>
+                <library>
+                  <type>jni</type>
+                </library>
             </libraries>
           </configuration>
         </plugin>
