@@ -136,11 +136,14 @@ namespace kqp {
     template<typename Scalar>
     class Selector {
     public:
+        virtual ~Selector() {}
+
         /**
          * @param eigenValues
          *            The ordered list of eigenvalues
          */
         virtual void selection(EigenList<Scalar>& eigenvalues) const = 0;
+        
     };
     
     /**
@@ -151,6 +154,8 @@ namespace kqp {
         std::vector<boost::shared_ptr<Selector<Scalar> > > selectors;
     public:
         ChainSelector() {}
+        virtual ~ChainSelector() {}
+        
         void add(const boost::shared_ptr<Selector<Scalar> > &selector) {
             selectors.push_back(selector);
         }
@@ -159,6 +164,7 @@ namespace kqp {
             for(auto i = selectors.begin(), end = selectors.end(); i != end; i++)
                 (*i)->selection(eigenvalues);
         }
+        
     };
     
     /**
@@ -169,6 +175,7 @@ namespace kqp {
         Scalar minRatio;
     public:
         MinimumSelector() : minRatio(EPSILON) {}
+        virtual ~MinimumSelector() {}
         virtual void selection(EigenList<Scalar>& eigenvalues) const override {
             // Computes the maximum of eigenvalues
             Scalar maxLambda = 0;
@@ -197,6 +204,8 @@ namespace kqp {
         //! Rank to select when the rank is above maxRank
         Index resetRank;
     public:
+        virtual ~RankSelector() {}
+        
         /**
          * Selects the highest eigenvalues (either magnitude or values)
          * @param rank The maximum and selected rank
@@ -204,6 +213,7 @@ namespace kqp {
          */
         RankSelector(Index maxRank) : maxRank(maxRank), resetRank(maxRank) {}
         
+
         /**
          * Construct a selector that uses a reset rank
          */
@@ -230,6 +240,7 @@ namespace kqp {
             for(Index i = 0; i < eigenvalues.size() - resetRank; i++) 
                 eigenvalues.remove(values[i]);
         }
+    
     };
 }
 

@@ -31,6 +31,8 @@ namespace kqp {
     public:
         KQP_FMATRIX_TYPES(FMatrix);        
         
+        virtual ~DivideAndConquerBuilder() {}
+        
         //! Set the maximum number of rank updates before using a combiner
         void setBatchSize(Index batchSize) { 
             this->batchSize = batchSize;

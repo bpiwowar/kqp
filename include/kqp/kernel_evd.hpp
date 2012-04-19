@@ -50,8 +50,7 @@ namespace kqp {
         }
         
 
-        //! Virtual destructor to build the vtable
-        ~KernelEVD() {}
+        virtual ~KernelEVD() {}
                
 
         /**

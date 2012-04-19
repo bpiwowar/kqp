@@ -52,6 +52,7 @@ namespace kqp {
         };
         
         IncrementalKernelEVD() {}
+        virtual ~IncrementalKernelEVD() {}
         
         void reset() {
             *this = IncrementalKernelEVD();

@@ -50,6 +50,10 @@ namespace kqp{
         AccumulatorKernelEVD() {
         }
         
+        virtual ~AccumulatorKernelEVD() {
+        }
+        
+        
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
             FMatrix fm = mX.linear_combination(mA, Eigen::internal::sqrt(alpha));
@@ -101,6 +105,8 @@ namespace kqp{
             offsets_X.push_back(0);
             offsets_A.push_back(0);
         }
+        
+        virtual ~AccumulatorKernelEVD() {}
         
     protected:
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           

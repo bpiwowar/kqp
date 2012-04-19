@@ -54,6 +54,7 @@ namespace kqp {
         //! Cleanup
         virtual void cleanup(Decomposition<FMatrix> &) {}
         
+    protected:
         /**
          * Minimum/Maximum number of pre-images per rank
          */

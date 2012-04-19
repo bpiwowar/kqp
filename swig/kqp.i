@@ -30,14 +30,18 @@
     
     #include <kqp/probabilities.hpp>
 
-    #include "eigenmatrix.hpp"
     #include "alt_matrix_swig.hpp"
 %}
 
+// Preserve the arguments
+#define %kqparg(X...) X
+
 // --- Language dependent includes
+
+%include "boost_shared_ptr.i"
+
 #if SWIGJAVA
-%import "java/std_vector.i"
-%ignore operator=;
+%include "java/kqp.i"
 #endif
 
 #ifdef SWIGPYTHON
@@ -89,6 +93,7 @@ FOR_ALL_SCALARS_1(Dense, kqp::DenseMatrix<__scalar__>)
 #undef _SWIG_SCALAR_GEN_
 %enddef
 
+
 // --- Eigen 
 namespace Eigen {
     
@@ -106,9 +111,15 @@ FOR_ALL_SCALARS(%template() Eigen::NumTraits< STYPE >;)
 
 // --- Eigen Dense Matrix
 
-%include "eigenmatrix.hpp"
-%ignore Eigen::Matrix;
-FOR_ALL_SCALARS(%template(SNAME ## EigenMatrix) kqp::swig::EigenMatrix< STYPE >);
+namespace Eigen {
+    template<typename Scalar, int Rows, int Cols>
+    class Eigen::Matrix {};
+}
+FOR_ALL_SCALARS(%kqparg(%template(SNAME ## EigenMatrix) Eigen::Matrix< STYPE, Eigen::Dynamic, Eigen::Dynamic >));
+FOR_ALL_SCALARS(%kqparg(%extend Eigen::Matrix<STYPE, Eigen::Dynamic, Eigen::Dynamic> { \
+    STYPE operator()(Index i, Index j) const { return (*self)(i,j); } \
+    void set(Index i, Index j, STYPE value) {  (*self)(i,j) = value; } \
+}))
 
 // --- Alt vectors
 
@@ -133,6 +144,7 @@ FOR_ALL_SCALARS(namespace kqp { \
         typedef STYPE Scalar; typedef RTYPE Real; \
         typedef kqp::swig::AltMatrix<STYPE> ScalarAltMatrix;  \
         typedef kqp::swig::AltVector<RTYPE> RealAltVector; \
+        %kqparg(typedef Eigen::Matrix<RTYPE,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;) \
         }; \
     } \
     %template() kqp::ftraits< kqp::DenseMatrix< STYPE > >;
@@ -141,25 +153,38 @@ FOR_ALL_SCALARS(namespace kqp { \
 FOR_ALL_SCALARS(%template() kqp::FeatureMatrix< kqp::DenseMatrix< STYPE > >;)
 FOR_ALL_SCALARS(%template(SNAME ## DenseFeatureMatrix) kqp::DenseMatrix< STYPE >;)
 
-// ---- Kernel EVD
+// ---- Decompositions & cleaning
+
 
 %include "kqp/rank_selector.hpp"
 %include "kqp/decomposition.hpp"
 %include "kqp/cleanup.hpp"
-FOR_ALL_SCALARS(%template(SNAME ## RankSelector) kqp::Selector< STYPE >;)
+
+FOR_ALL_SCALARS(%template(SNAME ## Selector) kqp::Selector< STYPE >;)
+FOR_ALL_FMATRIX(% ## shared_ptr(kqp::Selector< FTYPE > );)
+FOR_ALL_FMATRIX(%ignore kqp::Selector< FTYPE >::selection;)
+
+FOR_ALL_SCALARS(%kqparg(%template(SNAME ## AbsRankSelector) kqp::RankSelector< STYPE,true >;))
+FOR_ALL_FMATRIX(%kqparg(% ## shared_ptr(kqp::RankSelector< FTYPE,true > );))
+FOR_ALL_FMATRIX(%kqparg(%ignore kqp::RankSelector< FTYPE, true >::selection;))
+
 FOR_ALL_FMATRIX(%template(FNAME ## Cleaner) kqp::Cleaner< FTYPE >;)
+FOR_ALL_FMATRIX(% ## shared_ptr(kqp::Cleaner< FTYPE > );)
 FOR_ALL_FMATRIX(%template(FNAME ## StandardCleaner) kqp::StandardCleaner< FTYPE >;)
+FOR_ALL_FMATRIX(% ## shared_ptr(kqp::StandardCleaner< FTYPE > );)
 
 FOR_ALL_FMATRIX(%template(FNAME ## Decomposition) kqp::Decomposition< FTYPE >;)
 
+// ---- Kernel EVD
+
 %include "kqp/kernel_evd.hpp"
 FOR_ALL_FMATRIX(%template(FNAME ## KEVD) kqp::KernelEVD< FTYPE >;)
+FOR_ALL_FMATRIX(% ## shared_ptr(kqp::KernelEVD< FTYPE > );)
 
 %include "kqp/kernel_evd/dense_direct.hpp"
 FOR_ALL_SCALARS(%template(Dense ## SNAME ## KEVDDirect) kqp::DenseDirectBuilder< STYPE >;)
 
 %include "kqp/kernel_evd/accumulator.hpp"
-#define %kqparg(X...) X
 FOR_ALL_FMATRIX(%kqparg(%template(FNAME ## KEVDAccumulator) kqp::AccumulatorKernelEVD< FTYPE, true >;))
 
 %include "kqp/kernel_evd/incremental.hpp"

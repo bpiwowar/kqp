@@ -42,6 +42,7 @@ namespace kqp {
             reset();
         }
         
+        virtual ~DenseDirectBuilder() {}
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
             matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.getMatrix() * mA), alpha);

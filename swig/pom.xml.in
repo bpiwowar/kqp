@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is part of the Kernel Quantum Probability library (KQP).
+
+KQP is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+ 
+KQP is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>net.bpiwowar</groupId>
+    <artifactId>@CMAKE_PROJECT_NAME@</artifactId>
+    <version>@libkqp_VERSION@</version>
+    <url>http://github.com/bpiwowar/kqp</url>
+    <packaging>nar</packaging>
+    
+    <pluginRepositories>
+      <pluginRepository>
+                <id>duns</id>
+                <name>Duns nar plugin repository</name>
+                <url>http://duns.github.com/maven-snapshots/</url>
+                <snapshots>
+                        <enabled>true</enabled>
+                </snapshots>
+        </pluginRepository>    
+    </pluginRepositories>
+    
+    <dependencies>
+    </dependencies>
+
+
+    <build>
+      <plugins>
+          
+          <!-- Maven NAR plugin -->
+        <plugin>
+          <artifactId>maven-nar-plugin</artifactId>
+          <extensions>true</extensions>
+          <configuration>
+            <libraries>
+            </libraries>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
+
+    <!-- Javadoc report -->
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.7</version>
+                <configuration>
+                    <links>
+                        <link>http://java.sun.com/j2se/1.6.0/docs/api</link>
+                    </links>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+
+    <!-- Developers -->
+    <developers>
+        <developer>
+            <id>bpiwowar</id>
+            <name>Benjamin Piwowarski</name>
+            <email>benjamin.piwowarski@gmail.com</email>
+            <url>http://www.bpiwowar.net/</url>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>0</timezone>
+            <properties>
+            </properties>
+        </developer>
+    </developers>
+
+
+    <!-- Licence -->
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License version 3</name>
+            <url>http://www.gnu.org/licenses/lgpl.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+</project>
