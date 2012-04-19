@@ -116,7 +116,7 @@ namespace kqp {
          * @param newRank
          *            The new rank of the subspace
          */
-        void trim(size_t newRank);        
+        // void trim(size_t newRank);        
         
         /**
          * Get the rank of the operator
@@ -356,7 +356,7 @@ namespace kqp {
         static Density<FMatrix> project(const Density<FMatrix>& density, const Event<FMatrix> &event) {        
             event.orthonormalize();
             FMatrix mX = event.X();
-            ScalarAltMatrix mY(event.Y() * event.S().asDiagonal() * event.Y().transpose() * inner(event.X(), density.X()) * density.Y() * density.S().asDiagonal());
+            ScalarAltMatrix mY(event.Y() * event.m_operator.innerXYD(density.m_operator));
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<FMatrix>(mX, mY, mS, false);
         }
@@ -374,7 +374,7 @@ namespace kqp {
             Index n = s.rows();
             
             _mY.topRows(density.X().size()) = density.Y();
-            _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * (event.Y().transpose() * inner(event.X(), density.X()) * density.Y());
+            _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * event.m_operator.innerXY(density.m_operator);
             
             ScalarAltMatrix mY; 
             mY.swap(_mY);
@@ -490,14 +490,15 @@ namespace kqp {
     
 }
 
+
 #define KQP_PROBABILITIES_FMATRIX_GEN(prefix, type) \
     prefix template class kqp::KernelOperator<type>; \
     prefix template class kqp::Density<type>; \
     prefix template class kqp::Event<type>; \
     prefix template struct kqp::Projection<type>;
 
-
+#ifndef SWIG
 #define KQP_FMATRIX_GEN_EXTERN(type) KQP_PROBABILITIES_FMATRIX_GEN(extern,type)
 #include <kqp/for_all_fmatrix_gen>
-
+#endif
 #endif

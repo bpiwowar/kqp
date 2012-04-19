@@ -20,6 +20,7 @@
 
 #include <utility>
 #include <kqp/feature_matrix.hpp>
+#include <kqp/matrix_computations.hpp>
 
 namespace kqp {
     
@@ -50,6 +51,7 @@ namespace kqp {
         Decomposition(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
         : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
 
+#ifndef SWIG
         //! Full constructor
         Decomposition(const FMatrix &&mX, const ScalarAltMatrix &&mY, const RealAltVector &&mD, bool orthonormal) 
         : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
@@ -58,23 +60,27 @@ namespace kqp {
         Decomposition(Decomposition &&other) {
             *this = std::move(other);
         }
-        
-        //! Copy constructor
-        Decomposition(const Decomposition &other) {
-            *this = other;
-        }
-        
-        
+
         //! Move assignement
         Decomposition &operator=(Decomposition &&other) {
+            swap(other);
+            return *this;
+        }
+#endif
+        void swap(Decomposition &other) {
             mX = std::move(other.mX);
             mY.swap(other.mY);
             mD.swap(other.mD);
             std::swap(orthonormal, other.orthonormal);
             std::swap(updateCount, other.updateCount);
-            return *this;
         }
+
         
+        //! Copy constructor
+        Decomposition(const Decomposition &other) {
+            *this = other;
+        }
+                
         //! Copy assignement
         Decomposition &operator=(const Decomposition &other) {
             mX = other.mX;
@@ -87,11 +93,11 @@ namespace kqp {
         
         
         ScalarMatrix innerXY(const Decomposition<FMatrix>& that) const {
-            return  mY.transpose() * inner(mX, that.mX) * that.mY;
+            return FCompute<FMatrix>::inner(mX, mY, that.mX, that.mY);
         }
         
         ScalarMatrix innerXYD(const Decomposition<FMatrix>& that) const {
-            return mD.asDiagonal() * mY.transpose() * inner(mX, that.mX) * that.mY * that.mD.asDiagonal();
+            return FCompute<FMatrix>::inner(mX, mY, mD, that.mX, that.mY, that.mD);
         }
 
         
@@ -100,8 +106,10 @@ namespace kqp {
         
 }
 
+#ifndef SWIG
 #define KQP_FMATRIX_GEN_EXTERN(type) extern template struct kqp::Decomposition<type>;
 #include <kqp/for_all_fmatrix_gen>
+#endif
 
 #endif
 

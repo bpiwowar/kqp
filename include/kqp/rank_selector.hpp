@@ -148,10 +148,10 @@ namespace kqp {
      */
     template<typename Scalar>
     class ChainSelector : public Selector<Scalar> {
-        std::vector<boost::shared_ptr<Selector<Scalar>>> selectors;
+        std::vector<boost::shared_ptr<Selector<Scalar> > > selectors;
     public:
         ChainSelector() {}
-        void add(const boost::shared_ptr<Selector<Scalar>> &selector) {
+        void add(const boost::shared_ptr<Selector<Scalar> > &selector) {
             selectors.push_back(selector);
         }
         

@@ -235,10 +235,12 @@ namespace kqp {
         mutable ScalarMatrix k;       
         
     };
-    
+
+#ifndef SWIG    
 #define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::IncrementalKernelEVD<type>;
 #include <kqp/for_all_fmatrix_gen>
-    
+#endif
+
 }
 
 #endif

@@ -23,36 +23,39 @@
 
 namespace kqp {
     
+    //! An interval iterator
+    struct IntervalsIterator {
+        const std::vector<bool> &which;
+        std::pair<size_t, size_t> current;
+        
+        IntervalsIterator &operator++(int) { 
+            current.first  = std::find(current.second + 1 + which.begin(), which.end(), true) - which.begin();
+            current.second = std::find(which.begin() + current.first, which.end(), false) - which.begin();
+            return *this;
+        }
+        
+        IntervalsIterator(const std::vector<bool> &which) : which(which), current(0,0) {
+            (*this)++;
+        }
+        IntervalsIterator(const std::vector<bool> &which, size_t begin, size_t end) : which(which), current(begin,end) {
+        }
+        const std::pair<size_t, size_t> & operator*() const {
+            return current;
+        }
+        const std::pair<size_t, size_t> *operator->() const {
+            return &current;
+        }
+        bool operator!=(const IntervalsIterator &other) {
+            return &which != &other.which || current != other.current;
+        }
+    };
+
+    
     struct Intervals {
         std::vector<bool> which;
         size_t _selected;
         
-        //! An interval iterator
-        struct Iterator {
-            const std::vector<bool> &which;
-            std::pair<size_t, size_t> current;
-
-            Iterator &operator++(int) { 
-                current.first  = std::find(current.second + 1 + which.begin(), which.end(), true) - which.begin();
-                current.second = std::find(which.begin() + current.first, which.end(), false) - which.begin();
-                return *this;
-            }
-
-            Iterator(const std::vector<bool> &which) : which(which), current(0,0) {
-                (*this)++;
-            }
-            Iterator(const std::vector<bool> &which, size_t begin, size_t end) : which(which), current(begin,end) {
-            }
-            const std::pair<size_t, size_t> & operator*() const {
-                return current;
-            }
-            const std::pair<size_t, size_t> *operator->() const {
-                return &current;
-            }
-            bool operator!=(const Iterator &other) {
-                return &which != &other.which || current != other.current;
-            }
-        };
+        typedef IntervalsIterator Iterator;
         
         const Iterator _end;
         
@@ -81,10 +84,7 @@ namespace kqp {
     template <typename _Scalar> 
     class DenseMatrix : public FeatureMatrix< DenseMatrix<_Scalar> > {
     public:       
-        //! Ourselves
-        typedef DenseMatrix<_Scalar> Self;
-        
-        KQP_FMATRIX_TYPES(Self);
+        KQP_FMATRIX_COMMON_DEFS(DenseMatrix<_Scalar>);
    
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() {}
@@ -93,9 +93,10 @@ namespace kqp {
         DenseMatrix(Index dimension) : matrix(dimension, 0) {
         }
 
+#ifndef SWIG
         //! Construction by moving a dense matrix
         DenseMatrix(ScalarMatrix &&m) : matrix(m) {}
-
+#endif
         //! Construction by copying a dense matrix
         DenseMatrix(const ScalarMatrix &m) : matrix(m) {}
 
@@ -107,13 +108,13 @@ namespace kqp {
         void add(const Eigen::DenseBase<Derived> &m) {
             if (matrix.cols() == 0) 
                 matrix.resize(m.rows(), 0);
-            else if (m.rows() != _dimension())
+            else if (m.rows() != dimension())
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
-                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % _dimension());
+                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % dimension());
 
             Index n = matrix.cols();
             matrix.conservativeResize(matrix.rows(), n + m.cols());
-            this->matrix.block(0, n, _dimension(), m.cols()) = m; 
+            this->matrix.block(0, n, dimension(), m.cols()) = m; 
         }
         
           /**
@@ -123,38 +124,36 @@ namespace kqp {
         void add(const Eigen::DenseBase<Derived> &m, const std::vector<bool> &which) {
             if (matrix.cols() == 0) 
                 matrix.resize(m.rows(), 0);
-            if (m.rows() != _dimension())
+            if (m.rows() != dimension())
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
-                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % _dimension());
+                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % dimension());
             
             Index s = std::accumulate(which.begin(), which.end(), 0);
             matrix.conservativeResize(matrix.rows(), s + m.cols());
 
             Intervals intervals(which);
-            Index offset = _size();
+            Index offset = size();
             for(auto i = intervals.begin(); i != intervals.end(); i++) {
                 Index cols = i->second - i->first;
-                this->matrix.block(0, offset, _dimension(), cols) = m.block(0, i->first, _dimension(), cols);
+                this->matrix.block(0, offset, dimension(), cols) = m.block(0, i->first, dimension(), cols);
                 offset += cols;
             }
                                 
         }
         
-        void add(const Self &other, std::vector<bool> *which = NULL)  {
-            if (which) this->add(other.getMatrix(), *which);
-            else this->add(other.getMatrix());
-        }
-        
-        
-
         //! Get a const reference to the matrix
         const ScalarMatrix& getMatrix() const {
             return this->matrix;
         }
 
-               
-        // --- Base methods 
+    protected:
         
+        void _add(const Self &other, const std::vector<bool> *which = NULL)  {
+            if (which) this->add(other.getMatrix(), *which);
+            else this->add(other.getMatrix());
+        }
+        
+                       
         Index _size() const { 
             return matrix.cols();
         }
@@ -162,21 +161,16 @@ namespace kqp {
         Index _dimension() const {
             return matrix.rows();
         }
-        
-        inline void _add(const Self &other, std::vector<bool> *which = NULL)  {
-            this->add(other,which);
-        }
-        
 
         const ScalarMatrix &_inner() const {
-            if (_size() == 0) return gramMatrix;
+            if (size() == 0) return gramMatrix;
             
             // We lose space here, could be used otherwise???
             Index current = gramMatrix.rows();
-            if (current < _size()) 
-                gramMatrix.conservativeResize(_size(), _size());
+            if (current < size()) 
+                gramMatrix.conservativeResize(size(), size());
             
-            Index tofill = _size() - current;
+            Index tofill = size() - current;
             
             // Compute the remaining inner products
             gramMatrix.bottomRightCorner(tofill, tofill).noalias() = this->getMatrix().rightCols(tofill).adjoint() * this->getMatrix().rightCols(tofill);
@@ -234,9 +228,11 @@ namespace kqp {
     };
     
     
-    // Extern templates
-#define KQP_SCALAR_GEN(scalar) extern template class DenseMatrix<scalar>;
-#include <kqp/for_all_scalar_gen>
+# // Extern templates
+# ifndef SWIG
+# define KQP_SCALAR_GEN(scalar) extern template class DenseMatrix<scalar>;
+# include <kqp/for_all_scalar_gen>
+# endif
     
 } // end namespace kqp
 

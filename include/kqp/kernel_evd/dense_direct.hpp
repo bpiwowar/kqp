@@ -70,8 +70,10 @@ namespace kqp {
         ScalarMatrix matrix;
     };
     
+#ifndef SWIG
 #define KQP_SCALAR_GEN(scalar) extern template class DenseDirectBuilder<scalar>;
 #include <kqp/for_all_scalar_gen>
+#endif
     
 } // end namespace kqp
 

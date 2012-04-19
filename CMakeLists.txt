@@ -26,7 +26,8 @@ SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 # --- Main options
 
 OPTION(CMAKE_BUILD_TYPE         "Type of building"             "Release")
-OPTION(JAVA_KQP                 "Build kqp JNI library"         ON)
+OPTION(JAVA_KQP                 "Build Java wrapper"            ON)
+OPTION(JAVA_PYTHON              "Build Python wrapper"          ON)
 OPTION(OPEN_MP                  "Use Open MP (if available)"    OFF)
 
 # --- Get version number from libkqp_VERSION
@@ -71,12 +72,6 @@ IF (CMAKE_GENERATOR MATCHES Xcode)
 ENDIF(CMAKE_GENERATOR MATCHES Xcode)
 
 
-# --- Check for compiler idiosyncrasy
-
-# std::move
-CHECK_CXX_SOURCE_RUNS("#include <utility>
-int main() { std::move(1);  return 0; }" HAS_STD_MOVE)
-    
 # --- Add our own modules
 
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})

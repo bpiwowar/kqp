@@ -27,17 +27,29 @@ namespace kqp {
     
 #define KQP_FMATRIX_TYPES(FMatrix) \
 typedef ftraits< FMatrix > FTraits; \
-typedef typename FTraits::Scalar Scalar; \
-typedef typename FTraits::ScalarMatrix  ScalarMatrix; \
-typedef typename FTraits::ScalarVector  ScalarVector; \
-typedef typename FTraits::Real Real; \
-typedef typename FTraits::RealVector RealMatrix; \
-typedef typename FTraits::RealVector RealVector; \
-typedef typename FTraits::ScalarAltMatrix  ScalarAltMatrix; \
-typedef typename FTraits::RealAltVector  RealAltVector; \
-typedef typename FTraits::GramMatrix & GramMatrix; \
-typedef typename FTraits::InnerMatrix InnerMatrix;
+typedef typename ftraits< FMatrix >::Scalar Scalar; \
+typedef typename ftraits< FMatrix >::ScalarMatrix  ScalarMatrix; \
+typedef typename ftraits< FMatrix >::ScalarVector  ScalarVector; \
+typedef typename ftraits< FMatrix >::Real Real; \
+typedef typename ftraits< FMatrix >::RealVector RealMatrix; \
+typedef typename ftraits< FMatrix >::RealVector RealVector; \
+typedef typename ftraits< FMatrix >::ScalarAltMatrix  ScalarAltMatrix; \
+typedef typename ftraits< FMatrix >::RealAltVector  RealAltVector; \
+typedef typename ftraits< FMatrix >::GramMatrix & GramMatrix; \
+typedef typename ftraits< FMatrix >::InnerMatrix InnerMatrix;
     
+
+#define KQP_FMATRIX_COMMON_DEFS(_Self) \
+    typedef _Self Self; \
+    KQP_FMATRIX_TYPES(_Self); \
+    typedef FeatureMatrix< _Self > Base; \
+    friend class FeatureMatrix< _Self >; \
+    using FeatureMatrix< _Self >::add; \
+    using FeatureMatrix< _Self >::subset; \
+    using FeatureMatrix< _Self >::linear_combination; \
+    using FeatureMatrix< _Self >::dimension; \
+    using FeatureMatrix< _Self >::size;
+
 
     //! Traits for feature matrices
     template <class Derived> struct ftraits;
@@ -177,8 +189,13 @@ typedef typename FTraits::InnerMatrix InnerMatrix;
          * @brief Computes the Gram matrix of this feature matrix
          * @return A dense self-adjoint matrix
          */
-        const typename FTraits::ScalarMatrix & inner() const {
+        inline const typename FTraits::ScalarMatrix & inner() const {
             return static_cast<const Derived*>(this)->Derived::_inner();
+        }
+        
+        template<class DerivedMatrix>
+        inline void inner(const Derived &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
+            static_cast<const Derived*>(this)->Derived::_inner(other, result);
         }
         
         
@@ -186,7 +203,9 @@ typedef typename FTraits::InnerMatrix InnerMatrix;
     
 
     //! Type information for feature matrices (feeds the ftraits structure)
-    template <class _FMatrix> struct FeatureMatrixTypes {};
+    template <class _FMatrix> struct FeatureMatrixTypes { 
+        typedef void Scalar; 
+    };
     
     template<class Derived>
     std::ostream& operator<<(std::ostream &out, const FeatureMatrix<Derived> &f) {
@@ -201,7 +220,7 @@ typedef typename FTraits::InnerMatrix InnerMatrix;
             // No need to compute anything - we just resize for consistency
             _result.derived().resize(mA.size(), mB.size());
         else
-            mA.derived().template _inner<DerivedMatrix>(mB.derived(), _result);
+            mA.derived().template inner<DerivedMatrix>(mB.derived(), _result);
     }
 
     /// Compute the inner product between two feature matrices and return
@@ -217,7 +236,7 @@ typedef typename FTraits::InnerMatrix InnerMatrix;
             result.resize(mA.size(), mB.size());
         else
             // Compute
-            mA.derived().template _inner<ScalarMatrix>(mB.derived(), result);
+            mA.template inner<ScalarMatrix>(mB.derived(), result);
 
         return result;
     }
@@ -234,11 +253,11 @@ typedef typename FTraits::InnerMatrix InnerMatrix;
         
         //! Definitions
         enum {
-            can_linearly_combine = FeatureMatrixTypes<FMatrix>::can_linearly_combine  
+            can_linearly_combine = FeatureMatrixTypes<_FMatrix>::can_linearly_combine  
         };
         
         //! Scalar value
-        typedef typename FeatureMatrixTypes<FMatrix>::Scalar Scalar;
+        typedef typename FeatureMatrixTypes<_FMatrix>::Scalar Scalar;
                         
         //! Vector of scalars
         typedef Eigen::Matrix<Scalar,Dynamic,1> ScalarVector;

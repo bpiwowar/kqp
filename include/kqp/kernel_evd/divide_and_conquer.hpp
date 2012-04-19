@@ -37,22 +37,22 @@ namespace kqp {
         }
         
         //! Sets the builder
-        void setBuilder(const boost::shared_ptr<KernelEVD<FMatrix>> &builder) {
+        void setBuilder(const boost::shared_ptr< KernelEVD<FMatrix> > &builder) {
             this->builder = builder;
         }
         
         //! Sets the builder cleaner
-        void setBuilderCleaner(const boost::shared_ptr<Cleaner<FMatrix>> &builderCleaner) {
+        void setBuilderCleaner(const boost::shared_ptr< Cleaner<FMatrix> > &builderCleaner) {
             this->builderCleaner = builderCleaner;
         }
         
         //! Sets the merger
-        void setMerger(const boost::shared_ptr<KernelEVD<FMatrix>> &merger) {
+        void setMerger(const boost::shared_ptr<KernelEVD<FMatrix> > &merger) {
             this->merger = merger;
         }
         
         //! Sets the merger cleaner
-        void setMergerCleaner(const boost::shared_ptr<Cleaner<FMatrix>> &mergerCleaner) {
+        void setMergerCleaner(const boost::shared_ptr<Cleaner<FMatrix> > &mergerCleaner) {
             this->mergerCleaner = mergerCleaner;
         }
         
@@ -104,14 +104,14 @@ namespace kqp {
         
         template<typename Scalar, class enable = void> struct Merge;
         
-        template<typename Scalar> struct Merge<Scalar, typename boost::enable_if<boost::is_complex<Scalar>>::type> {
+        template<typename Scalar> struct Merge<Scalar, typename boost::enable_if<boost::is_complex<Scalar> >::type> {
             static void merge(KernelEVD<FMatrix> &merger, const Decomposition<FMatrix> &d) {
                 ScalarMatrix mY = d.mY * d.mD.asDiagonal();
                 merger.add(1, d.mX, d.mY.cwiseSqrt());
             }
         };
         
-        template<typename Scalar> struct Merge<Scalar, typename boost::disable_if<boost::is_complex<Scalar>>::type> {
+        template<typename Scalar> struct Merge<Scalar, typename boost::disable_if<boost::is_complex<Scalar> >::type> {
             static void merge(KernelEVD<FMatrix> &merger, const Decomposition<FMatrix> &d) {
 
                 Index posCount = 0;
@@ -173,21 +173,23 @@ namespace kqp {
     private:
         
         //! Vector of decompositions
-        std::vector<Decomposition<FMatrix>> decompositions;
+        std::vector<Decomposition<FMatrix> > decompositions;
         
         //! Number of rank updates
         Index batchSize = 100;
         
-        boost::shared_ptr<KernelEVD<FMatrix>> builder;
-        boost::shared_ptr<Cleaner<FMatrix>> builderCleaner;
+        boost::shared_ptr<KernelEVD<FMatrix> > builder;
+        boost::shared_ptr<Cleaner<FMatrix> > builderCleaner;
         
-        boost::shared_ptr<KernelEVD<FMatrix>> merger;        
-        boost::shared_ptr<Cleaner<FMatrix>> mergerCleaner;
+        boost::shared_ptr<KernelEVD<FMatrix> > merger;        
+        boost::shared_ptr<Cleaner<FMatrix> > mergerCleaner;
     };
 }
 
+#ifndef SWIG
 #define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::DivideAndConquerBuilder<type>;
 #include <kqp/for_all_fmatrix_gen>
+#endif
 
 #endif
 

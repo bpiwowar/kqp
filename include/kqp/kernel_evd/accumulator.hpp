@@ -198,7 +198,9 @@ namespace kqp{
     
 }
 
+#ifndef SWIG
 #define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::AccumulatorKernelEVD<type>;
 #include <kqp/for_all_fmatrix_gen>
+#endif
 
 #endif

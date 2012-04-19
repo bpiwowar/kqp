@@ -47,7 +47,7 @@ namespace kqp {
         }
         
         //! Set the rank selector
-        void setSelector(const boost::shared_ptr<const Selector<Real>> &selector) {
+        void setSelector(const boost::shared_ptr< const Selector<Real> > &selector) {
             this->selector = selector;
         }
         

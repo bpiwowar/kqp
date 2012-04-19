@@ -36,21 +36,20 @@ namespace kqp {
     template <typename _Scalar> 
     class SparseDenseMatrix : public FeatureMatrix<SparseDenseMatrix<_Scalar>> {
     public:
-        typedef SparseDenseMatrix<_Scalar> Self;
-        KQP_FMATRIX_TYPES(SparseDenseMatrix);
+        KQP_FMATRIX_COMMON_DEFS(SparseDenseMatrix<_Scalar>);
         
         
-        SparseDenseMatrix() : size(0), dimension(0) {}
-        SparseDenseMatrix(Index dimension) : size(0), dimension(dimension) {}
+        SparseDenseMatrix() : m_size(0), m_dimension(0) {}
+        SparseDenseMatrix(Index dimension) : m_size(0), m_dimension(dimension) {}
         
+    protected:
         // --- Base methods 
-        
         Index _size() const { 
-            return size;
+            return m_size;
         }
         
         Index _dimension() const {
-            return dimension;
+            return m_dimension;
         }
         
         void _add(const Self &other, std::vector<bool> *which = NULL)  {
@@ -62,16 +61,16 @@ namespace kqp {
             } else toAdd = other._size();
                 
             
-            auto j = matrix.begin();
+            auto j = m_matrix.begin();
             
-            for(auto it = other.matrix.begin(), end = other.matrix.end(); it != end; it++) {
+            for(auto it = other.m_matrix.begin(), end = other.m_matrix.end(); it != end; it++) {
                 // Search for the right element
-                while (j != matrix.end() && j->first < it->first) j++;
+                while (j != m_matrix.end() && j->first < it->first) j++;
 
-                if (j != matrix.end() && j->first != it->first) 
-                    j = matrix.insert(--j, std::pair<Index,Row>(it->first, Row(it->second.first, ScalarVector::Zero(toAdd+size))));
+                if (j != m_matrix.end() && j->first != it->first) 
+                    j = m_matrix.insert(--j, std::pair<Index,Row>(it->first, Row(it->second.first, ScalarVector::Zero(toAdd+m_size))));
                 else {
-                    j->second.second.conservativeResize(toAdd+size);
+                    j->second.second.conservativeResize(toAdd+m_size);
                     j->second.second.bottomRows(toAdd).setZero();
                 }
                 
@@ -79,30 +78,30 @@ namespace kqp {
                 ScalarVector &x = j->second.second;
                 const ScalarVector &y = it->second.second;
                 if (!which)
-                    x.segment(size, size+y.size()) = y;
+                    x.segment(m_size, m_size+y.size()) = y;
                 else {
                     for(size_t k = 0; k < ix.size() && ix[k] < y.size(); k++) 
-                        x[size+ix[k]] = y[ix[k]];
+                        x[m_size+ix[k]] = y[ix[k]];
                 }
                 j->second.first += it->second.first;
             }
             
-            size += toAdd;
+            m_size += toAdd;
             
         }
         
         
         const ScalarMatrix &_inner() const {
             // Nothing to do
-            if (_size() == 0 || _size() == gramMatrix.rows()) return gramMatrix;
+            if (_size() == 0 || m_size == m_gramMatrix.rows()) return m_gramMatrix;
             
             // Resize the gram matrix
-            Index current = gramMatrix.rows();
-            if (current < _size()) 
-                gramMatrix.conservativeResize(_size(), _size());
+            Index current = m_gramMatrix.rows();
+            if (current < m_size) 
+                m_gramMatrix.conservativeResize(_size(), _size());
             Index tofill = _size() - current;
-            gramMatrix.bottomRightCorner(tofill, tofill).setZero();
-            gramMatrix.topRightCorner(current, tofill).setZero();
+            m_gramMatrix.bottomRightCorner(tofill, tofill).setZero();
+            m_gramMatrix.topRightCorner(current, tofill).setZero();
             
             // Computes \f$ \sum_i L_i^T * L_i \f$ for the range [current, current+toFill-1]
             // Each row is of the form (a b 0) where a has size current, b is between 0 and toFill
@@ -112,21 +111,21 @@ namespace kqp {
             // 0       0       0
             
             // In this loop, we only compute a^t b and b^t b since the rest is already computed (a^T a), obtained by symmetry (b^T a), or is zero
-            for(auto i = matrix.begin(), end = matrix.end(); i != matrix.end(); i++) {
+            for(auto i = m_matrix.begin(), end = m_matrix.end(); i != m_matrix.end(); i++) {
                 const ScalarVector &x = i->second.second;
                 
                 // No need to update for this vector
                 if (x.size() < current) continue;
                 
                 // Update the relevant part
-                gramMatrix.block(0, current, x.size(), x.size() - current) += x.transpose() * x.segment(current, x.size() - current);
+                m_gramMatrix.block(0, current, x.size(), x.size() - current) += x.transpose() * x.segment(current, x.size() - current);
                 
             }
             
             // Just to fill the rest
-            gramMatrix.bottomLeftCorner(tofill, current) = gramMatrix.topRightCorner(current, tofill).adjoint().eval();
+            m_gramMatrix.bottomLeftCorner(tofill, current) = m_gramMatrix.topRightCorner(current, tofill).adjoint().eval();
             
-            return gramMatrix;
+            return m_gramMatrix;
         }
         
         //! Computes the inner product with another matrix
@@ -135,8 +134,8 @@ namespace kqp {
             if (result.rows() != _size() || result.cols() != other.size())
                 result.derived().resize(result.rows(), result.cols());
             
-            auto j = other.matrix.begin(), jEnd = other.matrix.end();
-            for(auto i = matrix.begin(), end = matrix.end(); i != matrix.end(); i++) {
+            auto j = other.m_matrix.begin(), jEnd = other.m_matrix.end();
+            for(auto i = m_matrix.begin(), end = m_matrix.end(); i != m_matrix.end(); i++) {
                 // Try to find a match
                 while (j != j.end() && j->first < i->first) 
                     j++;
@@ -154,21 +153,21 @@ namespace kqp {
         
         // Computes alpha * X * A + beta * Y * B (X = *this)
         Self _linear_combination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
-            Self r(dimension);
-            r.size = mA.cols();
+            Self r(m_dimension);
+            r.m_size = mA.cols();
             
             // Compute
             Real max = 0;
             
-            for(auto i = matrix.begin(); i != matrix.end(); i++) {
-                Row &row = r.matrix[i->first] = Row(i->first, alpha * i->second.second.transpose() * mA.topRows(i->second.second.size()));
+            for(auto i = m_matrix.begin(); i != m_matrix.end(); i++) {
+                Row &row = r.m_matrix[i->first] = Row(i->first, alpha * i->second.second.transpose() * mA.topRows(i->second.second.size()));
                 if (!mY)
                     max = std::max(max, row.second.norm());
             }
             
             if (mY && mB) {
-                for(auto i = mY->matrix.begin(); i!= mY->matrix.end(); i++) {
-                    Row &row = r.matrix[i->first];
+                for(auto i = mY->m_matrix.begin(); i!= mY->m_matrix.end(); i++) {
+                    Row &row = r.m_matrix[i->first];
                     const ScalarVector &y = i->second.second;
                     if (row.second.size() < y.size()) {
                         Index n = row.second.size();
@@ -194,17 +193,18 @@ namespace kqp {
         
     private:
         //! Cache of the gram matrix
-        mutable ScalarMatrix gramMatrix;
+        mutable ScalarMatrix m_gramMatrix;
         
         typedef std::pair<Index, ScalarVector> Row;
+        
         //! A map from rows to a pair <non zero count, dense vector>
-        std::map<Index, Row> matrix;
+        std::map<Index, Row> m_matrix;
         
         //! Number of pre-images
-        Index size;
+        Index m_size;
         
         //! Dimension of the space
-        Index dimension;
+        Index m_dimension;
     };
       
     
