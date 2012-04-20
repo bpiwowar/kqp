@@ -39,11 +39,7 @@ int main(int, const char**) {
     }
     
     // Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
-    DenseMatrix<double> mX;
-    typename AltDense<double>::type mY;
-    Eigen::Matrix<double,Dynamic,1>  mD;
-    
-    kevd.get_decomposition(mX, mY, mD);
+    Decomposition<DenseMatrix<double>> d = kevd.getDecomposition();
 
     // --- Compute a kEVD for a subspace
     
@@ -59,6 +55,7 @@ int main(int, const char**) {
     
     // Setup densities and events
     Density<DenseMatrix<double>> rho(kevd);
+    rho.normalize();
     Event<DenseMatrix<double>> event(kevd_event);
     
     // Compute the probability
@@ -66,9 +63,11 @@ int main(int, const char**) {
 
     // Conditional probability
     Density<DenseMatrix<double>> rho_cond = event.project(kevd).normalize(); 
-
+    std::cout << "Entropy rho/E = " << rho_cond.entropy() << std::endl;
+    
     // Conditional probability (orthogonal event)
     Density<DenseMatrix<double>> rho_cond_orth = event.project(kevd, true).normalize();
+    std::cout << "Entropy rho/not E = " << rho_cond_orth.entropy() << std::endl;
     
     return 0;
 }

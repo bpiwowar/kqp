@@ -29,28 +29,46 @@ namespace kqp {
      * @ingroup FeatureMatrix
      */
     template <class FVector> 
-    class FeatureList : public FeatureMatrix<FeatureList<FVector>> {
+    class FeatureList : public FeatureMatrix< FeatureList<FVector> > {
     public:
+        KQP_FMATRIX_COMMON_DEFS(FeatureMatrix<FVector>);
+
+        FeatureList(Index dimension) : m_dimension(dimension) {}
         
-        Index size() const { return this->list.size(); }
         
-        const FVector& get(Index i) const { return this->list[i]; }
-        
-        virtual void add(const FVector &f) {
+                
+    protected:
+        Index _size() const { return this->list.size(); }
+
+        void _add(const Self &other, std::vector<bool> *which = NULL)  {
             this->list.push_back(f);
         }
         
+        const ScalarMatrix &_inner() const {
+        }
         
-        const ScalarMatrix & inner() const {
-            kqp::inner(list[i],list[j]);
+        template<class DerivedMatrix>
+        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
+            if (result.rows() != _size() || result.cols() != other.size())
+                result.derived().resize(result.rows(), result.cols());
+        }
+        
+        // Computes alpha * X * A + beta * Y * B (X = *this)
+        Self _linear_combination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
+        }
+        
+        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
         }
         
     private:
         //! Our inner product
-        mutable ScalarMatrix gramMatrix;
+        mutable ScalarMatrix m_gramMatrix;
         
         //! Our list of pre-images
-        std::vector<FVector> list;
+        std::vector<FVector> m_list;
+        
+        //! Dimension
+        Index m_dimension;
     };
     
     
@@ -74,12 +92,17 @@ namespace kqp {
         virtual Scalar inner() = 0;
         virtual Scalar inner(const GenericVector<Scalar> &other) = 0;
     };
-    
-    typename<typedef Scalar>
-    Scalar 
 
-#define KQP_SCALAR_GEN(scalar) \
-    extern template class FeatureList<GenericVector<scalar>
+	template<Scalar>
+	inline Scalar inner(const GenericVector<Scalar> &a, const GenericVector<Scalar> &b) {
+		return a.inner(b);
+	}
+
+	template<Scalar>
+	inline Scalar inner(GenericVector<Scalar> &a) {
+		return a.inner();
+	}
+    
 } // end namespace kqp
 
 #endif
