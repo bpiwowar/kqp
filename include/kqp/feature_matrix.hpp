@@ -70,11 +70,10 @@ typedef typename ftraits< FMatrix >::InnerMatrix InnerMatrix;
      * @param _FVector the type of the feature vectors
      * @author B. Piwowarski <benjamin@bpiwowar.net>
      */
-    template <class _Derived> 
+    template <class Derived> 
     class FeatureMatrix {
     public:       
 
-        typedef _Derived Derived;
         KQP_FMATRIX_TYPES(Derived);
 
         /**

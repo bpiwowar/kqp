@@ -128,7 +128,7 @@ namespace kqp{
         }
 
         
-    public:
+    protected:
         //! Actually performs the computation
         virtual Decomposition<FMatrix> _getDecomposition() const override {
             Decomposition<FMatrix> d;

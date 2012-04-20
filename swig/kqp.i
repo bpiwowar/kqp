@@ -30,7 +30,10 @@
     
     #include <kqp/probabilities.hpp>
 
-    #include "alt_matrix_swig.hpp"
+    namespace kqp {
+        namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
+        namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
+    }
 %}
 
 // --- Defines some macros
@@ -59,14 +62,10 @@
 
 %template(BoolArrayList) std::vector<bool>;
 
-
 // ---- Command renaming
 
 %rename operator++ next;
 %rename operator!= notEqual;
-
-namespace kqp {}
-namespace Eigen {}
 
 %ignore kqp::FeatureMatrix;
 %ignore kqp::Intervals;
@@ -74,12 +73,39 @@ namespace Eigen {}
 %ignore kqp::DenseMatrix::getMatrix;
 %ignore kqp::LinearCombination;
 
+// ---- Some basic declarations
+
+namespace kqp {
+    namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
+    namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
+    
+    template<typename FMatrix> struct ftraits;
+        
+    //! A dense vector or a constant vector
+     template<typename Scalar> struct AltVector {
+         typedef Eigen::Matrix<Scalar,Dynamic,1>  VectorType;
+         typedef typename Eigen::Matrix<Scalar,Dynamic,1>::ConstantReturnType ConstantVectorType;
+     };
+
+
+     //! Dense or Identity matrix
+     template<typename Scalar> struct AltDense {
+         typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> DenseType;
+         typedef typename Eigen::MatrixBase< Eigen::Matrix<Scalar,Dynamic,Dynamic> >::IdentityReturnType IdentityType;
+     };
+         
+    template<typename T1,typename T2>
+    class AltMatrix {
+    };
+}
 namespace Eigen {
+    template<typename Scalar> struct NumTraits;
     template<typename Scalar, int Rows, int Cols>
-    class Eigen::Matrix {
+    class Matrix {
     public:
         Matrix(Index rows, Index cols);
     };
 }
+
 
 %include "kqp_all.i"
