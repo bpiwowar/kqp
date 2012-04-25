@@ -145,6 +145,10 @@ namespace kqp {
         const ScalarMatrix& getMatrix() const {
             return this->matrix;
         }
+        
+        const ScalarMatrix &toDense() const {
+            return this->matrix;
+        }
 
     protected:
         

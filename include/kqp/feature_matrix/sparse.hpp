@@ -76,7 +76,7 @@ namespace kqp {
             return m_matrix.rows();
         }
         
-        void _add(const Self &other, std::vector<bool> *which = NULL)  {
+        void _add(const Self &other, const std::vector<bool> *which = NULL)  {
             // Computes the indices of the vectors to add
             std::vector<Index> ix;
             Index toAdd = 0;
@@ -119,7 +119,7 @@ namespace kqp {
             // Construct
             std::vector<Index> selected;
             auto it = begin;
-            for(size_t i = 0; i < m_matrix.cols(); i++) {
+            for(Index i = 0; i < m_matrix.cols(); i++) {
                 if (it == end || *it)
                     selected.push_back(i);
                 it++;
@@ -127,7 +127,7 @@ namespace kqp {
             
             // Prepare the resultant sparse matrix
             Storage s(m_matrix.rows(), selected.size());
-            Eigen::MatrixXi counts(selected.size());
+            Eigen::VectorXi counts(selected.size());
             for(size_t i = 0; i < selected.size(); ++i)
                 counts[i] = m_matrix.col(selected[i]).nonZeros();
             s.reserve(counts);
@@ -135,7 +135,7 @@ namespace kqp {
             // Fill the result
             for(size_t i = 0; i < selected.size(); ++i)
                 for (typename Storage::InnerIterator it(m_matrix,selected[i]); it; ++it) 
-                    s.insert(it->row(), i) = it->value();
+                    s.insert(it.row(), i) = it.value();
             
             into = Self(s);
         }
@@ -172,12 +172,14 @@ namespace kqp {
         };
     };
     
-    
+
+#ifndef SWIG    
 # // Extern templates
 # define KQP_SCALAR_GEN(scalar) \
    extern template class SparseMatrix<scalar>;
 # include <kqp/for_all_scalar_gen>
-    
+#endif
+
 } // end namespace kqp
 
 #endif

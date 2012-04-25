@@ -22,6 +22,7 @@
     #include <kqp/cleanup.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
+    #include <kqp/feature_matrix/sparse.hpp>
     #include <kqp/feature_matrix/sparse_dense.hpp>
     
     #include <kqp/kernel_evd/dense_direct.hpp>
@@ -62,6 +63,7 @@
 // --- STL related types
 
 %template(BoolArrayList) std::vector<bool>;
+%template(IndexArrayList) std::vector<Index>;
 
 // ---- Command renaming
 
@@ -106,7 +108,14 @@ namespace Eigen {
     public:
         Matrix(Index rows, Index cols);
     };
+    
+    template<typename Scalar, int Major>
+    class SparseMatrix {
+    public:
+        SparseMatrix(Index rows, Index cols);
+    };
 }
+
 
 
 %include "kqp_all.i"

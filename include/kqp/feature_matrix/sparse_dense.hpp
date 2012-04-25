@@ -236,17 +236,23 @@ namespace kqp {
             if (which) {
                 for(size_t i = 0; i < which->size(); i++)
                     if ((*which)[i]) ix.push_back(i);
+                toAdd = ix.size();
             } else toAdd = other._size();
             
             if (toAdd == 0) return;
             
+            Index oldRows = m_map.size();
             std::set_difference(other.m_map.begin(), other.m_map.end(), m_map.begin(), m_map.end(), 
                                 boost::make_function_output_iterator(Insert({m_map})));
             
+            Index newRows = m_map.size() - oldRows;
             
             // Add 
             Index offset = m_matrix.cols();
             m_matrix.conservativeResize(m_map.size(), m_matrix.cols() + toAdd);
+            m_matrix.topRightCorner(oldRows, toAdd).setZero();
+            m_matrix.bottomRows(newRows).setZero();
+            
             for(auto i = other.m_map.begin(); i != other.m_map.end(); i++) {
                 Index otherRow = i->second;
                 Index selfRow = m_map[i->first];
@@ -368,10 +374,11 @@ namespace kqp {
     
     
 # // Extern templates
+#ifndef SWIG
 # define KQP_SCALAR_GEN(scalar) \
   extern template class SparseDenseMatrix<scalar>;
 # include <kqp/for_all_scalar_gen>
-    
+#endif    
 } // end namespace kqp
 
 #endif

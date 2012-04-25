@@ -104,7 +104,7 @@ namespace kqp {
             
             // --- Ensure we have a small enough number of pre-images
             if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
-                if (d.mX.can_linearly_combine() && this->useLinearCombination) {
+                if (d.mX.canLinearlyCombine() && this->useLinearCombination) {
                     // Easy case: we can linearly combine pre-images
                     d.mX = d.mX.linear_combination(d.mY);
                     d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());

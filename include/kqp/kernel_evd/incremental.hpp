@@ -173,7 +173,7 @@ namespace kqp {
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 if (mX.size() > maxRank) {
-                    if (mX.can_linearly_combine() && this->useLinearCombination) {
+                    if (mX.canLinearlyCombine() && this->useLinearCombination) {
                         // Easy case: we can linearly combine pre-images
                         mX = mX.linear_combination(mY);
                         mY = ScalarMatrix::Identity(mX.size(), mX.size());

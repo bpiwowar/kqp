@@ -17,12 +17,10 @@
 
     // Add move semantics to MatrixBase
     SparseMatrix(SparseMatrix &&other) : Base() {
-        std::cerr << "Move SparseMatrix constructor\n";
         this->swap(other);
     }
 
     SparseMatrix &operator=(SparseMatrix &&other) {
-        std::cerr << "Move SparseMatrix assignement\n";
         this->swap(other);
         return *this;
     }
