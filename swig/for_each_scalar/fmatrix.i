@@ -20,8 +20,10 @@ namespace kqp {
 // --- Features matrices
 
 %include <kqp/feature_matrix.hpp>
-%template() kqp::FeatureMatrix< kqp::DenseMatrix< @STYPE@ > >;
 
+
+// Dense
+%template() kqp::FeatureMatrix< kqp::DenseMatrix< @STYPE@ > >;
 %include <kqp/feature_matrix/dense.hpp>
 %template(Dense@SNAME@) kqp::DenseMatrix< @STYPE@ >;
 %extend kqp::DenseMatrix< @STYPE@ > {
@@ -29,6 +31,11 @@ namespace kqp {
     return sizeof(@STYPE@) * self->size() * self->dimension();
   };
 };
+
+// Sparse dense
+%template() kqp::FeatureMatrix< kqp::SparseDenseMatrix< @STYPE@ > >;
+%include <kqp/feature_matrix/sparse_dense.hpp>
+%template(SparseDense@SNAME@) kqp::SparseDenseMatrix< @STYPE@ >;
 
 // ---- Decompositions & cleaning
 

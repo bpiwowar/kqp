@@ -23,207 +23,6 @@
 
 namespace kqp {
     
-    // ---- Sparse matrix in the Dense canonical basis ----
-    /**
-     * @brief A feature matrix where vectors are in a dense subspace (in the canonical basis).
-     *
-     * This class makes the hypothesis that vectors have only a few non null components (compared to the dimensionality of the space), 
-     * and that those components are mostly the same.
-     *
-     * In practice, the matrix is a map from a row index to a vector (along with a count of the number of zeros),
-     * where each vector has a size less or equal to the number of columns of the sparse matrix.
-     * @ingroup FeatureMatrix
-     */
-    template <typename _Scalar> 
-    class SparseDenseMatrix : public FeatureMatrix<SparseDenseMatrix<_Scalar>> {
-    public:
-        KQP_FMATRIX_COMMON_DEFS(SparseDenseMatrix<_Scalar>);
-        
-        SparseDenseMatrix() : m_size(0), m_dimension(0) {}
-        SparseDenseMatrix(Index dimension) : m_size(0), m_dimension(dimension) {}
-        
-    protected:
-        
-        struct Row {
-            Index nonZeroCount;
-            Matrix<_Scalar, Dynamic, 1> vector;
-            Row(Index nonZeroCount, ScalarVector vector) : nonZeroCount(nonZeroCount), vector(vector) {}
-            Row() {}
-        };
-        
-        // --- Base methods 
-        Index _size() const { 
-            return m_size;
-        }
-        
-        Index _dimension() const {
-            return m_dimension;
-        }
-        
-        void _add(const Self &other, std::vector<bool> *which = NULL)  {
-            std::vector<Index> ix;
-            Index toAdd = 0;
-            if (which) {
-                for(size_t i = 0; i < which->size(); i++)
-                    if ((*which)[i]) ix.push_back(i);
-            } else toAdd = other._size();
-            
-            
-            auto j = m_matrix.begin();
-            
-            for(auto it = other.m_matrix.begin(), end = other.m_matrix.end(); it != end; it++) {
-                // Search for the right element
-                while (j != m_matrix.end() && j->first < it->first) j++;
-                
-                if (j == m_matrix.end() || j->first != it->first) 
-                    j = m_matrix.insert(--j, std::pair<Index,Row>(it->first, Row(it->second.nonZeroCount, ScalarVector::Zero(toAdd+m_size))));
-                else {
-                    j->second.vector.conservativeResize(toAdd+m_size);
-                    j->second.vector.bottomRows(toAdd).setZero();
-                }
-                
-                // OK, now add elements
-                ScalarVector &x = j->second.vector;
-                const ScalarVector &y = it->second.vector;
-                if (!which)
-                    x.segment(m_size, m_size+y.size()) = y;
-                else {
-                    for(size_t k = 0; k < ix.size() && ix[k] < y.size(); k++) 
-                        x[m_size+ix[k]] = y[ix[k]];
-                }
-                j->second.nonZeroCount += it->second.nonZeroCount;
-            }
-            
-            m_size += toAdd;
-            
-        }
-        
-        
-        const ScalarMatrix &_inner() const {
-            // Nothing to do
-            if (_size() == 0 || m_size == m_gramMatrix.rows()) return m_gramMatrix;
-            
-            // Resize the gram matrix
-            Index current = m_gramMatrix.rows();
-            if (current < m_size) 
-                m_gramMatrix.conservativeResize(_size(), _size());
-            Index tofill = _size() - current;
-            m_gramMatrix.bottomRightCorner(tofill, tofill).setZero();
-            m_gramMatrix.topRightCorner(current, tofill).setZero();
-            
-            // Computes \f$ \sum_i L_i^T * L_i \f$ for the range [current, current+toFill-1]
-            // Each row is of the form (a b 0) where a has size current, b is between 0 and toFill
-            // so the update is
-            // a^T a   a^T b   0
-            // b^T a   b^T b   0
-            // 0       0       0
-            
-            // In this loop, we only compute a^t b and b^t b since the rest is already computed (a^T a), obtained by symmetry (b^T a), or is zero
-            for(auto i = m_matrix.begin(), end = m_matrix.end(); i != m_matrix.end(); i++) {
-                const ScalarVector &x = i->second.vector;
-                
-                // No need to update for this vector
-                if (x.size() < current) continue;
-                
-                // Update the relevant part
-                m_gramMatrix.block(0, current, x.size(), x.size() - current) += x.transpose() * x.segment(current, x.size() - current);
-                
-            }
-            
-            // Just to fill the rest
-            m_gramMatrix.bottomLeftCorner(tofill, current) = m_gramMatrix.topRightCorner(current, tofill).adjoint().eval();
-            
-            return m_gramMatrix;
-        }
-        
-        //! Computes the inner product with another matrix
-        template<class DerivedMatrix>
-        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
-            if (result.rows() != _size() || result.cols() != other.size())
-                result.derived().resize(result.rows(), result.cols());
-            
-            auto j = other.m_matrix.begin(), jEnd = other.m_matrix.end();
-            for(auto i = m_matrix.begin(), end = m_matrix.end(); i != m_matrix.end(); i++) {
-                // Try to find a match
-                while (j != j.end() && j->first < i->first) 
-                    j++;
-                if (j == jEnd) break;
-                
-                // Update if the row match
-                if (i->first == j->first) {
-                    const ScalarVector &x = i->second->second;
-                    const ScalarVector &y = j->second->second;
-                    result.block(0, 0, x.size(), y.size()) += x.transpose() * y;
-                }
-            }
-        }
-        
-        
-        // Computes alpha * X * A + beta * Y * B (X = *this)
-        Self _linear_combination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
-            Self r(m_dimension);
-            r.m_size = mA.cols();
-            
-            // Compute
-            Real max = 0;
-            
-            for(auto i = m_matrix.begin(); i != m_matrix.end(); i++) {
-                Row &row = (r.m_matrix[i->first] = Row(i->second.nonZeroCount, alpha * i->second.vector.transpose() * mA.topRows(i->second.vector.size())));
-                if (!mY)
-                    max = std::max(max, row.vector.norm());
-            }
-            
-            if (mY && mB) {
-                for(auto i = mY->m_matrix.begin(); i!= mY->m_matrix.end(); i++) {
-                    Row &row = r.m_matrix[i->first];
-                    const ScalarVector &y = i->second.vector;
-                    if (row.vector.size() < y.size()) {
-                        Index n = row.vector.size();
-                        row.vector.conservativeResize(y.size());
-                        row.vector.tail(y.size() - n).setZero();
-                    }
-                    row.vector += beta * y.transpose() * (*mB);
-                    max = std::max(max, row.vector.norm());
-                }
-            }
-            
-            // Check the zeros
-            
-            
-            return r;
-        }
-        
-        
-        
-        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
-            KQP_THROW_EXCEPTION(not_implemented_exception, "");
-        }
-        
-    private:
-        //! Cache of the gram matrix
-        mutable ScalarMatrix m_gramMatrix;
-               
-        //! A map from rows to a pair <non zero count, dense vector>
-        std::map<Index, Row> m_matrix;
-        
-        //! Number of pre-images
-        Index m_size;
-        
-        //! Dimension of the space
-        Index m_dimension;
-    };
-    
-    
-    // The scalar for dense feature matrices
-    template <typename _Scalar> struct FeatureMatrixTypes<SparseDenseMatrix<_Scalar> > {
-        typedef _Scalar Scalar;
-        enum {
-            can_linearly_combine = 1
-        };
-    };
-    
-    
-    
     
     
     /**
@@ -255,7 +54,7 @@ namespace kqp {
         Index _dimension() const {
             return m_dimension;
         }
-
+        
         void _add(const Self &other, std::vector<bool> *which = NULL)  {
             std::vector<Index> ix;
             Index toAdd = 0;
@@ -279,11 +78,11 @@ namespace kqp {
                     const SparseVector &y = it->second.vector;
                     KQP_THROW_EXCEPTION(not_implemented_exception, "_add");
                     if (!which) {
-//                        x.segment(m_size, m_size+y.size()) = y;
+                        //                        x.segment(m_size, m_size+y.size()) = y;
                     } else {
                         for(size_t k = 0; k < ix.size() && ix[k] < y.size(); k++) 
                             ;
-//                            x[m_size+ix[k]] = y[ix[k]];
+                        //                            x[m_size+ix[k]] = y[ix[k]];
                     }
                 }
                 
@@ -364,7 +163,7 @@ namespace kqp {
         
         //! The number of pre-images
         Index m_size;
-
+        
         //! Underlying dimension
         Index m_dimension;
         
@@ -387,11 +186,10 @@ namespace kqp {
     };
     
     
-    // Extern templates
-#define KQP_SCALAR_GEN(scalar) \
-extern template class SparseMatrix<scalar>; \
-extern template class SparseDenseMatrix<scalar>;
-#include <kqp/for_all_scalar_gen>
+# // Extern templates
+# define KQP_SCALAR_GEN(scalar) \
+   extern template class SparseMatrix<scalar>;
+# include <kqp/for_all_scalar_gen>
     
 } // end namespace kqp
 

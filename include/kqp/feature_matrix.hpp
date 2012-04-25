@@ -227,14 +227,10 @@ typedef typename ftraits< FMatrix >::InnerMatrix InnerMatrix;
     typename ftraits<Derived>::ScalarMatrix inner(const FeatureMatrix<Derived> &mA, const FeatureMatrix<Derived> &mB) {
         // Define only one result to return for compiler optimisation (direct return)
         typedef typename ftraits<Derived>::ScalarMatrix ScalarMatrix;
-        ScalarMatrix result;
+        ScalarMatrix result(mA.size(), mB.size());
         
         // Check for sizes
-        if (mA.size() == 0 || mB.size() == 0) 
-            // No need to compute anything - we just resize for consistency
-            result.resize(mA.size(), mB.size());
-        else
-            // Compute
+        if (mA.size() > 0 && mB.size() > 0) 
             mA.template inner<ScalarMatrix>(mB.derived(), result);
 
         return result;

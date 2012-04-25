@@ -37,8 +37,8 @@ if (JAVA_KQP OR JAVA_PYTHON)
               file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/generated/kqp_all.i" "%include \"${SNAME}-${KQP_SWIG_FILENAME}\"\n")
               configure_file(${KQP_SWIG_SCALAR} "${KQP_SWIG_GENERATED}/${SNAME}-${KQP_SWIG_FILENAME}")
           ENDFOREACH()
-          
-          FOREACH(SWIG_FMATRIX "kqp::DenseMatrix< ${STYPE} >/Dense${SNAME}")
+
+          FOREACH(SWIG_FMATRIX "kqp::DenseMatrix< ${STYPE} >/Dense${SNAME}" "kqp::SparseDenseMatrix< ${STYPE} >/SparseDense${SNAME}")
               STRING (REGEX MATCHALL "[^/]+" SWIG_PARTS "${SWIG_FMATRIX}")
               LIST (GET SWIG_PARTS 0 FTYPE)
               LIST (GET SWIG_PARTS 1 FNAME)

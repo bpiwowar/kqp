@@ -6,7 +6,12 @@ FILE(GLOB kqp.test.alt-matrix alt_matrix_tests.cpp ${kqp.basefiles})
 ADD_EXECUTABLE(test_alt-matrix ${kqp.test.alt-matrix})
 TARGET_LINK_LIBRARIES(test_alt-matrix ${LIBLOG4CXX_LIBRARY})
 
-# Alt matrix
+# Feature matrix
+FILE(GLOB kqp.test.fmatrix feature_matrix.cpp ../src/subset.cpp ${kqp.basefiles})
+ADD_EXECUTABLE(test_fmatrix ${kqp.test.fmatrix})
+TARGET_LINK_LIBRARIES(test_fmatrix ${LIBLOG4CXX_LIBRARY})
+
+# Rank-1 EVD update
 FILE(GLOB kqp.test.evd-update evd-update.cpp)
 ADD_EXECUTABLE(test_evd-update ${kqp.test.evd-update})
 TARGET_LINK_LIBRARIES(test_evd-update kqp)

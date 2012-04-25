@@ -22,6 +22,7 @@
     #include <kqp/cleanup.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
+    #include <kqp/feature_matrix/sparse_dense.hpp>
     
     #include <kqp/kernel_evd/dense_direct.hpp>
     #include <kqp/kernel_evd/accumulator.hpp>
@@ -48,14 +49,14 @@
 // --- Language dependent includes
 
 %include "boost_shared_ptr.i"
+%include "std_vector.i"
 
 #if SWIGJAVA
-%include "java/kqp.i"
+%include "java_kqp.i"
 #endif
 
 #ifdef SWIGPYTHON
 %include <pycontainer.swg>
-%import "python/std_vector.i"
 #endif
 
 // --- STL related types

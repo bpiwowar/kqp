@@ -23,8 +23,11 @@
 %include "kqp/kernel_evd.hpp"
 %template(KEVD@FNAME@) kqp::KernelEVD< @FTYPE@ >;
 
+#ifndef KEVDDIRECT@SNAME@
+#define KEVDDIRECT@SNAME@
 %include "kqp/kernel_evd/dense_direct.hpp"
 %template(KEVDDirect@SNAME@) kqp::DenseDirectBuilder< @STYPE@ >;
+#endif
 
 %include "kqp/kernel_evd/accumulator.hpp"
 %template(KEVDAccumulator@FNAME@) kqp::AccumulatorKernelEVD< @FTYPE@, true >;
@@ -34,24 +37,3 @@
 
 %include "kqp/kernel_evd/divide_and_conquer.hpp"
 %template(KEVDDivideAndConquer@FNAME@) kqp::DivideAndConquerBuilder< @FTYPE@ >;
-
-
-
-%shared_ptr(IntValue)
-
-%inline %{
-#include <boost/shared_ptr.hpp>
-
-struct IntValue {
-  int value;
-  IntValue(int v) : value(v) {}
-};
-
-static int extractValue(const IntValue &t) {
-  return t.value;
-}
-
-static int extractValueSmart(boost::shared_ptr<IntValue> t) {
-  return t->value;
-}
-%}
