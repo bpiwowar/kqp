@@ -21,6 +21,7 @@
 
 #include <kqp/kqp.hpp>
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 
 namespace kqp {
     
@@ -960,35 +961,20 @@ namespace kqp {
     
     
     
-    // --- Alt * Dense
+    // --- Alt * Eigen
     template<class Derived,class OtherDerived>
     inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
-    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::MatrixBase<OtherDerived> &b) {
+    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::EigenBase<OtherDerived> &b) {
         return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>(a.derived(), b.derived());
     }
     
-    // --- Dense * Alt
+    // --- Eigen * Alt
     template<class Derived,class OtherDerived>
     inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>
-    operator*(const Eigen::MatrixBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
+    operator*(const Eigen::EigenBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
         return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>(a.derived(), b.derived());
     }
-    
-    
-    // --- Alt * Diagonal
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
-    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::DiagonalBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>(a.derived(), b.derived());
-    }
-    
-    // --- Diagonal * Alt
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>
-    operator*(const Eigen::DiagonalBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>(a.derived(), b.derived());
-    }
-    
+        
     
     // --- Alt * Alt
     template<class Derived,class OtherDerived>
