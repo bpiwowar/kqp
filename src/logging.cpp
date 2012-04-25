@@ -52,7 +52,7 @@ namespace kqp {
         log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
         appender->setName("kqp-appender");
         log4cxx::BasicConfigurator::configure(appender);
-        
+        log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getInfo());
         initialized = true;
         
         KQP_LOG_DEBUG(main_logger, "Initialised the logging system");
