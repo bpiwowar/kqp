@@ -19,6 +19,8 @@
 
 
 #define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.hpp>
+#define EIGEN_SPARSEMATRIX_PLUGIN <kqp/eigen_sparse_matrix_plugin.hpp>
+
 #include "Eigen/Core"
 
 #include <boost/exception/errinfo_at_line.hpp>
