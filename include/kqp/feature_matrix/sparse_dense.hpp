@@ -56,12 +56,54 @@ namespace kqp {
 #endif
 
         //! Creates from a sparse matrix
+        SparseDenseMatrix(const Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+            // --- Compute which rows we need
+            
+            
+            // Computing the column norms
+            RealVector norms(mat.cols());
+            for (Index k=0; k<mat.cols(); ++k)  { // Loop on cols
+                // FIXME: use norm() when Eigen fixed
+                // norms[k] = mat.innerVector(k).norm();
+                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows 
+                    norms[k] += Eigen::internal::abs2(it.value());
+                }
+            }
+            
+            norms = norms.cwiseSqrt();
+            
+            // Computing selected rows map
+            for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
+                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
+                    if (std::abs(it.value()) / norms[it.col()] > threshold) {
+                        if (m_map.find(it.row()) == m_map.end()) {
+                            m_map[it.row()] = m_map.size();                            
+                        }
+                    }
+                }
+            }
+            
+            // --- Copying
+            m_matrix.resize(m_map.size(), mat.cols());
+            m_matrix.setZero();
+            
+            for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
+                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
+                    m_matrix(m_map[it.row()], it.col()) = it.value();
+                }
+            }
+            
+        }
+
+        
+        //! Creates from a sparse matrix
         SparseDenseMatrix(const Eigen::SparseMatrix<_Scalar, Eigen::RowMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
             
                       
             // Computing the column norms
             RealVector norms(mat.cols());
+            norms.setZero();
             for (int k=0; k<mat.outerSize(); ++k)  // Loop on rows
                 for (typename Eigen::SparseMatrix<_Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it; ++it) // Loop on cols
                     norms[it.col()] += Eigen::internal::abs2(it.value());
@@ -129,7 +171,7 @@ namespace kqp {
         }
         
         //! Get the dense dimension
-        Index denseDimension() {
+        Index denseDimension() const {
             return m_matrix.rows();
         }
         

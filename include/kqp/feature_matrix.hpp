@@ -79,7 +79,7 @@ typedef typename ftraits< FMatrix >::InnerMatrix InnerMatrix;
         /**
          * Returns true if the vectors can be linearly combined
          */
-        bool can_linearly_combine() {
+        bool canLinearlyCombine() {
             return FTraits::can_linearly_combine;
         }
 
