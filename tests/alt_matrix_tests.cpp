@@ -31,6 +31,12 @@ using namespace Eigen;
 
 namespace {
     
+    using Eigen::Matrix;
+    using Eigen::Dynamic;
+
+    using Eigen::SparseMatrix;
+    using Eigen::ColMajor;
+    
     // Dense or Identity matrix
     template<typename Scalar> struct AltDenseDiagonal {
         typedef AltMatrix< Eigen::Matrix<Scalar,Dynamic,Dynamic> , Eigen::DiagonalWrapper<Eigen::Matrix<Scalar,Dynamic,1> > > type;
@@ -60,7 +66,7 @@ namespace {
         typename NumTraits<Scalar>::Real 
         error = (alt_mB - ScalarMatrix(mA * mB)).squaredNorm();        
         std::cerr << "Error: " << error << std::endl;        
-        return error < EPSILON;
+        return error > EPSILON;
     }
     
     template<class Lhs, class Rhs>
@@ -76,7 +82,7 @@ namespace {
         error = (mA_alt - ScalarMatrix(mA * mB)).squaredNorm(),
         error2 = (ScalarMatrix(mA * alt) - ScalarMatrix(mA * mB)).squaredNorm();
         std::cerr << "Error: " << error << " [" << error2 << "]" << std::endl;        
-        return error < EPSILON;
+        return error > EPSILON;
         
     }
     
@@ -95,7 +101,7 @@ namespace {
         std::cerr << KQP_DEMANGLE(d) << " x T(Alt(" << KQP_DEMANGLE(b)  << ")) x T(" << KQP_DEMANGLE(a)  << ")) x " 
         << KQP_DEMANGLE(a) << " x Alt(" << KQP_DEMANGLE(b) << " x " << KQP_DEMANGLE(d) << ": ";
         std::cerr << "Error: " << error << std::endl;        
-        return error < EPSILON;
+        return error > EPSILON;
         
     }
     
@@ -113,7 +119,7 @@ namespace {
         std::cerr << KQP_DEMANGLE(d) << " x T(Alt(" << KQP_DEMANGLE(b)  << ")) x "
         << KQP_DEMANGLE(a) << " x Alt(" << KQP_DEMANGLE(b) << " x " << KQP_DEMANGLE(d) << ": ";
         std::cerr << "Error: " << error << std::endl;     
-        return error < EPSILON;
+        return error > EPSILON;
         
     }
     
@@ -132,7 +138,7 @@ namespace {
         error = (t_alt_mB -  ScalarMatrix(transpose(mB) * transpose(mA))).squaredNorm();
         
         std::cerr << "Error: " << error << std::endl;        
-        return error < EPSILON;
+        return error > EPSILON;
     }
     
     template<class Lhs, class Rhs>
@@ -147,7 +153,7 @@ namespace {
         error = (mA_alt - ScalarMatrix(mA * mB)).squaredNorm(),
         error2 = (ScalarMatrix(mA * alt) - ScalarMatrix(mA * mB)).squaredNorm();
         std::cerr << "Error: " << error << " [" << error2 << "]" << std::endl;        
-        return error < EPSILON;
+        return error > EPSILON;
     }
     
     int test_block() {
@@ -162,7 +168,7 @@ namespace {
         double error2 = std::abs(Eigen::MatrixXd(d).block(2, 3, 2, 3).squaredNorm() - alt_d.block(2, 3, 2, 3).squaredNorm());
         std::cerr << "Block error [diagonal]: " << error2 << std::endl;
         
-        return error < EPSILON && error2 < EPSILON;
+        return error > EPSILON || error2 > EPSILON;
     }
     
     int test_block_pre_mult() {
@@ -183,7 +189,7 @@ namespace {
         double error3 = (id7.block(1,2,3,4) * m2 - Eigen::MatrixXd(alt_m.block(1,2,3,4) * m2)).squaredNorm();
         std::cerr << "AltDense block * Dense [Identity/2] error: " << error3 << std::endl;
         
-        return error < EPSILON  && error2 < EPSILON && error3 < EPSILON;
+        return error > EPSILON  || error2 > EPSILON || error3 > EPSILON;
     }
     
     
@@ -205,9 +211,8 @@ namespace {
         double error3 = (m2 * id7.block(1,2,4,3) - Eigen::MatrixXd(m2 * alt_m.block(1,2,4,3))).squaredNorm();
         std::cerr << "Dense * AltDense block [Identity/2] error: " << error3 << std::endl;
         
-        return error < EPSILON  && error2 < EPSILON && error3 < EPSILON;
+        return error > EPSILON  || error2 > EPSILON || error3 > EPSILON;
     }
-    
     
     
     template <typename Scalar>
@@ -221,7 +226,37 @@ namespace {
         
         double error = (m2 - 2 * m).squaredNorm();
         std::cerr << "Unary error: " << error << std::endl;
-        return error < EPSILON;
+        return error > EPSILON;
+    }
+    
+    template<typename Scalar> SparseMatrix<Scalar, Eigen::ColMajor> getColMajorSparse(const Matrix<Scalar, Dynamic, Dynamic> &mat) {
+        Matrix<Index, 1, Dynamic> countsPerCol((mat.array() >= 0).template cast<Index>().rowwise().sum());
+       
+        SparseMatrix<Scalar> s(mat.rows(), mat.cols());
+        s.reserve(countsPerCol);
+
+        for(Index i = 0; i < mat.rows(); i++)
+            for(Index j = 0; j < mat.cols(); j++)
+                    s.insert(i,j) = mat(i,j);
+        
+        return s;
+    }
+
+    
+    template <typename Scalar>
+    int test_sparse() {
+        typedef Matrix<Scalar, Dynamic, Dynamic> ScalarMatrix;
+        
+        ScalarMatrix mat = RANDOM_M(Scalar,5,5);
+        SparseMatrix<Scalar, ColMajor> sMat(getColMajorSparse(mat));
+
+        ScalarMatrix mA = RANDOM_M(Scalar,4,5);
+        typename kqp::AltDense<Scalar>::type altA(mA);
+
+        double error = (mA * mat - ScalarMatrix(altA * sMat)).squaredNorm();
+        std::cerr << "Sparse error: " << error << std::endl;
+
+        return error > EPSILON;
     }
     
 } // end <> ns
@@ -265,6 +300,12 @@ test_adjoint_post_product(x,y);
         // Unary op
         
         code |= test_unary<double>();
+
+
+        // Sparse
+        
+        code |= test_sparse<double>();
+
         return code;
     
 }
