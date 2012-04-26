@@ -167,7 +167,7 @@ namespace kqp {
         }
 
         const ScalarMatrix &_inner() const {
-            if (size() == 0) return gramMatrix;
+            if (size() == m_gramMatrix.rows()) return gramMatrix;
             
             // We lose space here, could be used otherwise???
             Index current = gramMatrix.rows();
@@ -186,8 +186,8 @@ namespace kqp {
         
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
-        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
-            const_cast<Eigen::MatrixBase<DerivedMatrix>&>(result)= this->getMatrix().adjoint() * other.getMatrix();
+        void _inner(const Self &other, DerivedMatrix &result) const {
+            result = this->getMatrix().adjoint() * other.getMatrix();
         }
         
         

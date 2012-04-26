@@ -194,7 +194,7 @@ typedef typename ftraits< FMatrix >::InnerMatrix InnerMatrix;
         
         template<class DerivedMatrix>
         inline void inner(const Derived &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
-            static_cast<const Derived*>(this)->Derived::_inner(other, result);
+            static_cast<const Derived*>(this)->Derived::_inner(other, const_cast<DerivedMatrix&>(result.derived()));
         }
         
         

@@ -288,8 +288,7 @@ namespace kqp {
         
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
-        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &_result) const {
-            DerivedMatrix &result = const_cast<DerivedMatrix&>(_result.derived());
+        void _inner(const Self &other, DerivedMatrix &result) const {
             result.setZero();
             
             struct Collector {

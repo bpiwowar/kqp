@@ -110,9 +110,9 @@ namespace kqp {
         
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
-        void _inner(const Self &other, const Eigen::MatrixBase<DerivedMatrix> &result) const {
+        void _inner(const Self &other, DerivedMatrix &result) const {
             Storage r = this->m_matrix.transpose() * other.m_matrix;
-            const_cast<DerivedMatrix&>(result.derived()) = ScalarMatrix(r);
+            result = ScalarMatrix(r);
         }        
         
         void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
