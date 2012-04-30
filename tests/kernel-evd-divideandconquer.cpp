@@ -24,7 +24,7 @@ namespace kqp {
     namespace kevd_tests {  
         int DivideAndConquer::run(const Dense_evd_test &test) const {
             // We want at least 3 merges
-            DivideAndConquerBuilder<DenseMatrix<double>> builder;
+            DivideAndConquerBuilder<double> builder(DenseFeatureSpace<double>::create(test.n));
             
             builder.setBatchSize(test.nb_add * test.min_preimages / 3);
             

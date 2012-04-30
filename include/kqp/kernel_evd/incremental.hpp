@@ -38,9 +38,11 @@ namespace kqp {
      * @brief Uses other operator builders and combine them.
      * @ingroup KernelEVD
      */
-    template <class FMatrix> class IncrementalKernelEVD : public KernelEVD<FMatrix>, public Cleaner<FMatrix> {
+    template <typename Scalar> class IncrementalKernelEVD : public KernelEVD<Scalar> , public Cleaner<Scalar> {
     public:
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        using KernelEVD<Scalar>::getFSpace;
         
         // Indirect comparator (decreasing order)
         struct Comparator {
@@ -51,11 +53,11 @@ namespace kqp {
             }
         };
         
-        IncrementalKernelEVD() {}
+        IncrementalKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), mX(fs.newMatrix()) {}
         virtual ~IncrementalKernelEVD() {}
         
         void reset() {
-            *this = IncrementalKernelEVD();
+            *this = IncrementalKernelEVD(this->getFSpace());
         }
                
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
@@ -67,12 +69,11 @@ namespace kqp {
             // --- Pre-computations
             
             // Compute W = Y^T X^T
-            inner(mX, mU, k);
-            ScalarMatrix mW;
-            noalias(mW) = mY.transpose() * k * mA;
+            
+            ScalarMatrix mW =  getFSpace().k(mX, mY, mU, mA);
             
             // Compute V^T V
-            ScalarMatrix vtv = mA.transpose() * mU.inner() * mA;
+            ScalarMatrix vtv = getFSpace().k(mU, mA);
             vtv -= mW.adjoint() * mW;
             
             
@@ -154,7 +155,7 @@ namespace kqp {
             
             
             // First, tries to remove unused pre-images images
-            removeUnusedPreImages(mX, mY);
+            RemoveUnusedPreImages<Scalar>::run(mX, mY);
             
             // --- Ensure we have a small enough number of pre-images
             Index maxRank = this->preImageRatios.second * (float)mD.rows();
@@ -165,22 +166,22 @@ namespace kqp {
                 identityZ = true;
 
                 // Try again to remove unused pre-images
-                removeUnusedPreImages(mX, mY);
+                RemoveUnusedPreImages<Scalar>::run(mX, mY);
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after unused pre-images algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 // Try to remove null space pre-images
-                removePreImagesWithNullSpace(mX, mY);
+                ReducedSetNullSpace<Scalar>::run(getFSpace(), mX, mY);
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 if (mX.size() > maxRank) {
-                    if (mX.canLinearlyCombine() && this->useLinearCombination) {
+                    if (getFSpace().canLinearlyCombine() && this->useLinearCombination) {
                         // Easy case: we can linearly combine pre-images
-                        mX = mX.linear_combination(mY);
+                        mX = getFSpace().linearCombination(mX, mY);
                         mY = ScalarMatrix::Identity(mX.size(), mX.size());
                     } else {
                         // Use QP approach
-                        ReducedSetWithQP<FMatrix> qp_rs;
-                        qp_rs.run(this->preImageRatios.first * (float)mD.rows(), mX, mY, mD);
+                        ReducedSetWithQP<Scalar> qp_rs;
+                        qp_rs.run(this->preImageRatios.first * (float)mD.rows(), getFSpace(), mX, mY, mD);
                         
                         // Get the decomposition
                         mX = qp_rs.getFeatureMatrix();
@@ -188,7 +189,7 @@ namespace kqp {
                         mD = qp_rs.getEigenValues();
                         
                         // The decomposition is not orthonormal anymore
-                        kqp::orthonormalize(mX, mY, mD);
+                        Orthonormalize<Scalar>::run(getFSpace(), mX, mY, mD);
                     }
                 }
             
@@ -200,8 +201,8 @@ namespace kqp {
         }
         
         // Gets the decomposition
-        virtual Decomposition<FMatrix> _getDecomposition() const override {
-            Decomposition<FMatrix> d;
+        virtual Decomposition<Scalar> _getDecomposition() const override {
+            Decomposition<Scalar> d;
             
             d.mX = this->mX;
             
@@ -238,8 +239,8 @@ namespace kqp {
     };
 
 #ifndef SWIG    
-#define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::IncrementalKernelEVD<type>;
-#include <kqp/for_all_fmatrix_gen>
+#define KQP_SCALAR_GEN(type) extern template class kqp::IncrementalKernelEVD<type>;
+#include <kqp/for_all_scalar_gen>
 #endif
 
 }

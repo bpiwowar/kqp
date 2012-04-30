@@ -104,7 +104,7 @@ namespace kqp {
 
     //! Gaussian Kernel \f$k'(x,y) = \exp(\frac{\vert k(x,x) + k(y,y) - 2k(x,y) \vert}{\sigma^2})\f$
     template<typename FMatrix> struct GaussianKernelOp {
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         GaussianKernelOp(Real sigma) : m_sigma(sigma) {}
      
@@ -125,7 +125,7 @@ namespace kqp {
     
     //! Polynomial Kernel \f$k'(x,y) = (k(x,y) + D)^p\f$
     template<typename FMatrix> struct PolynomialKernelOp {
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         PolynomialKernelOp(Real bias, int degree) : m_bias(bias), m_degree(degree) {}
      

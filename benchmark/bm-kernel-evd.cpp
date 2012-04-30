@@ -105,12 +105,12 @@ namespace kqp {
         template<typename _Scalar>
         struct BuilderConfigurator : public BuilderConfiguratorBase {
             typedef DenseMatrix<_Scalar> FMatrix;
-            KQP_FMATRIX_TYPES(FMatrix);
+            KQP_SCALAR_TYPEDEFS(Scalar);
             
-            virtual KernelEVD<FMatrix> *getBuilder(const KernelEVDBenchmark &) = 0;
+            virtual KernelEVD<Scalar>  *getBuilder(const KernelEVDBenchmark &) = 0;
             
             int run(const KernelEVDBenchmark &bm) {
-                boost::scoped_ptr<KernelEVD<FMatrix>> builder(this->getBuilder(bm));
+                boost::scoped_ptr<KernelEVD<Scalar> > builder(this->getBuilder(bm));
                 
                 std::clock_t total_time = 0;
                 
@@ -139,7 +139,7 @@ namespace kqp {
                     builder->add(alpha, FMatrix(m), mA);
                 }        
                 
-                Decomposition<FMatrix> result = builder->getDecomposition();
+                Decomposition<Scalar> result = builder->getDecomposition();
                 std::clock_t c_end = std::clock();
                 total_time += c_end-c_start;
                 std::cout << "kevd\t" << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << std::endl;

@@ -140,6 +140,8 @@ namespace kqp {
         const UnaryOp m_functor;
     public:
         typedef AltCwiseUnaryOp<UnaryOp,XprType> Nested;
+        typedef typename Eigen::internal::traits<Nested>::Scalar Scalar;
+        
         inline AltCwiseUnaryOp(const XprType& xpr, const UnaryOp& func = UnaryOp())
         : m_xpr(xpr), m_functor(func) {
         }
@@ -161,6 +163,11 @@ namespace kqp {
         
         template<typename Dest> inline void evalTo(Dest& dst) const {
             if (isT1()) dst = t1(); else dst = t2();
+        }
+        
+        Scalar sum() const {
+            if (isT1()) return t1().sum(); 
+            else return t2().sum();
         }
     };
     
@@ -351,6 +358,7 @@ namespace kqp {
         
         typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
         Real squaredNorm() const { return m_value.squaredNorm(); }
+        Scalar sum() const { return m_value.sum(); }
         const std::type_info &getTypeId() const { return typeid(Derived); }
 
         auto block(Index startRow, Index startCol, Index blockRows, Index blockCols) -> decltype(m_value.block(0,0,0,0)) {
@@ -413,6 +421,7 @@ namespace kqp {
         }
         
         Real squaredNorm() const { return std::abs(m_value)*std::abs(m_value) * (Real)m_rows * (Real)m_cols; }
+        Scalar sum() const { return (Scalar)m_rows * (Scalar)m_cols; }
 
         const std::type_info &getTypeId() const { return typeid(ReturnType); }
         
@@ -430,7 +439,9 @@ namespace kqp {
     struct storage< Eigen::DiagonalWrapper<Derived> > {
         typedef Eigen::DiagonalWrapper<const Derived> ConstReturnType;
         typedef Eigen::DiagonalWrapper<const Derived> ReturnType;
-        
+        typedef typename Eigen::internal::traits<Derived>::Scalar Scalar;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+
         Derived m_value;
         
         storage() {}
@@ -464,8 +475,8 @@ namespace kqp {
             m_value = m_value.unaryExpr(op);
         }
         
-        typedef typename Eigen::NumTraits<typename Eigen::internal::traits<Derived>::Scalar>::Real Real;
         Real squaredNorm() const { return m_value.squaredNorm(); }
+        Scalar sum() const { return m_value.sum(); }
         const std::type_info &getTypeId() const { return typeid(ReturnType); }
         
         DiagonalBlockWrapper<Derived> block(Index startRow, Index startCol, Index blockRows, Index blockCols) const {
@@ -520,6 +531,7 @@ namespace kqp {
         
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         Real squaredNorm() const { return std::min(m_rows, m_cols); }
+        Scalar sum() const { return std::min(m_rows, m_cols); }
         const std::type_info &getTypeId() const { return typeid(Type); }
         
         
@@ -556,7 +568,8 @@ namespace kqp {
         
         Real squaredNorm() const { return m_isT1 ? m_t1.squaredNorm() : m_t2.squaredNorm(); }
         Scalar trace() const { return m_isT1 ? m_t1.get().trace() : m_t2.get().trace(); }
-        
+        Scalar sum() const { return m_isT1 ? m_t1.get().sum() : m_t2.get().sum(); }
+
         template<typename CwiseUnaryOp>
         void unaryExprInPlace(const CwiseUnaryOp &op) {
             if (isT1()) m_t1.unaryExprInPlace(op);

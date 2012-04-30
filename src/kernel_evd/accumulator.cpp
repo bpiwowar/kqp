@@ -1,4 +1,4 @@
 #include <kqp/kernel_evd/accumulator.hpp>
 
-#define KQP_FMATRIX_GEN(type) template class kqp::AccumulatorKernelEVD<type>;
-#include <kqp/for_all_fmatrix_gen>
+#define KQP_SCALAR_GEN(type) template class kqp::AccumulatorKernelEVD<type,true>; template class kqp::AccumulatorKernelEVD<type,false>;
+#include <kqp/for_all_scalar_gen>

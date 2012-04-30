@@ -23,7 +23,7 @@ namespace kqp {
     
     template<typename FMatrix>
     struct FMatrixTest {
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         std::string fmatrixName;
         
         ScalarMatrix m, m2;
@@ -111,7 +111,7 @@ namespace kqp {
     
     template<typename FMatrix>
     struct SparseTest : public FMatrixTest<FMatrix> {
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         typedef FMatrixTest<FMatrix> Base;
         using Base::code;

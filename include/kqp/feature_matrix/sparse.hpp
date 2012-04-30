@@ -32,18 +32,22 @@ namespace kqp {
      *
      * @ingroup FeatureMatrix
      */
-    template <typename _Scalar> 
-    class SparseMatrix : public FeatureMatrix< SparseMatrix<_Scalar> > {
+    template <typename Scalar> 
+    class SparseMatrix : public FeatureMatrixBase<Scalar> {
     public:
-        KQP_FMATRIX_COMMON_DEFS(SparseMatrix<_Scalar>);
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef SparseMatrix<Scalar> Self;
         typedef Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Storage;
         
         
         SparseMatrix()  {}
         SparseMatrix(Index dimension) : m_matrix(dimension, 0) {}
+        SparseMatrix(const Self &other) : m_matrix(other.m_matrix) {}
         
 #ifndef SWIG
         SparseMatrix(Storage &&storage) : m_matrix(std::move(storage)) {}
+        SparseMatrix(Self &&other) : m_matrix(std::move(other.m_matrix)) {}
+        
 #endif
 
         SparseMatrix(const ScalarMatrix &mat, double threshold) : m_matrix(mat.rows(), mat.cols()) {            
@@ -66,17 +70,16 @@ namespace kqp {
             return ScalarMatrix(m_matrix);
         }
         
-    protected:
         // --- Base methods 
-        inline Index _size() const { 
+        inline Index size() const { 
             return m_matrix.cols();
         }
         
-        inline Index _dimension() const {
+        inline Index dimension() const {
             return m_matrix.rows();
         }
         
-        void _add(const Self &other, const std::vector<bool> *which = NULL)  {
+        void add(const FMatrixBase &other, const std::vector<bool> *which = NULL) override {
             // Computes the indices of the vectors to add
             std::vector<Index> ix;
             Index toAdd = 0;
@@ -84,11 +87,13 @@ namespace kqp {
                 for(size_t i = 0; i < which->size(); i++)
                     if ((*which)[i]) ix.push_back(i);
             } 
-            else toAdd = other._size();
+            else toAdd = other.size();
+            
+            KQP_THROW_EXCEPTION(not_implemented_exception, "add");
             
         }
         
-        const ScalarMatrix &_inner() const {
+        const ScalarMatrix &gramMatrix() const {
             Index current = m_gramMatrix.rows();
             if (size() == current) return m_gramMatrix;
             
@@ -108,14 +113,7 @@ namespace kqp {
         }
 
         
-        //! Computes the inner product with another matrix
-        template<class DerivedMatrix>
-        void _inner(const Self &other, DerivedMatrix &result) const {
-            Storage r = this->m_matrix.transpose() * other.m_matrix;
-            result = ScalarMatrix(r);
-        }        
-        
-        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
+        FMatrixBasePtr subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const override{
             // Construct
             std::vector<Index> selected;
             auto it = begin;
@@ -137,14 +135,24 @@ namespace kqp {
                 for (typename Storage::InnerIterator it(m_matrix,selected[i]); it; ++it) 
                     s.insert(it.row(), i) = it.value();
             
-            into = Self(s);
+            return FMatrixBasePtr(new Self(std::move(s)));
         }
         
         // Computes alpha * X * A + beta * Y * B (X = *this)
-        Self _linear_combination(const ScalarAltMatrix &, Scalar , const Self *, const ScalarAltMatrix *, Scalar ) const {
-            KQP_THROW_EXCEPTION(illegal_operation_exception, "Cannot compute the linear combination of a Sparse matrix");
+        
+        FMatrixBasePtr copy() const override {
+            return FMatrixBasePtr(new Self(*this));
         }
         
+        //! Direct access to underlying matrix
+        const Storage *operator->() const { return &m_matrix; }
+        
+        virtual FMatrixBase& operator=(const FMatrixBase &other) override {
+            m_matrix = dynamic_cast<const Self&>(other).m_matrix;
+            m_gramMatrix = dynamic_cast<const Self&>(other).m_gramMatrix;
+            return *this;
+        }
+
     private:
         
         //! The Gram matrix
@@ -164,19 +172,48 @@ namespace kqp {
     }
     
     
-    // The scalar for dense feature matrices
-    template <typename _Scalar> struct FeatureMatrixTypes<SparseMatrix<_Scalar> > {
-        typedef _Scalar Scalar;
-        enum {
-            can_linearly_combine = 0
+    template<typename Scalar>
+    class SparseFeatureSpace : public FeatureSpaceBase<Scalar> {
+    public:  
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        static FSpace create(Index dimension) { return FSpace(new SparseFeatureSpace(dimension)); }
+        
+        SparseFeatureSpace(Index dimension) : m_dimension(dimension) {}
+        
+        inline static const SparseMatrix<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseMatrix<Scalar> &>(mX); }
+        
+        Index dimension() const override { return m_dimension; }
+        
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseFeatureSpace(m_dimension)); }
+        
+        virtual FMatrixBasePtr newMatrix() const override {
+            return FMatrixBasePtr(new SparseMatrix<Scalar>(m_dimension));
+        }
+        virtual FMatrixBasePtr newMatrix(const FMatrixBase &mX) const override {
+            return FMatrixBasePtr(new SparseMatrix<Scalar>(cast(mX)));            
+        }
+        
+        
+        const ScalarMatrix &k(const FeatureMatrixBase<Scalar> &mX) const override {
+            return cast(mX).gramMatrix();
+        }
+        
+        virtual ScalarMatrix k(const FeatureMatrixBase<Scalar> &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
+                               const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
+            return mD1.asDiagonal() * mY1.transpose() * cast(mX1)->adjoint() * cast(mX2)->adjoint() * mY2 * mD2.asDiagonal();
         };
+        
+        
+    private:
+        Index m_dimension;
+    
     };
     
 
 #ifndef SWIG    
 # // Extern templates
-# define KQP_SCALAR_GEN(scalar) \
-   extern template class SparseMatrix<scalar>;
+# define KQP_SCALAR_GEN(scalar) extern template class SparseMatrix<scalar>; extern template class SparseFeatureSpace<scalar>;
 # include <kqp/for_all_scalar_gen>
 #endif
 

@@ -20,17 +20,19 @@
 
 #include <utility>
 #include <kqp/feature_matrix.hpp>
-#include <kqp/matrix_computations.hpp>
 
 namespace kqp {
     
     //! An "EVD" decomposition
-    template<typename FMatrix>
+    template<typename Scalar>
     struct Decomposition {
-        KQP_FMATRIX_TYPES(FMatrix);        
+        KQP_SCALAR_TYPEDEFS(Scalar)
+        
+        //! Feature space
+        FSpace fs;
         
         //! The feature matrix
-        FMatrix mX;
+        FMatrix  mX;
         
         //! The linear combination matrix
         ScalarAltMatrix mY;
@@ -44,20 +46,24 @@ namespace kqp {
         //! Number of rank updates
         Index updateCount;
         
-        //! Default constructor (sets orthonormal to true)
-        Decomposition() : orthonormal(true) {}
+        //! Default constructor with an undefined feature space
+        Decomposition() {}
+        
+        //! Default constructor with a feature space
+        Decomposition(const FSpace &fs) : fs(fs), mX(fs.newMatrix()), orthonormal(true) {}
         
         //! Full constructor
-        Decomposition(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
-        : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
+        Decomposition(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal) 
+            : fs(fs), mX(fs.newMatrix(mX)), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
 
 #ifndef SWIG
-        //! Full constructor
-        Decomposition(const FMatrix &&mX, const ScalarAltMatrix &&mY, const RealAltVector &&mD, bool orthonormal) 
-        : mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
+        //! Move constructor
+        Decomposition(FSpace &&fs, FMatrix &&mX, const ScalarAltMatrix &&mY, const RealAltVector &&mD, bool orthonormal) 
+        : fs(fs), mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {
+        }
 
         //! Move constructor
-        Decomposition(Decomposition &&other) {
+        Decomposition(Decomposition &&other)  {
             *this = std::move(other);
         }
 
@@ -68,6 +74,7 @@ namespace kqp {
         }
 #endif
         void swap(Decomposition &other) {
+            fs = std::move(other.fs);
             mX = std::move(other.mX);
             mY.swap(other.mY);
             mD.swap(other.mD);
@@ -92,14 +99,13 @@ namespace kqp {
         }
         
         
-        ScalarMatrix innerXY(const Decomposition<FMatrix>& that) const {
-            return FCompute<FMatrix>::inner(mX, mY, that.mX, that.mY);
+        /**
+         * Computes \f$ D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2 \f$
+         */
+        ScalarMatrix k(const Decomposition &other) const {
+            return fs.k(mX, mY, mD, other.mX, other.mY, other.mD);
         }
         
-        ScalarMatrix innerXYD(const Decomposition<FMatrix>& that) const {
-            return FCompute<FMatrix>::inner(mX, mY, mD, that.mX, that.mY, that.mD);
-        }
-
         
     };   
     
@@ -107,8 +113,8 @@ namespace kqp {
 }
 
 #ifndef SWIG
-#define KQP_FMATRIX_GEN_EXTERN(type) extern template struct kqp::Decomposition<type>;
-#include <kqp/for_all_fmatrix_gen>
+#define KQP_SCALAR_GEN(type) extern template struct kqp::Decomposition<type>;
+#include <kqp/for_all_scalar_gen>
 #endif
 
 #endif

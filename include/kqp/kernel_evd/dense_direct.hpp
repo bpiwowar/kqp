@@ -33,38 +33,39 @@ namespace kqp {
      * 
      * @ingroup KernelEVD
      */
-    template <class _Scalar> class DenseDirectBuilder : public KernelEVD< DenseMatrix<_Scalar> > {
+    template <class Scalar> class DenseDirectBuilder : public KernelEVD<Scalar> {
     public:
-        typedef DenseMatrix<_Scalar> FMatrix;
-        KQP_FMATRIX_TYPES(DenseMatrix<_Scalar>);        
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef DenseMatrix<Scalar> FDense;
         
-        DenseDirectBuilder(int dimension) : matrix(dimension, dimension) {
+        DenseDirectBuilder(int dimension) : KernelEVD<Scalar>(DenseFeatureSpace<Scalar>::create(dimension)), matrix(dimension, dimension) {
             reset();
         }
         
         virtual ~DenseDirectBuilder() {}
-        
+
+        void reset() {
+            matrix.setConstant(0);
+            KernelEVD<Scalar>::reset();
+        }
+
+    protected:
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
-            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(mX.getMatrix() * mA), alpha);
+            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(dynamic_cast<const FDense &>(*mX).getMatrix() * mA), alpha);
         }
         
-        virtual Decomposition<FMatrix> _getDecomposition() const override {
-            Decomposition<FMatrix> d;
-            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
+        virtual Decomposition<Scalar> _getDecomposition() const override {
+            Decomposition<Scalar> d;
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
             ScalarAltMatrix _mX;
             kqp::thinEVD(evd, _mX, d.mD);              
             
-            d.mX = std::move(ScalarMatrix(_mX));
+            d.mX = FMatrix(new DenseMatrix<Scalar>(std::move(ScalarMatrix(_mX))));
             d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
             return d;
         }
         
-    protected:
-        void reset() {
-            matrix.setConstant(0);
-            KernelEVD<DenseMatrix<Scalar>>::reset();
-        }
         
     public:
         

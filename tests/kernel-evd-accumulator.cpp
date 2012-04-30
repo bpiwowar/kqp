@@ -28,10 +28,8 @@ namespace kqp {
         
         template<bool use_lc>
         int _accumulator(const Dense_evd_test &test) {
-            AccumulatorKernelEVD<DenseMatrix<double>, use_lc > builder;
-            if (AccumulatorKernelEVD<DenseMatrix<double>, use_lc >::use_linear_combination != use_lc)
-                abort();
-            return test.run(logger, builder);
+            AccumulatorKernelEVD<double, use_lc> builder(DenseFeatureSpace<double>::create(test.n));
+            return test.run<double>(logger, builder);
         }
         
         int kevd_tests::Accumulator::run(const Dense_evd_test &test) const {

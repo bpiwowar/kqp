@@ -30,6 +30,7 @@
 #include <kqp/subset.hpp>
 
 namespace kqp {
+    
     template <class Derived> 
     void thinEVD(const Eigen::SelfAdjointEigenSolver<Derived> &evd, 
                  Eigen::Matrix<typename Derived::Scalar, Dynamic, Dynamic> &eigenvectors, 
@@ -89,7 +90,7 @@ namespace kqp {
             _nullEigenvectors.reset(new ScalarMatrix());
         
         thinEVD(evd, _eigenvectors, _eigenvalues, _nullEigenvectors.get());
-
+        
         eigenvectors.swap(_eigenvectors);
         eigenvalues.swap(_eigenvalues);
         if (nullEigenvectors != nullptr) 
@@ -98,75 +99,96 @@ namespace kqp {
     }
     
     
-    //! Re-orthonormalize a decomposition (complex case)
-    template<typename FMatrix>
-    typename boost::enable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
-    orthonormalize(const FMatrix &mX,
-                        Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Dynamic, Dynamic> &mY,
-                        Eigen::Matrix<typename ftraits<FMatrix>::Real, Dynamic, 1> &mD) {
-        typename ftraits<FMatrix>::ScalarMatrix m = mD.cwiseSqrt().asDiagonal() * mY.transpose() * mX.inner() * mY * mD.cwiseSqrt().asDiagonal();
-        Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
-        kqp::thinEVD(evd, mY, mD);                    
-        mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
-    }
+    template<typename Scalar, typename Cond = void> struct Orthonormalize;
 
+    template<typename Scalar>
+    struct OrthononormalizeBase {
+        KQP_SCALAR_TYPEDEFS(Scalar);
+
+        //! Orthonormalization with Alt matrices (generic method)
+        void run(const FSpace &fs, const FMatrix &mX,
+                            ScalarAltMatrix &mY,
+                            RealAltVector &mD) {
+            // FIXME: should swap if dense types
+            ScalarMatrix _mY(mY);
+            RealVector _mD(mD);        
+            Orthonormalize<Scalar>::run(fs, mX, _mY, _mD);
+            mY.swap(_mY);
+            mD.swap(_mD);
+        }    
+    };
+    
+    
+    //! Re-orthonormalize a decomposition (complex case)
+    template<typename Scalar>
+    struct Orthonormalize<Scalar, typename boost::enable_if<boost::is_complex<Scalar>, void>::type> : OrthononormalizeBase<Scalar> {
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        using OrthononormalizeBase<Scalar>::run;
+        
+        static void run(const FSpace &fs,
+                       const FMatrix &mX,
+                       ScalarMatrix &mY,
+                       RealVector &mD) {
+            
+            ScalarMatrix m = fs.k(mX, mY, mD.cwiseSqrt());
+            Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
+            kqp::thinEVD(evd, mY, mD);                    
+            mY = mY * mD.cwiseSqrt().cwiseInverse().asDiagonal();
+        }
+    };
+    
     
     //! Re-orthonormalize a decomposition (real case)
-    template<typename FMatrix>
-    typename boost::disable_if<boost::is_complex<typename ftraits<FMatrix>::Scalar>>::type
-    orthonormalize(const FMatrix &mX,
-                   Eigen::Matrix<typename ftraits<FMatrix>::Scalar, Dynamic, Dynamic> &mY,
-                   Eigen::Matrix<typename ftraits<FMatrix>::Real, Dynamic, 1> &mD) {
-        
-        // Negative case: copy what we need
-        auto negatives = mD.array() < 0;
-        typename ftraits<FMatrix>::RealVector _mD;
-        typename ftraits<FMatrix>::ScalarMatrix _mY;
-        
-        Index n = negatives.sum();
-        if (n > 0) {
-            std::vector<bool> selection(n,false);
-            for(Index j = 0; j < mD.rows(); j++)
-                if (negatives[j]) selection[j] = true;
-            
-            select_rows(selection, mD, _mD);
-            select_columns(selection, mY, _mY);
-        }
-        
-        
-        // Perform the EVD
-        typename ftraits<FMatrix>::ScalarMatrix m;
-        m.noalias() = mD.cwiseAbs().cwiseSqrt().asDiagonal() * mY.transpose() * mX.inner() * mY * mD.cwiseAbs().cwiseSqrt().asDiagonal();
-        
-        Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
-        kqp::thinEVD(evd, mY, mD);                    
-        mY = mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
-        
-        // Handles negative eigenvalues
-        if (n > 0) {
-            m.resize(mD.rows(), mD.rows());
-            auto _m = m.template selfadjointView<Eigen::Lower>();
-            m = mD;
-            _m.rankUpdate(mY.transpose() * mX.inner() * _mY * _mD, -2);
-            typename ftraits<FMatrix>::ScalarMatrix mU;
-            thinEVD(Eigen::SelfAdjointEigenSolver<decltype(m)>(_m), mU, mD);
-            mD = evd.eigenvalues();
-            mY = mY * mU;
-        }
-    }
+    template<typename Scalar>
+    struct Orthonormalize<Scalar, typename boost::disable_if<boost::is_complex<Scalar>, void>::type>  : OrthononormalizeBase<Scalar> {
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        using OrthononormalizeBase<Scalar>::run;
 
-    //! Orthonormalization with Alt matrices
-    template<typename FMatrix>
-    void orthonormalize(const FMatrix &mX,
-                   typename ftraits<FMatrix>::ScalarAltMatrix &mY,
-                   typename ftraits<FMatrix>::RealAltVector &mD) {
-        // FIXME: should swap if dense types
-        typename ftraits<FMatrix>::ScalarMatrix _mY(mY);
-        typename ftraits<FMatrix>::RealVector _mD(mD);        
-        orthonormalize(mX, _mY, _mD);
-        mY.swap(_mY);
-        mD.swap(_mD);
-    }
+        static void run(const FSpace &fs, 
+                        const FMatrix &mX,
+                       ScalarMatrix &mY,
+                       RealVector &mD) {
+            
+            // Negative case: copy what we need
+            auto negatives = mD.array() < 0;
+            RealVector _mD;
+            ScalarMatrix _mY;
+            
+            Index n = negatives.sum();
+            if (n > 0) {
+                std::vector<bool> selection(n,false);
+                for(Index j = 0; j < mD.rows(); j++)
+                    if (negatives[j]) selection[j] = true;
+                
+                select_rows(selection, mD, _mD);
+                select_columns(selection, mY, _mY);
+            }
+            
+            
+            // Perform the EVD
+            ScalarMatrix m = fs.k(mX, mY, RealAltVector(mD.cwiseAbs().cwiseSqrt()));
+            
+            Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
+            kqp::thinEVD(evd, mY, mD);                    
+            mY = mY * mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+            
+            // Handles negative eigenvalues
+            if (n > 0) {
+                m.resize(mD.rows(), mD.rows());
+                auto _m = m.template selfadjointView<Eigen::Lower>();
+                m = mD;
+                _m.rankUpdate(mY.transpose() * fs.k(mX) * _mY * _mD, -2);
+                ScalarMatrix mU;
+                thinEVD(Eigen::SelfAdjointEigenSolver<decltype(m)>(_m), mU, mD);
+                mD = evd.eigenvalues();
+                mY = mY * mU;
+            }
+        }
+        
+        
+        
+
+    };
 }
 
 #endif

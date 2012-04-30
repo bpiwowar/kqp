@@ -20,6 +20,7 @@
 #include <kqp/probabilities.hpp>
 #include <kqp/trace.hpp>
 
+#include <kqp/feature_matrix/dense.hpp>
 #include <kqp/kernel_evd/dense_direct.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.projection")
@@ -38,45 +39,53 @@ namespace kqp {
             return 0;
         }
         
-        int isApproxEqual(const std::string & name, const Density< DenseMatrix<double> > &a, const Eigen::MatrixXd &b) {
-            KQP_MATRIX(double) op = a.matrix().getMatrix() * a.matrix().getMatrix().transpose();
+        int isApproxEqual(const std::string & name, const Density< double > &a, const Eigen::MatrixXd &b) {
+            auto _a = a.matrix();
+            auto m = dynamic_cast<DenseMatrix<double>&>(*_a);
+            KQP_MATRIX(double) op = m.getMatrix() * m.getMatrix().transpose();
             return isApproxEqual(name, op, b);
         }
     }
     
     
+    template<typename Scalar>
+    const Matrix<Scalar,Dynamic,Dynamic> getMatrix(const Density<Scalar> &d) {
+        return dynamic_cast<DenseMatrix<double>&>(*d.matrix()).getMatrix();
+    }
+    
     int simple_projection_test(std::deque<std::string> &/*args*/) {
-        typedef DenseMatrix<double> FMatrix;
-        typedef ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
+        KQP_SCALAR_TYPEDEFS(double);
         
         Index dimension = 100;
+        
+        FSpace fs(new DenseFeatureSpace<double>(2));
         
         DenseDirectBuilder<double> kevd(dimension);
         
         for (int i = 0; i < 10; i++) {
             Eigen::VectorXd v = Eigen::VectorXd::Random(dimension);
-            ((KernelEVD<FMatrix>&)kevd).add(FMatrix(v));
+            ((KernelEVD<double> &)kevd).add(DenseMatrix<double>::create(v));
         }
         
-        Event<FMatrix> subspace(kevd);
+        Event<double> subspace(kevd);
         
-        FMatrix v(Eigen::VectorXd::Random(dimension));
+        FeatureMatrix<double> v(DenseMatrix<double>::create(Eigen::VectorXd::Random(dimension)));
         
-        Density<FMatrix> v1 = subspace.project(Density<FMatrix>(v, true), false);
-        Density<FMatrix> v2 = subspace.project(Density<FMatrix>(v, true), true);
+        Density<double> v1 = subspace.project(Density<double>(fs, v, true), false);
+        Density<double> v2 = subspace.project(Density<double>(fs, v, true), true);
         
         // Check that v1 . v2 = 0
         ScalarMatrix inners = v1.inners(v2);
         
         // Check that projecting in orthogonal subspaces leads to a null vector
-        Density<FMatrix> v1_p = subspace.project(v1, true);        
-        Density<FMatrix> v2_p = subspace.project(v2, false);
+        Density<double> v1_p = subspace.project(v1, true);        
+        Density<double> v2_p = subspace.project(v2, false);
         
         // Check that v = v1 + v2
         return  inners.squaredNorm() < EPSILON 
-        && v1_p.matrix().getMatrix().squaredNorm() < EPSILON
-        && v2_p.matrix().getMatrix().squaredNorm() < EPSILON
-        && (v1.matrix().getMatrix() + v2.matrix().getMatrix() - v.getMatrix()).squaredNorm() < EPSILON 
+        && getMatrix(v1_p).squaredNorm() < EPSILON
+        && getMatrix(v2_p).squaredNorm() < EPSILON
+        && (getMatrix(v1) + getMatrix(v2) - v->as<DenseMatrix<double>>().getMatrix()).squaredNorm() < EPSILON 
         ? 0 : 1;
         
     }
@@ -84,7 +93,7 @@ namespace kqp {
     
     
     int projection_test(std::deque<std::string> &/*args*/) {
-        typedef DenseMatrix<double> FMatrix;
+        KQP_SCALAR_TYPEDEFS(double);
         typedef DenseDirectBuilder<double> DensityTracker;
         
         // From R script src/R/projections.R
@@ -98,20 +107,21 @@ namespace kqp {
         DensityTracker rhoTracker(dimension);
         
         for (int i = 0; i < rhoVectorsCount; i++) 
-            rhoTracker.add(FMatrix(rhoVectors[i]));
-        Density<FMatrix> rho(rhoTracker);
+            rhoTracker.add(DenseMatrix<double>::create(rhoVectors[i]));
+        Density<double> rho(rhoTracker);
+        
         rho.normalize();
         
         DensityTracker sbTracker(dimension);
         for (int j = 0; j < sbVectorsCount; j++) 
-            sbTracker.add(FMatrix(sbVectors[j]));
+            sbTracker.add(DenseMatrix<double>::create(sbVectors[j]));
         
         // Strict event
-        Event<FMatrix> sb(sbTracker);
+        Event<double> sb(sbTracker);
         
         
         // Fuzzy event
-        Event<FMatrix> sb_fuzzy(sbTracker, true);
+        Event<double> sb_fuzzy(sbTracker, true);
         
         sb_fuzzy.multiplyBy(1. / sb_fuzzy.trace());
         
@@ -122,19 +132,19 @@ namespace kqp {
             KQP_LOG_INFO_F(logger, "=== Use linear combination = %s", %(i == 0 ? "yes" : "no"));
             
             // Projection
-            Density<FMatrix> pRho = sb.project(rho, false);
+            Density<double> pRho = sb.project(rho, false);
             code |= isApproxEqual("projection of rho onto A", pRho.normalize(), wanted_pRho);
             
             // Orthogonal projection
-            Density<FMatrix> opRho = sb.project(rho, true);
+            Density<double> opRho = sb.project(rho, true);
             code |=isApproxEqual("projection of rho onto orth A", opRho.normalize(), wanted_opRho);
             
             // Fuzzy projection
-            Density<FMatrix> fpRho = sb_fuzzy.project(rho, false);
+            Density<double> fpRho = sb_fuzzy.project(rho, false);
             code |=isApproxEqual("fuzzy projection of rho onto A", fpRho.normalize(), wanted_fpRho);
             
             // Fuzzy orthogonal projection
-            Density<FMatrix> ofpRho = sb_fuzzy.project(rho, true);
+            Density<double> ofpRho = sb_fuzzy.project(rho, true);
             code |=isApproxEqual("fuzzy projection of rho onto orth A", ofpRho.normalize(), wanted_ofpRho);
         }
         
