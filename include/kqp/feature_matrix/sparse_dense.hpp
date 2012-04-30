@@ -36,19 +36,20 @@ namespace kqp {
      * where each vector has a size less or equal to the number of columns of the sparse matrix.
      * @ingroup FeatureMatrix
      */
-    template <typename _Scalar> 
-    class SparseDenseMatrix : public FeatureMatrix< SparseDenseMatrix<_Scalar> > {
+    template <typename Scalar> 
+    class SparseDenseMatrix : public FeatureMatrixBase<Scalar> {
     public:
-        KQP_FMATRIX_COMMON_DEFS(SparseDenseMatrix<_Scalar>);
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef SparseDenseMatrix<Scalar> Self;
+
         typedef std::map<Index,Index> RowMap;
 
-        //! Dimension of the space
-        Index m_dimension;
         
         
         SparseDenseMatrix() :  m_dimension(0) {}
         SparseDenseMatrix(Index dimension) :  m_dimension(dimension) {}
-        
+        SparseDenseMatrix(const Self &other) :  m_dimension(other.m_dimension), m_map(other.m_map), m_matrix(other.m_matrix), m_gramMatrix(other.m_gramMatrix) {}
+
 #ifndef SWIG
         SparseDenseMatrix(RowMap &&map, ScalarMatrix &&matrix) : m_map(std::move(map)), m_matrix(std::move(matrix)) {
             
@@ -56,7 +57,7 @@ namespace kqp {
 #endif
 
         //! Creates from a sparse matrix
-        SparseDenseMatrix(const Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDenseMatrix(const Eigen::SparseMatrix<Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
             
             
@@ -65,7 +66,7 @@ namespace kqp {
             for (Index k=0; k<mat.cols(); ++k)  { // Loop on cols
                 // FIXME: use norm() when Eigen fixed
                 // norms[k] = mat.innerVector(k).norm();
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows 
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows 
                     norms[k] += Eigen::internal::abs2(it.value());
                 }
             }
@@ -74,7 +75,7 @@ namespace kqp {
             
             // Computing selected rows map
             for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
                     if (std::abs(it.value()) / norms[it.col()] > threshold) {
                         if (m_map.find(it.row()) == m_map.end()) {
                             m_map[it.row()] = m_map.size();                            
@@ -88,7 +89,7 @@ namespace kqp {
             m_matrix.setZero();
             
             for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
                     m_matrix(m_map[it.row()], it.col()) = it.value();
                 }
             }
@@ -97,7 +98,7 @@ namespace kqp {
 
         
         //! Creates from a sparse matrix
-        SparseDenseMatrix(const Eigen::SparseMatrix<_Scalar, Eigen::RowMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDenseMatrix(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
             
                       
@@ -105,14 +106,14 @@ namespace kqp {
             RealVector norms(mat.cols());
             norms.setZero();
             for (int k=0; k<mat.outerSize(); ++k)  // Loop on rows
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it; ++it) // Loop on cols
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it; ++it) // Loop on cols
                     norms[it.col()] += Eigen::internal::abs2(it.value());
 
             // Computing selected rows
             norms = norms.cwiseSqrt();
             for (int k=0; k<mat.outerSize(); ++k) {
                 bool any = false;
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it && !any; ++it) {
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it && !any; ++it) {
                     any |= std::abs(it.value()) / norms[it.col()] > threshold;
                 }
                 if (any) 
@@ -124,7 +125,7 @@ namespace kqp {
             m_matrix.setZero();
             
             for(auto i = m_map.begin(); i != m_map.end(); i++) {
-                for (typename Eigen::SparseMatrix<_Scalar, Eigen::RowMajor>::InnerIterator it(mat,i->first); it; ++it) 
+                for (typename Eigen::SparseMatrix<Scalar, Eigen::RowMajor>::InnerIterator it(mat,i->first); it; ++it) 
                     m_matrix(i->second, it.col()) = it.value();
 
             }
@@ -208,14 +209,13 @@ namespace kqp {
             select_rows(selected, m_matrix, m_matrix);            
             assert(m_matrix.rows() == newSize);
         }
-    protected:
         
         // --- Base methods 
-        inline Index _size() const { 
+        inline Index size() const { 
             return m_matrix.cols();
         }
         
-        Index _dimension() const {
+        Index dimension() const {
             return m_dimension;
         }
         
@@ -226,7 +226,9 @@ namespace kqp {
             }
         };
         
-        void _add(const Self &other, const std::vector<bool> *which = NULL)  {
+        void add(const FMatrixBase &_other, const std::vector<bool> *which = NULL) override {
+            const Self &other = dynamic_cast<const Self&>(_other);
+            
             if (m_dimension != other.m_dimension)
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot add vectors of different sizes (%d vs %d)", %m_dimension %other.m_dimension);
             
@@ -237,7 +239,7 @@ namespace kqp {
                 for(size_t i = 0; i < which->size(); i++)
                     if ((*which)[i]) ix.push_back(i);
                 toAdd = ix.size();
-            } else toAdd = other._size();
+            } else toAdd = other.size();
             
             if (toAdd == 0) return;
             
@@ -267,7 +269,7 @@ namespace kqp {
         }
         
         
-        const ScalarMatrix &_inner() const {
+        const ScalarMatrix &gramMatrix() const {
             if (size() == 0) return m_gramMatrix;
             
             // We lose space here, could be used otherwise???
@@ -288,7 +290,7 @@ namespace kqp {
         
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
-        void _inner(const Self &other, DerivedMatrix &result) const {
+        void inner(const Self &other, DerivedMatrix &result) const {
             result.setZero();
             
             struct Collector {
@@ -310,10 +312,10 @@ namespace kqp {
         
         
         // Computes alpha * X * A + beta * Y * B (X = *this)
-        Self _linear_combination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
+        FMatrixBasePtr linearCombination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
             // Simple case: we don't have to add another matrix
             if (!mY) 
-                return Self(RowMap(m_map), alpha * m_matrix * mA);
+                return FMatrixBasePtr(new Self(RowMap(m_map), alpha * m_matrix * mA));
             
             // Add the keys
             RowMap newMap;
@@ -332,42 +334,93 @@ namespace kqp {
                 mat.row(newMap[i->first]) += beta * mY->m_matrix.row(i->second) * *mB;
             
             // Move and cleanup before returning
-            Self sdMat(std::move(newMap), std::move(mat));
-            sdMat.cleanup(EPSILON);
+            FMatrixBasePtr sdMat(new Self(std::move(newMap), std::move(mat)));
+            dynamic_cast<Self&>(*sdMat).cleanup(EPSILON);
             return sdMat;
         }
         
         
         
-        void _subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end, Self &into) const {
-            select_columns(begin, end, m_matrix, into.m_matrix);
+        FMatrixBasePtr subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const override {
+            boost::shared_ptr<Self> dest(new Self());
+            select_columns(begin, end, m_matrix, dest->m_matrix);
             
-            into.m_gramMatrix.resize(0,0);
-            if (&into != this) {
-                into.m_dimension = m_dimension;
-                into.m_map = m_map;
-            }
+            dest->m_dimension = m_dimension;
+            dest->m_map = m_map;
+            
+            return dest;
         }
         
+        virtual FMatrixBasePtr copy() const override {
+            return FMatrixBasePtr(new Self(*this));
+        }
+
+        virtual FMatrixBase &operator=(const FMatrixBase &other) override {
+            return *this = dynamic_cast<const Self&>(other);
+        }
+
     private:
-        //! Cache of the gram matrix
-        mutable ScalarMatrix m_gramMatrix;
-        
+        //! Dimension of the space
+        Index m_dimension;
+                
         //! A map from row to row
         std::map<Index, Index> m_map;
 
         //! The dense matrix
         ScalarMatrix m_matrix;
 
+        //! Cache of the gram matrix
+        mutable ScalarMatrix m_gramMatrix;
+
     };
     
     
-    // The scalar for dense feature matrices
-    template <typename _Scalar> struct FeatureMatrixTypes<SparseDenseMatrix<_Scalar> > {
-        typedef _Scalar Scalar;
-        enum {
-            can_linearly_combine = 1
+    template<typename Scalar>
+    class SparseDenseFeatureSpace : public FeatureSpaceBase<Scalar> {
+    public:  
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        static FSpace create(Index dimension) { return FSpace(new SparseDenseFeatureSpace(dimension)); }
+        
+        SparseDenseFeatureSpace(Index dimension) : m_dimension(dimension) {}
+        
+        inline static const SparseDenseMatrix<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseDenseMatrix<Scalar> &>(mX); }
+        
+        
+        Index dimension() const override { return m_dimension; }
+        
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseDenseFeatureSpace(m_dimension));  }
+
+        virtual FMatrixBasePtr newMatrix() const override {
+            return FMatrixBasePtr(new SparseDenseMatrix<Scalar>(m_dimension));
+        }
+        virtual FMatrixBasePtr newMatrix(const FMatrixBase &mX) const override {
+            return FMatrixBasePtr(new SparseDenseMatrix<Scalar>(cast(mX)));            
+        }
+        
+        virtual bool canLinearlyCombine() const override {
+            return true;
+        }
+        
+        const ScalarMatrix &k(const FeatureMatrixBase<Scalar> &mX) const override {
+            return cast(mX).gramMatrix();
+        }
+        
+        virtual ScalarMatrix k(const FeatureMatrixBase<Scalar> &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
+                               const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
+            ScalarMatrix inner;
+            cast(mX1).inner(cast(mX2), inner);
+            return mD1.asDiagonal() * mY1.transpose() * inner * mY2 * mD2.asDiagonal();
         };
+        
+        virtual FMatrixBasePtr linearCombination(const FeatureMatrixBase<Scalar> &mX, const ScalarAltMatrix &mA, Scalar alpha, 
+                                          const FeatureMatrixBase<Scalar> *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
+            return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDenseMatrix<Scalar> *>(mY), mB, beta);
+        }
+        
+    private:
+        Index m_dimension;
+        
     };
     
     
@@ -375,7 +428,8 @@ namespace kqp {
 # // Extern templates
 #ifndef SWIG
 # define KQP_SCALAR_GEN(scalar) \
-  extern template class SparseDenseMatrix<scalar>;
+  extern template class SparseDenseMatrix<scalar>; \
+  extern template class SparseDenseFeatureSpace<scalar>;
 # include <kqp/for_all_scalar_gen>
 #endif    
 } // end namespace kqp

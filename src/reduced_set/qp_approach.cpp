@@ -432,12 +432,9 @@ namespace kqp {
     
     
     
-#define INSTANCE(Scalar) \
-template void solve_qp<Scalar>(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);\
-template class KQP_KKTPreSolver<Scalar>;
-    
-    INSTANCE(double);
-    INSTANCE(float);
-    INSTANCE(std::complex<double>);
-    
+# define KQP_SCALAR_GEN(Scalar) \
+    template class KQP_KKTPreSolver<Scalar>; template struct LambdaError<Scalar>; template struct ReducedSetWithQP<Scalar>; \
+template void solve_qp<Scalar>(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);
+# include <kqp/for_all_scalar_gen>
+   
 }

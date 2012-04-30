@@ -35,19 +35,18 @@ namespace kqp{
      * 
      * @ingroup KernelEVD
      */
-    template <class FMatrix, bool can_linearly_combine = (bool)ftraits<FMatrix>::can_linearly_combine >
-    class AccumulatorKernelEVD : public KernelEVD<FMatrix> {};
+    template <typename Scalar, bool can_linearly_combine> class AccumulatorKernelEVD : public KernelEVD<Scalar> {};
     
     // Specialisation when we know how to combine linearly
-    template <class FMatrix> class AccumulatorKernelEVD<FMatrix, true> : public KernelEVD<FMatrix> {
+    template <typename Scalar> class AccumulatorKernelEVD<Scalar, true> : public KernelEVD<Scalar>  {
     public:
         enum {
             use_linear_combination = 1
         };
         
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD() {
+        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs.newMatrix()) {
         }
         
         virtual ~AccumulatorKernelEVD() {
@@ -56,19 +55,18 @@ namespace kqp{
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
-            FMatrix fm = mX.linear_combination(mA, Eigen::internal::sqrt(alpha));
-            fMatrix.add(fm);
+            FMatrix fm = this->getFSpace().linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
+            fMatrix->add(*fm);
         }
         
-        void reset() {
-            *this = AccumulatorKernelEVD();
+        void reset() override {
+            *this = AccumulatorKernelEVD(this->getFSpace());
         }
         
         //! Actually performs the computation
-        virtual Decomposition<FMatrix> _getDecomposition() const override {
-            Decomposition<FMatrix> d;
+        virtual Decomposition<Scalar> _getDecomposition() const override {
             
-            const ScalarMatrix& gram = fMatrix.inner();
+            const ScalarMatrix& gram = this->getFSpace().k(fMatrix);
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
             
             ScalarMatrix _mY;
@@ -78,10 +76,7 @@ namespace kqp{
             ScalarMatrix __mY;
             __mY.noalias() = _mY * _mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             
-            d.mX = fMatrix;
-            d.mY.swap(__mY);
-            d.mD.swap(_mD);
-            return d;
+            return Decomposition<Scalar>(this->getFSpace(), fMatrix, __mY, _mD, true);
         }
         
     private:
@@ -93,15 +88,12 @@ namespace kqp{
     
     
     // Specialisation when we don't know how to combine linearly
-    template <class FMatrix> class AccumulatorKernelEVD<FMatrix, false> : public KernelEVD<FMatrix> {
+    template <typename Scalar> class AccumulatorKernelEVD<Scalar, false> : public KernelEVD<Scalar>  {
     public:
-        enum {
-            use_linear_combination = 0
-        };
 
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD() {
+        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs.newMatrix()) {
             offsets_X.push_back(0);
             offsets_A.push_back(0);
         }
@@ -115,7 +107,7 @@ namespace kqp{
                 return;
             
             // Do a deep copy of mA
-            combination_matrices.push_back(boost::shared_ptr<ScalarAltMatrix>(new ScalarAltMatrix(mA)));
+            combination_matrices.push_back(mA);
             
             alphas.push_back(Eigen::internal::sqrt(alpha));
             fMatrix.add(mX);
@@ -124,14 +116,14 @@ namespace kqp{
         }
         
         void reset() {
-            *this = AccumulatorKernelEVD();
+            *this = AccumulatorKernelEVD(this->getFSpace());
         }
 
         
     protected:
         //! Actually performs the computation
-        virtual Decomposition<FMatrix> _getDecomposition() const override {
-            Decomposition<FMatrix> d;
+        virtual Decomposition<Scalar> _getDecomposition() const override {
+            Decomposition<Scalar> d;
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
@@ -139,19 +131,19 @@ namespace kqp{
             
             // Nothing to do
             if (size == 0) {
-                d.mX = FMatrix();
+                d.mX = this->getFSpace().newMatrix();
                 d.mY.resize(0,0);
                 d.mD.resize(0,1);
                 return d;
             }
             
-            ScalarMatrix gram_X = fMatrix.inner();
+            ScalarMatrix gram_X = this->getFSpace().k(fMatrix);
             ScalarMatrix gram(size, size);
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {
-                const ScalarAltMatrix &mAi = *combination_matrices[i];
+                const ScalarAltMatrix &mAi = combination_matrices[i];
                 for(size_t j = 0; j <= i; j++) {
-                    const ScalarAltMatrix &mAj = *combination_matrices[j];
+                    const ScalarAltMatrix &mAj = combination_matrices[j];
                     getBlock(gram, offsets_A, i, j) 
                             =  (mAi.transpose() *  ((Eigen::internal::conj(alphas[i]) * alphas[j]) * getBlock(gram_X, offsets_X, i, j))) * mAj;
                 }
@@ -159,9 +151,9 @@ namespace kqp{
             
             
             // Direct EVD
-            typename FTraits::ScalarMatrix _mY;
-            typename FTraits::RealVector _mD;
-            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
+            ScalarMatrix _mY;
+            RealVector _mD;
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
             kqp::thinEVD(evd, _mY, _mD);
             d.mD.swap(_mD);
             
@@ -172,7 +164,7 @@ namespace kqp{
             ScalarMatrix __mY(offsets_X.back(), _mY.cols());
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {
-                const ScalarAltMatrix &mAi = *combination_matrices[i];
+                const ScalarAltMatrix &mAi = combination_matrices[i];
                 __mY.block(offsets_X[i], 0, offsets_X[i+1]-offsets_X[i], __mY.cols()) = mAi * (alphas[i] * _mY.block(offsets_A[i], 0,  offsets_A[i+1]-offsets_A[i], _mY.cols()));
             }
             
@@ -190,7 +182,7 @@ namespace kqp{
         FMatrix fMatrix;        
         
         //! Linear combination matrices
-        std::vector< boost::shared_ptr<ScalarAltMatrix> > combination_matrices;
+        std::vector<ScalarAltMatrix> combination_matrices;
         
         //! Offsets
         std::vector<Index> offsets_A;
@@ -205,8 +197,8 @@ namespace kqp{
 }
 
 #ifndef SWIG
-#define KQP_FMATRIX_GEN_EXTERN(type) extern template class kqp::AccumulatorKernelEVD<type>;
-#include <kqp/for_all_fmatrix_gen>
+#define KQP_SCALAR_GEN(type) extern template class kqp::AccumulatorKernelEVD<type, true>; extern template class kqp::AccumulatorKernelEVD<type, false>;
+#include <kqp/for_all_scalar_gen>
 #endif
 
 #endif

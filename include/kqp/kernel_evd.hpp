@@ -42,11 +42,11 @@ namespace kqp {
      *            The type of the base vectors in the original space
      * @ingroup OperatorBuilder
      */
-    template <class FMatrix> class KernelEVD  {        
+    template <class Scalar> class KernelEVD  {        
     public:
-        KQP_FMATRIX_TYPES(FMatrix);        
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
-        KernelEVD() : nbUpdates(0)  {
+        KernelEVD(const FSpace &featureSpace) : nbUpdates(0), m_featureSpace(featureSpace)  {
         }
         
 
@@ -72,7 +72,7 @@ namespace kqp {
          * 
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
-        inline void add(const FMatrix &mU) {
+        inline void add(const FeatureMatrix<Scalar> &mU) {
             add(1., mU, ScalarMatrix::Identity(mU.size(),mU.size()));
             nbUpdates += mU.size();
         }
@@ -80,9 +80,10 @@ namespace kqp {
         /**
          * Get the current decomposition
          */
-        Decomposition<FMatrix> getDecomposition() const {
-            Decomposition<FMatrix> d(_getDecomposition());
+        Decomposition<Scalar> getDecomposition() const {
+            Decomposition<Scalar> d(_getDecomposition());
             d.updateCount = nbUpdates;
+            d.fs = this->m_featureSpace;
             return d;
         }
 
@@ -96,6 +97,8 @@ namespace kqp {
             return nbUpdates;
         }
     
+        const FSpace &getFSpace() const { return m_featureSpace; }
+        
     protected:
         /**
          * @brief Rank-n update.
@@ -107,13 +110,14 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
+        virtual void _add(Real alpha, const FeatureMatrix<Scalar> &mU, const ScalarAltMatrix &mA) = 0;
 
         /** Get the decomposition */
-        virtual Decomposition<FMatrix> _getDecomposition() const = 0;
+        virtual Decomposition<Scalar> _getDecomposition() const = 0;
     
     private:
         Index nbUpdates;
+        FSpace m_featureSpace;
     };
 
     

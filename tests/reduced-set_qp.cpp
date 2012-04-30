@@ -13,16 +13,17 @@ namespace kqp {
     
     int test_reduced_set_qp_exact(std::deque<std::string> &/*args*/) {        
         // Typedefs
-        typedef DenseMatrix<double> FMatrix;
-        typedef ftraits<FMatrix>::Scalar Scalar;
-        typedef ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
-        typedef ftraits<FMatrix>::RealVector RealVector;
+        typedef DenseMatrix<double> DMatrix;
+        typedef double Scalar;
+        KQP_SCALAR_TYPEDEFS(double);
         
        
         // Parameters
         Index dim = 10;
         Index r_target = 9; // trivial test (just have to remove one)
         Index n = 3;
+        
+        FeatureSpace<Scalar> fs(DenseFeatureSpace<Scalar>::create(dim));
         
         // Gets a rank-n matrix and a full rank matrix
         Eigen::MatrixXd _mF = generateMatrix<Scalar>(dim, dim);        
@@ -38,25 +39,26 @@ namespace kqp {
         _mY.row(2).setZero();
 
         // Computes the EVD
-        AccumulatorKernelEVD<FMatrix, false> kEVD;
+        AccumulatorKernelEVD<double, false> kEVD(fs);
         ScalarMatrix m;
         noalias(m) = _mY * _mD.cwiseSqrt().asDiagonal();
-        kEVD.add(1, FMatrix(_mF), m);
+        kEVD.add(1, DenseMatrix<double>::create(_mF), m);
 
-        Decomposition<DenseMatrix<double>> d = kEVD.getDecomposition();
+        Decomposition<double> d = kEVD.getDecomposition();
 
         // Reduced set computation
-        ReducedSetWithQP<FMatrix> qp_rs;
-        qp_rs.run(r_target, d.mX, d.mY, d.mD);
+        ReducedSetWithQP<double> qp_rs;
+        qp_rs.run(r_target, fs, d.mX, d.mY, d.mD);
         
         // Compare
         
-        Eigen::MatrixXd m1 = qp_rs.getFeatureMatrix().getMatrix() * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
-            * qp_rs.getMixtureMatrix().transpose() * qp_rs.getFeatureMatrix().getMatrix().transpose();
+        const ScalarMatrix &fm = dynamic_cast<const DenseMatrix<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
+        Eigen::MatrixXd m1 = fm * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
+            * qp_rs.getMixtureMatrix().transpose() * fm.transpose();
         Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.transpose() * _mF.transpose();
         double error = (m1 - m2).norm() / m2.norm();
         
-        Index delta = (_mF.cols() - qp_rs.getFeatureMatrix().size());
+        Index delta = (_mF.cols() - qp_rs.getFeatureMatrix()->size());
         double threshold = (1e-10 * delta);
         
         KQP_LOG_INFO_F(logger, "Error is %g [threshold=%g] and pre-images difference is %d", %error %threshold %delta);
@@ -82,12 +84,9 @@ namespace kqp {
         
     int test_reduced_set_qp_approximate(std::deque<std::string> &/*args*/) {        
         // Typedefs
-        typedef DenseMatrix<double> FMatrix;
-        typedef ftraits<FMatrix>::Scalar Scalar;
-        typedef ftraits<FMatrix>::ScalarMatrix ScalarMatrix;
-        typedef ftraits<FMatrix>::ScalarVector ScalarVector;
-        typedef ftraits<FMatrix>::RealVector RealVector;
-        typedef ftraits<FMatrix>::Real Real;
+        typedef DenseMatrix<double> DMatrix;
+        typedef double Scalar;
+       KQP_SCALAR_TYPEDEFS(double);
     
         
         // Parameters
@@ -98,7 +97,8 @@ namespace kqp {
         Index r_target = nbPreImages - to_remove; // One pre-image to remove
         double alpha = 1e-2;
         
-        
+        FeatureSpace<Scalar> fs(DenseFeatureSpace<Scalar>::create(dim));
+
         // --- Build the operator
         
         // Construct U = (U0 0; 0 0) where U0 is orthonormal
@@ -134,21 +134,21 @@ namespace kqp {
         // --- Reduced set
         
         // Computes the k-EVD, keeping the pre-images
-        AccumulatorKernelEVD<FMatrix, false> kEVD;
+        AccumulatorKernelEVD<Scalar, false> kEVD(fs);
         ScalarMatrix m;
         noalias(m) = mY * s.cwiseSqrt().asDiagonal();
-        kEVD.add(1, FMatrix(mX), m);
+        kEVD.add(1, DenseMatrix<double>::create(mX), m);
         
-        Decomposition<DenseMatrix<double>> d = kEVD.getDecomposition();
+        Decomposition<double> d = kEVD.getDecomposition();
         
         // Reduced set computation
-        ReducedSetWithQP<FMatrix> qp_rs;
-        qp_rs.run(r_target, d.mX, d.mY, d.mD);
+        ReducedSetWithQP<double> qp_rs;
+        qp_rs.run(r_target, fs, d.mX, d.mY, d.mD);
         
         
         // Compare
         
-        const ScalarMatrix &mX_r = qp_rs.getFeatureMatrix().getMatrix();
+        const ScalarMatrix &mX_r = dynamic_cast<const DenseMatrix<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
 //        std::cerr << "mX_r\n" << mX_r << std::endl;
         Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().transpose() * mX_r.transpose();
         double diff = (m1 - pX0 * opX * pX0).norm();

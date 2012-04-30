@@ -22,52 +22,58 @@
 #include <kqp/subset.hpp>
 
 namespace kqp {
-    /**
-     * @brief Removes unused pre-images
-     */
-    // TODO make it work for EigenBase
-    template <class FMatrix> 
-    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarMatrix &mY) {
-        // Dimension of the problem
-        Index N = mY.rows();
-        assert(N == mF.size());
+    template<typename Scalar>
+    struct RemoveUnusedPreImages {
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
-        std::vector<bool> to_keep(N, true);
+        /**
+         * @brief Removes unused pre-images
+         */
+        static void run(FMatrix &mF, ScalarMatrix &mY) {
+            // Dimension of the problem
+            Index N = mY.rows();
+            assert(N == mF.size());
+            
+            std::vector<bool> to_keep(N, true);
+            
+            // Removes unused pre-images
+            for(Index i = 0; i < N; i++) 
+                if (mY.row(i).norm() < EPSILON) 
+                    to_keep[i] = false;
+            
+            select_rows(to_keep, mY, mY);
+            mF = mF.subset(to_keep);
+        }
         
-        // Removes unused pre-images
-        for(Index i = 0; i < N; i++) 
-            if (mY.row(i).norm() < EPSILON) 
-                to_keep[i] = false;
-        
-        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
-        mF.subset(to_keep.begin(), to_keep.end());
-    }
+        static void run(FMatrix &mF, ScalarAltMatrix &mY) {
+            // Dimension of the problem
+            Index N = mY.rows();
+            assert(N == mF.size());
+            
+            
+            // Removes unused pre-images
+            RealVector v = mY.rowwise().squaredNorm();
+            
+            bool change = false;
+            std::vector<bool> to_keep(N, true);
+            for(Index i = 0; i < N; i++) 
+                if (v(i) < EPSILON) {
+                    change = true;
+                    to_keep[i] = false;
+                }
+            
+            if (!change) return;
+            
+            select_rows(to_keep, mY, mY);
+            
+            mF = mF.subset(to_keep);
+        }
+    };
     
-    template <class FMatrix> 
-    void removeUnusedPreImages(FMatrix &mF, typename ftraits<FMatrix>::ScalarAltMatrix &mY) {
-        // Dimension of the problem
-        Index N = mY.rows();
-        assert(N == mF.size());
-
-        
-        // Removes unused pre-images
-        typename ftraits<FMatrix>::RealVector v = mY.rowwise().squaredNorm();
-        
-        bool change = false;
-        std::vector<bool> to_keep(N, true);
-        for(Index i = 0; i < N; i++) 
-            if (v(i) < EPSILON) {
-                change = true;
-                to_keep[i] = false;
-            }
-        
-        if (!change) return;
-        
-        select_rows(to_keep.begin(), to_keep.end(), mY, mY);
-                                     
-        mF.subset(to_keep.begin(), to_keep.end());
-    }
-    
+# ifndef SWIG
+# define KQP_SCALAR_GEN(Scalar) extern template struct RemoveUnusedPreImages<Scalar>;
+# include <kqp/for_all_scalar_gen>
+# endif 
 }
 
 #endif

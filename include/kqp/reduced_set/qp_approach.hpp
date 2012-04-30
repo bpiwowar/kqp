@@ -98,14 +98,9 @@ namespace kqp {
     
 
  
-    template <class FMatrix>
+    template <typename Scalar>
     struct ReducedSetWithQP {
-        typedef ftraits<FMatrix> FTraits;
-        typedef typename FTraits::Scalar Scalar;
-        typedef typename FTraits::Real Real;
-        typedef typename FTraits::ScalarMatrix ScalarMatrix;
-        typedef typename FTraits::ScalarVector ScalarVector;
-        typedef typename FTraits::RealVector RealVector;
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         
         /// Result of a run
@@ -115,7 +110,7 @@ namespace kqp {
         
         
         // 
-        FMatrix &getFeatureMatrix() { return new_mF; }
+        const FMatrix &getFeatureMatrix() { return new_mF; }
         ScalarMatrix &getMixtureMatrix() { return new_mY; }
         RealVector &getEigenValues() { return new_mD; }
         
@@ -130,10 +125,9 @@ namespace kqp {
          * @param mF The matrix of pre-images
          * @param mY the 
          */
-        //  typename boost::enable_if_c<!Eigen::NumTraits<typename ftraits<FMatrix>::Scalar>::IsComplex, void>::type
-        void run(Index target, const FMatrix &mF, const typename ftraits<FMatrix>::ScalarAltMatrix &mY, const RealVector &mD) {            
+        void run(Index target, const FSpace &fs, const FMatrix &mF, const ScalarAltMatrix &mY, const RealVector &mD) {            
             // Get the Gram matrix
-            const ScalarMatrix &gram = mF.inner();
+            const ScalarMatrix &gram = fs.k(mF);
             
             // Dimension of the basis
             Index r = mY.cols();
@@ -221,7 +215,7 @@ namespace kqp {
             for(Index i = n-target; i < n; i++) {
                 to_keep[indices[i]] = true;
             }
-            mF.subset(to_keep.begin(), to_keep.end(), new_mF);
+            new_mF = mF.subset(to_keep.begin(), to_keep.end());
             
             
             //
@@ -230,14 +224,14 @@ namespace kqp {
             
             // Compute new_mY so that new_mF Y is orthonormal, ie new_mY' new_mF' new_mF new_mY is the identity
             
-            Eigen::SelfAdjointEigenSolver<typename FTraits::ScalarMatrix> evd(new_mF.inner().template selfadjointView<Eigen::Lower>());
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs.k(new_mF).template selfadjointView<Eigen::Lower>());
             new_mY.swap(evd.eigenvectors());
             new_mY *= evd.eigenvalues().cwiseSqrt().cwiseInverse().asDiagonal();
             
             // Project onto new_mF new_mY
             
             KQP_MATRIX(Scalar) inner;
-            kqp::inner(new_mF, mF, inner);
+            inner = fs.k(new_mF, mF);
             new_mY *= new_mY.adjoint() * inner * mY;
 
             // Diagonal matrix does not change
@@ -268,6 +262,10 @@ namespace kqp {
 
     };
     
+#ifndef SWIG
+# define KQP_SCALAR_GEN(scalar) extern template class KQP_KKTPreSolver<scalar>; extern template struct LambdaError<scalar>; extern template struct ReducedSetWithQP<scalar>;
+# include <kqp/for_all_scalar_gen>
+#endif
 }
 
 

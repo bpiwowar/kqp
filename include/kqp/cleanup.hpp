@@ -27,9 +27,9 @@
 
 namespace kqp {
     
-    template<typename FMatrix> class Cleaner {
+    template<typename Scalar> class Cleaner {
     public:
-		typedef typename ftraits<FMatrix>::Real Real;
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         //! Default constructor
         Cleaner() : preImageRatios(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()), useLinearCombination(true) {}
@@ -52,7 +52,7 @@ namespace kqp {
         }
         
         //! Cleanup
-        virtual void cleanup(Decomposition<FMatrix> &) {}
+        virtual void cleanup(Decomposition<Scalar> &) {}
         
     protected:
         /**
@@ -69,15 +69,15 @@ namespace kqp {
     };
     
     
-    template<typename FMatrix>
-    class StandardCleaner : public Cleaner<FMatrix> {
+    template<typename Scalar>
+    class StandardCleaner : public Cleaner<Scalar> {
     public:
-        KQP_FMATRIX_TYPES(FMatrix);
+        KQP_SCALAR_TYPEDEFS(Scalar);
 	
         /**
          * @brief Ensures the decomposition has the right rank and number of pre-images 
          */
-        void cleanup(Decomposition<FMatrix> &d)  {
+        void cleanup(Decomposition<Scalar> &d) override {
             // --- Rank selection   
             DecompositionList<Real> list(d.mD);
             if (this->selector) {
@@ -89,7 +89,7 @@ namespace kqp {
                 
                 // Case where mY is the identity matrix
                 if (d.mY.getTypeId() == typeid(typename AltDense<Scalar>::IdentityType)) {
-                    d.mX.subset(list.getSelected());
+                    d.mX = d.mX.subset(list.getSelected());
                     d.mY.conservativeResize(list.getRank(), list.getRank());
                 } else {
                     select_columns(list.getSelected(), d.mY, d.mY);
@@ -97,21 +97,21 @@ namespace kqp {
             }
             
             // --- Remove unused pre-images
-            removeUnusedPreImages(d.mX, d.mY);
+            RemoveUnusedPreImages<Scalar>::run(d.mX, d.mY);
             
             // --- Remove null space
-            removePreImagesWithNullSpace(d.mX, d.mY);
+            ReducedSetNullSpace<Scalar>::run(d.fs, d.mX, d.mY);
             
             // --- Ensure we have a small enough number of pre-images
             if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
-                if (d.mX.canLinearlyCombine() && this->useLinearCombination) {
+                if (d.fs.canLinearlyCombine() && this->useLinearCombination) {
                     // Easy case: we can linearly combine pre-images
-                    d.mX = d.mX.linear_combination(d.mY);
+                    d.mX = d.fs.linearCombination(d.mX, d.mY);
                     d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
                 } else {
                     // Use QP approach
-                    ReducedSetWithQP<FMatrix> qp_rs;
-                    qp_rs.run(this->preImageRatios.first * d.mD.rows(), d.mX, d.mY, d.mD);
+                    ReducedSetWithQP<Scalar> qp_rs;
+                    qp_rs.run(this->preImageRatios.first * d.mD.rows(), d.fs, d.mX, d.mY, d.mD);
                     
                     // Get the decomposition
                     d.mX = qp_rs.getFeatureMatrix();
@@ -128,10 +128,12 @@ namespace kqp {
     };
 }
 
-# define KQP_FMATRIX_GEN_EXTERN(type)  \
+# ifndef SWIG
+# define KQP_SCALAR_GEN(type)  \
          extern template class kqp::Cleaner<type>; \
          extern template class kqp::StandardCleaner<type>; 
-# include <kqp/for_all_fmatrix_gen>
+# include <kqp/for_all_scalar_gen>
+# endif
 
 #endif
 

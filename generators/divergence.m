@@ -21,15 +21,17 @@ function dispMatrix(name, a)
  
 function dispTest(name, description, U1, S1, U2, S2, epsilon)
   printf("// Test: %s\n", description);
+  printf("namespace kqp {\n\n")
   printf("int divergence_%sTest(std::deque<std::string> &/*args*/) {\n", name);
+  printf("FeatureSpace<double> fs(DenseFeatureSpace<double>::create(%d));\n", rows(U1))
 
   dispMatrix("U1", U1);
   dispMatrix("U2", U2);
   dispDiag("S1", S1);
   dispDiag("S2", S2);
   printf("\ndouble epsilon = %.30g;\n\n", epsilon);
-  printf("Density< DenseMatrix<double> > rho(DenseMatrix<double>(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);\n");
-  printf("Density< DenseMatrix<double> > tau(DenseMatrix<double>(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);\n");
+  printf("Density< double > rho(fs, DenseMatrix<double>::create(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);\n");
+  printf("Density< double > tau(fs, DenseMatrix<double>::create(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);\n");
 
   eid = eye(rows(U1)) / min(columns(S1) + columns(S2), rows(U1));
   
@@ -46,7 +48,9 @@ function dispTest(name, description, U1, S1, U2, S2, epsilon)
   printf("\nreturn std::abs(divergence - expected_divergence) < 1e-10 ? 0 : 1;\n")
 #  printf("\nif (std::abs(divergence - expected_divergence) < 1e-10) { String.format(\"Error while computing divergence (delta=%%g)\",abs(divergence-expected_divergence)));\n");
 #  printf("\n}\n\n");
-  printf("}\n");
+  printf("}\n");  
+  printf("} // end namespace kqp\n\n");
+  printf("DEFINE_TEST(\"%s\", divergence_%sTest)\n", name, name);  
 endfunction
 
 function [U,S] = decompose(rho) 
@@ -64,10 +68,10 @@ printf("#include <deque>\n")
 printf("#include <kqp/kqp.hpp>\n")
 printf("#include <kqp/probabilities.hpp>\n");
 printf("#include <kqp/feature_matrix/dense.hpp>\n");
+printf("#include \"main-tests.inc\"\n");
 printf("\n\n");
 printf("DEFINE_LOGGER(logger, \"kqp.test.divergence\");\n\n")
 
-printf("namespace kqp {\n\n")
 
 # --- First test (with epsilon = 0 and epsilon = 1e-3)
 
@@ -90,5 +94,3 @@ dispTest("full", "", U1, S1, U2, S2, epsilon);
 # --- Divergence of the same density (= 0)
 
 dispTest("zero", "", U1, S1, U1, S1, epsilon);
-
-printf("} // end namespace kqp\n\n")
