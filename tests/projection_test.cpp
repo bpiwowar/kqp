@@ -110,22 +110,7 @@ namespace kqp {
             rhoTracker.add(DenseMatrix<double>::create(rhoVectors[i]));
         Density<double> rho(rhoTracker);
         
-        {
-            ScalarMatrix  x = *rho.X()->as<const DenseMatrix<double>>();
-            ScalarMatrix op = x * rho.Y() * rho.S().cwiseAbs2().asDiagonal() * rho.Y().transpose() * x.adjoint();
-            std::cerr << x << std::endl;
-            std::cerr << ScalarMatrix(rho.S()).transpose() << std::endl;
-            std::cerr << x.trace() << std::endl;
-        }
-        
         rho.normalize();
-        {
-            ScalarMatrix  x = *rho.X()->as<const DenseMatrix<double>>();
-            ScalarMatrix op = x * rho.Y() * rho.S().cwiseAbs2().asDiagonal() * rho.Y().transpose() * x.adjoint();
-            std::cerr << x << std::endl;
-            std::cerr << ScalarMatrix(rho.S()).transpose() << std::endl;
-            std::cerr << x.trace() << std::endl;
-        }
         
         DensityTracker sbTracker(dimension);
         for (int j = 0; j < sbVectorsCount; j++) 

@@ -122,9 +122,6 @@ namespace kqp {
         
         //! Computes the trace of the operator
         Real trace() const {
-            std::cerr << "TR1: " << m_operator.fs.k(X(), Y(), S()).trace() << std::endl;
-            std::cerr << "TR2: " << (S().asDiagonal() * Y().transpose() * m_operator.fs.k(X()) * Y() * S().asDiagonal()).trace() << std::endl;
-            std::cerr << "TR3: " << m_operator.mD.cwiseAbs2().sum() << std::endl;
             if (isOrthonormal()) 
                 return m_operator.mD.cwiseAbs2().sum();
             return m_operator.fs.k(X(), Y(), S()).trace();

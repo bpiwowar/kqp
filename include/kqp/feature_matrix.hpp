@@ -81,7 +81,7 @@ namespace kqp {
         virtual FMatrixBasePtr copy() const = 0;
         
         /** Dynamic cast */
-        template<typename T> inline const T &as() const { return dynamic_cast<T&>(*this); }
+        template<typename T> inline const T &as() const { return dynamic_cast<const T&>(*this); }
         template<typename T> inline T &as() { return dynamic_cast<T&>(*this); }        
     };
     
