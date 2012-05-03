@@ -55,7 +55,7 @@ namespace kqp {
         }
         
         virtual Decomposition<Scalar> _getDecomposition() const override {
-            Decomposition<Scalar> d;
+            Decomposition<Scalar> d(this->getFSpace());
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
             ScalarAltMatrix _mX;

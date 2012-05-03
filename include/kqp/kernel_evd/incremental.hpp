@@ -202,7 +202,7 @@ namespace kqp {
         
         // Gets the decomposition
         virtual Decomposition<Scalar> _getDecomposition() const override {
-            Decomposition<Scalar> d;
+            Decomposition<Scalar> d(this->getFSpace());
             
             d.mX = this->mX;
             

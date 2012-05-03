@@ -47,7 +47,7 @@ namespace kqp {
         Index updateCount;
         
         //! Default constructor with an undefined feature space
-        Decomposition() {}
+        Decomposition() : orthonormal(true) {}
         
         //! Default constructor with a feature space
         Decomposition(const FSpace &fs) : fs(fs), mX(fs.newMatrix()), orthonormal(true) {}

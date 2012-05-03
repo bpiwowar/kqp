@@ -123,7 +123,7 @@ namespace kqp{
     protected:
         //! Actually performs the computation
         virtual Decomposition<Scalar> _getDecomposition() const override {
-            Decomposition<Scalar> d;
+            Decomposition<Scalar> d(this->getFSpace());
             // Compute A^T X^T X A^T 
             // where A = diag(A_1 ... A_n) and X = (X_1 ... X_n)
             
