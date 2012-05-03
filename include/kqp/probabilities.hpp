@@ -24,6 +24,7 @@
 #include <kqp/kernel_evd.hpp>
 #include <kqp/kernel_evd/utils.hpp>
 
+
 namespace kqp {
     
     // Foward declarations
@@ -87,6 +88,11 @@ namespace kqp {
             if (isOrthonormal()) 
                 return m_operator.mD.size();
             return -1;
+        }
+        
+        //! Get the feature space
+        inline const FSpace &fs() const {
+            return m_operator.fs;
         }
         
         //! Get the feature matrix
@@ -165,17 +171,18 @@ namespace kqp {
             
             // TODO: Eigen should only the needed part
             ScalarMatrix m_full(m_operator.fs.k(m_operator.mX, m_operator.mY, m_operator.mD));
+                        
             Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m(m_full);
-            
+
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
-            
             ScalarMatrix _mY;
             RealVector _mS;
             kqp::thinEVD(evd, _mY, _mS);
             
             _mS.array() = _mS.array().cwiseAbs().cwiseSqrt();
-            _mY *= _mS.cwiseInverse().asDiagonal();
+            _mY = Y() * S().asDiagonal() * _mY * _mS.cwiseInverse().asDiagonal();
             
+
             // If we can linearly combine, use it to reduce the future amount of computation
             if (m_operator.fs.canLinearlyCombine()) {
                 m_operator.mX = m_operator.fs.linearCombination(m_operator.mX, _mY, 1);
@@ -184,7 +191,7 @@ namespace kqp {
                 m_operator.mY.swap(_mY);
             
             m_operator.mD.swap(_mS);
-            
+
             m_operator.orthonormal = true;
             
         }
@@ -390,7 +397,7 @@ namespace kqp {
             
 			// The background density span the subspace of rho
             Index rank = rho.S().rows() + tau.S().rows();
-            if (rank > rho.X().size()) rank = rho.X().size();
+            if (rank > rho.fs().dimension()) rank = rho.fs().dimension();
             
 			Real alpha = 1. / (Real)(rank);
 			Real alpha_noise = epsilon * alpha;

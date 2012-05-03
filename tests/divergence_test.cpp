@@ -65,7 +65,7 @@ return std::abs(divergence - expected_divergence) < 1e-10 ? 0 : 1;
 }
 } // end namespace kqp
 
-DEFINE_TEST("simpleEpsilon", divergence_simpleEpsilonTest)
+DEFINE_TEST("simple-epsilon", divergence_simpleEpsilonTest)
 // Test: 
 namespace kqp {
 

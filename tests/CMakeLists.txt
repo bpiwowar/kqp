@@ -108,7 +108,8 @@ do_kevd_test(kernel-evd/divide-and-conquer divide-and-conquer)
 
 do_test(projection_simple projection simple)
 do_test(projection_normal projection normal)
-do_test(probabilities probabilities)
+
+do_test(probabilities probabilities orthonormalization)
 
 # --- Quantum Probabilities (divergence)
 

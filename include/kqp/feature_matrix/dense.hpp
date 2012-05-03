@@ -197,17 +197,10 @@ namespace kqp {
     private:        
         //! Cache of the gram m_matrix
         mutable ScalarMatrix m_gramMatrix;
-<<<<<<< HEAD
         
         //! Our m_matrix
         ScalarMatrix m_matrix;
-        
-=======
-        
-        //! Our m_matrix
-        ScalarMatrix m_matrix;
-        
->>>>>>> 0ae2d5ec0f602be09ea7b6aa626c88e93c1238b0
+
         friend class DenseFeatureSpace<Scalar>;
     };
     
