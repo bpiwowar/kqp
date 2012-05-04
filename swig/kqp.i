@@ -36,6 +36,9 @@
         namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
         namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
     }
+    
+    using Eigen::Dynamic;
+    using Eigen::Matrix;
 %}
 
 // --- Defines some macros
@@ -70,7 +73,6 @@
 %rename operator++ next;
 %rename operator!= notEqual;
 
-%ignore kqp::FeatureMatrix;
 %ignore kqp::Intervals;
 %ignore kqp::IntervalsIterator;
 %ignore kqp::DenseMatrix::getMatrix;

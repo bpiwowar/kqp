@@ -39,6 +39,7 @@ namespace kqp {
         typedef SparseMatrix<Scalar> Self;
         typedef Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Storage;
         
+        virtual ~SparseMatrix() {}
         
         SparseMatrix()  {}
         SparseMatrix(Index dimension) : m_matrix(dimension, 0) {}

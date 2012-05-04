@@ -37,6 +37,9 @@ namespace kqp {
         KQP_SCALAR_TYPEDEFS(Scalar);
         typedef DenseMatrix<Scalar> Self;
    
+   
+        ~DenseMatrix() {}
+        
         //! Null constructor: will set the dimension with the first feature vector
         DenseMatrix() {}
         

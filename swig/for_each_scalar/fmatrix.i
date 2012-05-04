@@ -1,50 +1,22 @@
 
-// --- Traits for feature matrices
-
-namespace kqp {
-    template<> struct ftraits< kqp::DenseMatrix<@STYPE@ > > {
-        typedef @STYPE@ Scalar; 
-        typedef @RTYPE@ Real;
-        typedef SCALAR_ALTMATRIX_@SNAME@ ScalarAltMatrix;
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
-        
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,1> RealVector;
-        typedef REAL_ALTVECTOR_@RNAME@ RealAltVector;
-    };
-    
-    template<> struct ftraits< kqp::SparseDenseMatrix<@STYPE@ > > {
-        typedef @STYPE@ Scalar; 
-        typedef @RTYPE@ Real;
-        typedef SCALAR_ALTMATRIX_@SNAME@ ScalarAltMatrix;
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
-        
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,1> RealVector;
-        typedef REAL_ALTVECTOR_@RNAME@ RealAltVector;
-    };
-
-    template<> struct ftraits< kqp::SparseMatrix<@STYPE@ > > {
-        typedef @STYPE@ Scalar; 
-        typedef @RTYPE@ Real;
-        typedef SCALAR_ALTMATRIX_@SNAME@ ScalarAltMatrix;
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
-        
-        typedef Eigen::Matrix<@RTYPE@ ,Eigen::Dynamic,1> RealVector;
-        typedef REAL_ALTVECTOR_@RNAME@ RealAltVector;
-    };
-    
-}
-
-
 
 // --- Features matrices
 
+
+%shared_ptr(FeatureMatrixBase@SNAME@)
+
 %include <kqp/feature_matrix.hpp>
+%template(FeatureMatrixBase@SNAME@) kqp::FeatureMatrixBase< @STYPE@ >;
+%template(FeatureMatrix@SNAME@) kqp::FeatureMatrix< @STYPE@ >;
+%template(FeatureSpace@SNAME@) kqp::FeatureSpace< @STYPE@ >;
+%template(FeatureSpaceBase@SNAME@) kqp::FeatureSpaceBase< @STYPE@ >;
 
 
 // Dense
-%template() kqp::FeatureMatrix< kqp::DenseMatrix< @STYPE@ > >;
-%template() kqp::ftraits< kqp::DenseMatrix< @STYPE@ > >;
+%shared_ptr(Dense@SNAME@)
+%shared_ptr(DenseSpace@SNAME@)
 %include <kqp/feature_matrix/dense.hpp>
+%template(DenseSpace@SNAME@) kqp::DenseFeatureSpace< @STYPE@ >;
 %template(Dense@SNAME@) kqp::DenseMatrix< @STYPE@ >;
 %extend kqp::DenseMatrix< @STYPE@ > {
   Index dataSize() const {
@@ -53,16 +25,14 @@ namespace kqp {
 };
 
 // Sparse dense
-%template() kqp::FeatureMatrix< kqp::SparseDenseMatrix< @STYPE@ > >;
-%template() kqp::ftraits< kqp::SparseDenseMatrix< @STYPE@ > >;
 %include <kqp/feature_matrix/sparse_dense.hpp>
 %template(SparseDense@SNAME@) kqp::SparseDenseMatrix< @STYPE@ >;
+%template(SparseDenseSpace@SNAME@) kqp::SparseDenseFeatureSpace< @STYPE@ >;
 
 // Sparse dense
-%template() kqp::FeatureMatrix< kqp::SparseMatrix< @STYPE@ > >;
-%template() kqp::ftraits< kqp::SparseMatrix< @STYPE@ > >;
 %include <kqp/feature_matrix/sparse.hpp>
 %template(Sparse@SNAME@) kqp::SparseMatrix< @STYPE@ >;
+%template(SparseSpace@SNAME@) kqp::SparseFeatureSpace< @STYPE@ >;
 
 // ---- Decompositions & cleaning
 
@@ -72,7 +42,7 @@ namespace kqp {
 %shared_ptr(RankSelectorAbs@SNAME@);
 %shared_ptr(RankSelector@SNAME@);
 
-%ignore kqp::Selector< @FTYPE@ >::selection;
+%ignore kqp::Selector< @STYPE@ >::selection;
 %template(Selector@SNAME@) kqp::Selector< @STYPE@ >;
 
 %template(RankSelectorAbs@SNAME@) kqp::RankSelector< @STYPE@,true >;

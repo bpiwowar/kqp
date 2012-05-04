@@ -44,7 +44,7 @@ namespace kqp {
 
         typedef std::map<Index,Index> RowMap;
 
-        
+        virtual ~SparseDenseMatrix() {}
         
         SparseDenseMatrix() :  m_dimension(0) {}
         SparseDenseMatrix(Index dimension) :  m_dimension(dimension) {}
@@ -355,8 +355,12 @@ namespace kqp {
             return FMatrixBasePtr(new Self(*this));
         }
 
-        virtual FMatrixBase &operator=(const FMatrixBase &other) override {
-            return *this = dynamic_cast<const Self&>(other);
+        virtual FMatrixBase &operator=(const FMatrixBase &_other) override {
+          const Self &other = dynamic_cast<const Self&>(_other);
+          m_dimension = other.m_dimension;
+          m_matrix = other.m_matrix;
+          m_gramMatrix = other.m_gramMatrix;
+          return *this;
         }
 
     private:

@@ -31,8 +31,8 @@ namespace kqp {
     typedef Matrix<Scalar, Dynamic, 1> ScalarVector; \
     typedef Matrix<Real, Dynamic, Dynamic> RealMatrix; \
     typedef Matrix<Real, Dynamic, 1> RealVector; \
-    typedef typename AltDense<Scalar>::type  ScalarAltMatrix; \
-    typedef typename AltVector<Real>::type   RealAltVector; \
+    typedef kqp::AltMatrix< typename kqp::AltDense<Scalar>::DenseType, typename kqp::AltDense<Scalar>::IdentityType >  ScalarAltMatrix; \
+    typedef kqp::AltMatrix< typename kqp::AltVector<Real>::VectorType,  typename kqp::AltVector<Real>::ConstantVectorType >   RealAltVector; \
     typedef FeatureMatrix<Scalar> FMatrix; \
     typedef FeatureSpace<Scalar> FSpace; \
     typedef typename AltVector<Real>::ConstantVectorType ConstantRealVector; \
@@ -146,13 +146,13 @@ namespace kqp {
             return *this;
         }
         
+#ifndef SWIG
         const FMatrixBase * operator->() const { return m_fMatrix.get();  }        
         FMatrixBase * operator->() { return m_fMatrix.get(); }
         
         const FMatrixBase & operator*() const { return *m_fMatrix.get(); }
         FMatrixBase & operator*() { return *m_fMatrix.get(); }
 
-#ifndef SWIG
         FeatureMatrix<Scalar> &operator=(FeatureMatrix<Scalar> &&other) {
             if (typeid(other) != typeid(*this))
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Non matching types for assignement (%s to %s)", %KQP_DEMANGLE(other) %KQP_DEMANGLE(*this));
@@ -345,13 +345,14 @@ namespace kqp {
             return FMatrix(m_fSpace->linearCombination(*mX, mA, alpha, NULL, NULL, 0));
         }
         
+#ifndef SWIG
         
         const FSpaceBase * operator->() const { return m_fSpace.get();  }        
         FSpaceBase * operator->() { return m_fSpace.get(); }
         
         const FSpaceBase & operator*() const { return *m_fSpace.get(); }
         FSpaceBase & operator*() { return *m_fSpace.get(); }
-
+#endif
         
     private:
         boost::shared_ptr< FeatureSpaceBase<Scalar> > m_fSpace;

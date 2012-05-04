@@ -2,6 +2,13 @@
 /*%include "carrays.i"*/
 /*%array_class(@STYPE@, Array@SNAME@);*/
 
+namespace Eigen {
+template<> struct NumTraits< @STYPE@ > {
+  typedef @RTYPE@ Real;
+};
+}
+
+%template() Eigen::NumTraits< @STYPE@ >;
 
 %template(EigenMatrix@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic >;
 %extend Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic> {
