@@ -24,15 +24,24 @@
 #include <kqp/alt_matrix.hpp>
 
 namespace kqp {
+  
+#ifndef SWIG
+  template <typename Scalar>
+  struct ScalarDefinitions {
+    typedef typename Eigen::NumTraits<Scalar>::Real Real; 
+    typedef kqp::AltMatrix< typename kqp::AltDense<Scalar>::DenseType, typename kqp::AltDense<Scalar>::IdentityType >  ScalarAltMatrix;
+    typedef kqp::AltMatrix< typename kqp::AltVector<Real>::VectorType,  typename kqp::AltVector<Real>::ConstantVectorType >   RealAltVector;
+  };
+#endif
 
 #define KQP_SCALAR_TYPEDEFS(Scalar) \
     typedef typename Eigen::NumTraits<Scalar>::Real Real; \
-    typedef Matrix<Scalar, Dynamic, Dynamic> ScalarMatrix; \
-    typedef Matrix<Scalar, Dynamic, 1> ScalarVector; \
-    typedef Matrix<Real, Dynamic, Dynamic> RealMatrix; \
-    typedef Matrix<Real, Dynamic, 1> RealVector; \
-    typedef kqp::AltMatrix< typename kqp::AltDense<Scalar>::DenseType, typename kqp::AltDense<Scalar>::IdentityType >  ScalarAltMatrix; \
-    typedef kqp::AltMatrix< typename kqp::AltVector<Real>::VectorType,  typename kqp::AltVector<Real>::ConstantVectorType >   RealAltVector; \
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> ScalarMatrix; \
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> ScalarVector; \
+    typedef Eigen::Matrix<Real, Eigen::Dynamic, Dynamic> RealMatrix; \
+    typedef Eigen::Matrix<Real, Eigen::Dynamic, 1> RealVector; \
+    typedef typename ScalarDefinitions<Scalar>::ScalarAltMatrix ScalarAltMatrix; \
+    typedef typename ScalarDefinitions<Scalar>::RealAltVector RealAltVector; \
     typedef FeatureMatrix<Scalar> FMatrix; \
     typedef FeatureSpace<Scalar> FSpace; \
     typedef typename AltVector<Real>::ConstantVectorType ConstantRealVector; \
@@ -40,7 +49,8 @@ namespace kqp {
     typedef FeatureMatrixBase<Scalar> FMatrixBase; \
     typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixBasePtr; \
     typedef FeatureSpaceBase<Scalar> FSpaceBase; \
-    typedef boost::shared_ptr< FeatureSpaceBase<Scalar> > FSpaceBasePtr;
+    typedef boost::shared_ptr< FeatureSpaceBase<Scalar> > FSpaceBasePtr; \
+    typedef boost::shared_ptr< const FeatureSpaceBase<Scalar> > FSpaceBaseCPtr;
 
     
     template<typename Scalar> class FeatureMatrixBase;
@@ -100,11 +110,12 @@ namespace kqp {
         
 #ifndef SWIG
         FeatureMatrix(FeatureMatrix &&other) : m_fMatrix(other.m_fMatrix) {}
+
+        /** Creates a feature matrix and takes the ownership of the pointer */
+        explicit FeatureMatrix(FeatureMatrixBase<Scalar> *fMatrix) : m_fMatrix(fMatrix) {}
 #endif
         FeatureMatrix(const FeatureMatrix &other) : m_fMatrix(other.m_fMatrix->copy()) {}
         
-        /** Creates a feature matrix and takes the ownership of the pointer */
-        explicit FeatureMatrix(FeatureMatrixBase<Scalar> *fMatrix) : m_fMatrix(fMatrix) {}
         
         /** Creates a feature matrix, sharing the pointer */
         explicit FeatureMatrix(const boost::shared_ptr< FeatureMatrixBase<Scalar> > &fMatrix) : m_fMatrix(fMatrix) {}
@@ -206,6 +217,18 @@ namespace kqp {
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const = 0;
 
+        //! Inner products \f$Y_1^\dagger X_1^\dagger X_2 Y_2\f$
+        inline ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, 
+                              const FMatrixBase &mX2, const ScalarAltMatrix &mY2) const {
+            return k(mX1, mY1, RealVector::Ones(mY1.cols()), mX2, mY2, RealVector::Ones(mY2.cols()));
+        }
+
+        //! Inner products \f$X_1^\dagger X_2\f$
+        inline ScalarMatrix k(const FMatrixBase &mX1, const FMatrixBase &mX2) const {
+            return k(mX1, ScalarMatrix::Identity(mX1.size(), mX1.size()), RealVector::Ones(mX1.size()), 
+                     mX2, ScalarMatrix::Identity(mX2.size(), mX2.size()), RealVector::Ones(mX2.size()));
+        }
+
         
         //! Creates a new feature matrix
         virtual FMatrixBasePtr newMatrix() const = 0;        
@@ -237,7 +260,6 @@ namespace kqp {
         // Undefined space
         FeatureSpace() {}
 
-        FeatureSpace(FSpaceBase *ptr) : m_fSpace(ptr) {}
         FeatureSpace(const FSpaceBasePtr &ptr) : m_fSpace(ptr) {}
         FeatureSpace(const FeatureSpace &other) : m_fSpace(other.m_fSpace->copy()) {}
         FeatureSpace &operator=(const FeatureSpace &other) {
@@ -246,6 +268,7 @@ namespace kqp {
         }
         
 #ifndef SWIG
+        FeatureSpace(FSpaceBase *ptr) : m_fSpace(ptr) {}
         FeatureSpace(FeatureSpace &&other) :  m_fSpace(std::move(other.m_fSpace)) {}
         FeatureSpace &operator=(FeatureSpace &&other) {
             m_fSpace = std::move(other.m_fSpace);
@@ -355,7 +378,7 @@ namespace kqp {
 #endif
         
     private:
-        boost::shared_ptr< FeatureSpaceBase<Scalar> > m_fSpace;
+        FSpaceBasePtr m_fSpace;
         
     };
 

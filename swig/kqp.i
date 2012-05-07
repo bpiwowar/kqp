@@ -24,6 +24,7 @@
     #include <kqp/feature_matrix/dense.hpp>
     #include <kqp/feature_matrix/sparse.hpp>
     #include <kqp/feature_matrix/sparse_dense.hpp>
+    #include <kqp/feature_matrix/unary_kernel.hpp>
     
     #include <kqp/kernel_evd/dense_direct.hpp>
     #include <kqp/kernel_evd/accumulator.hpp>
@@ -84,7 +85,7 @@ namespace kqp {
     namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
     namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
     
-    template<typename FMatrix> struct ftraits;
+    template<typename Scalar> struct ScalarDefinitions;
         
     //! A dense vector or a constant vector
      template<typename Scalar> struct AltVector {
@@ -103,8 +104,10 @@ namespace kqp {
     class AltMatrix {
     };
 }
+
 namespace Eigen {
     template<typename Scalar> struct NumTraits;
+    
     template<typename Scalar, int Rows, int Cols>
     class Matrix {
     public:
@@ -116,8 +119,9 @@ namespace Eigen {
     public:
         SparseMatrix(Index rows, Index cols);
     };
+    
+    
 }
-
 
 
 %include "kqp_all.i"

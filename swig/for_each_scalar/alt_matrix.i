@@ -20,7 +20,6 @@
 #ifndef REAL_ALTVECTOR_@RNAME@
 #define REAL_ALTVECTOR_@RNAME@ kqp::AltMatrix< typename kqp::AltVector<@RTYPE@>::VectorType,  typename kqp::AltVector<@RTYPE@>::ConstantVectorType >
 
-
 %template(AltVector@RNAME@) REAL_ALTVECTOR_@RNAME@;
 %extend REAL_ALTVECTOR_@RNAME@ {
     static REAL_ALTVECTOR_@RNAME@ createConstant(Index size, @RTYPE@ x) {

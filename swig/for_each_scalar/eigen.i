@@ -10,6 +10,8 @@ template<> struct NumTraits< @STYPE@ > {
 
 %template() Eigen::NumTraits< @STYPE@ >;
 
+// Matrix (Eigen)
+
 %template(EigenMatrix@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic >;
 %extend Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic> {
     Index row() const { return self->rows(); }; 
@@ -27,6 +29,7 @@ template<> struct NumTraits< @STYPE@ > {
     } 
 }
 
+// Vector (Eigen)
 %template(EigenVector@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, 1 >;
 %extend Eigen::Matrix<@STYPE@, Eigen::Dynamic, 1> {
     Index row() const { return self->rows(); }; 

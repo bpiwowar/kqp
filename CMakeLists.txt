@@ -112,7 +112,7 @@ FOREACH(name kqp fmatrix kernel_evd reduced_set)
 	SET(kqp_${name}_SRC ${kqp_${name}_H} ${kqp_${name}_CPP})
 ENDFOREACH(name)
 
-SOURCE_GROUP("Feature matrix" FILES ${kqp_fmatrix_SRC})
+SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_SRC})
 SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
 SOURCE_GROUP("Reduced Set" FILES ${kqp_reduced_set_SRC})
 
