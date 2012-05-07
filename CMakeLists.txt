@@ -43,6 +43,7 @@ SET (libkqp_SOVERSION "${libkqp_VERSION_MAJOR}.${libkqp_VERSION_MINOR}")
 
 # --- Compilation flags
 
+
 # - Gnu CC
 IF(CMAKE_COMPILER_IS_GNUCXX)
 	# Get the major and minor version
@@ -54,7 +55,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 	SET(CXX_STD "c++0x")
   ENDIF()
 
-  SET (EXTRA_C_FLAGS "--std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC")
+  SET (EXTRA_C_FLAGS "${EXTRA_C_FLAGS} --std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC")
   SET (EXTRA_C_FLAGS_RELEASE "-O3 ${EXTRA_C_FLAGS}")
   SET (EXTRA_C_FLAGS_DEBUG "-O0 -g ${EXTRA_C_FLAGS}")
 
@@ -70,6 +71,7 @@ IF (CMAKE_GENERATOR MATCHES Xcode)
 	SET(CMAKE_XCODE_GCC_OPTIMIZATION_LEVEL "0")
     # SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
 ENDIF(CMAKE_GENERATOR MATCHES Xcode)
+
 
 
 # --- Add our own modules
