@@ -436,7 +436,7 @@ namespace kqp {
 # define KQP_SCALAR_GEN(scalar) \
   extern template class SparseDense<scalar>; \
   extern template class SparseDenseSpace<scalar>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 #endif    
 } // end namespace kqp
 

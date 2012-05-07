@@ -215,7 +215,7 @@ namespace kqp {
 #ifndef SWIG    
 # // Extern templates
 # define KQP_SCALAR_GEN(scalar) extern template class Sparse<scalar>; extern template class SparseSpace<scalar>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 #endif
 
 } // end namespace kqp

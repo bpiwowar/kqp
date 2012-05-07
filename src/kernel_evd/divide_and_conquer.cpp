@@ -18,4 +18,4 @@
 #include <kqp/kernel_evd/divide_and_conquer.hpp>
 
 #define KQP_SCALAR_GEN(type) template class kqp::DivideAndConquerBuilder<type>;
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>

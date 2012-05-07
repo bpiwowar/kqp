@@ -7,5 +7,5 @@ namespace kqp {
     template class SparseDense<scalar>; \
     template class SparseSpace<scalar>; \
     template class SparseDenseSpace<scalar>;
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>
 }

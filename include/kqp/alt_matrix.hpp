@@ -1251,7 +1251,7 @@ namespace kqp {
 # define KQP_SCALAR_GEN(type)  \
     extern template class AltMatrix<AltDense<type>::DenseType, AltDense<type>::IdentityType>; \
     extern template class AltMatrix<AltVector<type>::VectorType, AltVector<type>::ConstantVectorType>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
     
 }
 

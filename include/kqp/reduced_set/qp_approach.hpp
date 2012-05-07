@@ -264,7 +264,7 @@ namespace kqp {
     
 #ifndef SWIG
 # define KQP_SCALAR_GEN(scalar) extern template class KQP_KKTPreSolver<scalar>; extern template struct LambdaError<scalar>; extern template struct ReducedSetWithQP<scalar>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 #endif
 }
 

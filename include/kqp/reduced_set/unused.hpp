@@ -72,7 +72,7 @@ namespace kqp {
     
 # ifndef SWIG
 # define KQP_SCALAR_GEN(Scalar) extern template struct RemoveUnusedPreImages<Scalar>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 # endif 
 }
 

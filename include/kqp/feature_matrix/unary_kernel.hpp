@@ -152,7 +152,7 @@ namespace kqp {
 #define KQP_SCALAR_GEN(scalar) \
     extern template class kqp::GaussianSpace<scalar>; \
     extern template class kqp::PolynomialSpace<scalar>;
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>
 #undef KQP_SCALAR_GEN
 
 #endif

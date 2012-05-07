@@ -18,8 +18,8 @@
 #define __KQP_H__
 
 
-#define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.hpp>
-#define EIGEN_SPARSEMATRIX_PLUGIN <kqp/eigen_sparse_matrix_plugin.hpp>
+#define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.h.inc>
+#define EIGEN_SPARSEMATRIX_PLUGIN <kqp/eigen_sparse_matrix_plugin.h.inc>
 
 #include "Eigen/Core"
 

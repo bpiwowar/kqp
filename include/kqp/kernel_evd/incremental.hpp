@@ -240,7 +240,7 @@ namespace kqp {
 
 #ifndef SWIG    
 #define KQP_SCALAR_GEN(type) extern template class kqp::IncrementalKernelEVD<type>;
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>
 #endif
 
 }

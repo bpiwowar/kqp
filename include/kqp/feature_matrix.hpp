@@ -385,7 +385,7 @@ namespace kqp {
 
 # ifndef SWIG
 # define KQP_SCALAR_GEN(Scalar) extern template class FeatureMatrix<Scalar>; extern template class Space<Scalar>;
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 # endif 
 
 }

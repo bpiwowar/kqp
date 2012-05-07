@@ -132,7 +132,7 @@ namespace kqp {
 # define KQP_SCALAR_GEN(type)  \
          extern template class kqp::Cleaner<type>; \
          extern template class kqp::StandardCleaner<type>; 
-# include <kqp/for_all_scalar_gen>
+# include <kqp/for_all_scalar_gen.h.inc>
 # endif
 
 #endif

@@ -435,6 +435,6 @@ prefix template class kqp::Event<type>;
 
 #ifndef SWIG
 #define KQP_SCALAR_GEN(type) KQP_PROBABILITIES_FMATRIX_GEN(extern,type)
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>
 #endif
 #endif

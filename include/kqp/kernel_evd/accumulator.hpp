@@ -198,7 +198,7 @@ namespace kqp{
 
 #ifndef SWIG
 #define KQP_SCALAR_GEN(type) extern template class kqp::AccumulatorKernelEVD<type, true>; extern template class kqp::AccumulatorKernelEVD<type, false>;
-#include <kqp/for_all_scalar_gen>
+#include <kqp/for_all_scalar_gen.h.inc>
 #endif
 
 #endif
