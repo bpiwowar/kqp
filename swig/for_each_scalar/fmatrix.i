@@ -75,6 +75,9 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 %ignore kqp::Selector< @STYPE@ >::selection;
 %template(Selector@SNAME@) kqp::Selector< @STYPE@ >;
 
+%ignore MinimumSelector@SNAME@::selection;
+%template(MinimumSelector@SNAME@) kqp::MinimumSelector< @STYPE@ >;
+
 %ignore kqp::RankSelector< @STYPE@, true >::selection;
 %template(RankSelectorAbs@SNAME@) kqp::RankSelector< @STYPE@,true >;
 

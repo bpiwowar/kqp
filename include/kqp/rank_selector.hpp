@@ -168,13 +168,13 @@ namespace kqp {
     };
     
     /**
-     * Minimum relative eigenvalue
+     * @brief Select the eigenvalues with a ratio to the highest magnitude above a given threshold.
      */
     template<typename Scalar>
     class MinimumSelector : public Selector<Scalar> {
         Scalar minRatio;
     public:
-        MinimumSelector() : minRatio(EPSILON) {}
+        MinimumSelector(Scalar threshold) : minRatio(threshold) {}
         virtual ~MinimumSelector() {}
         virtual void selection(EigenList<Scalar>& eigenvalues) const override {
             // Computes the maximum of eigenvalues
@@ -194,7 +194,7 @@ namespace kqp {
     };
     
     /**
-     * Select the highest eigenvalues (with a possible "reset" rank)
+     * @brief Select the highest eigenvalues (with a possible "reset" rank)
      */
     template<typename Scalar, bool byMagnitude>
     class RankSelector : public Selector<Scalar> {
