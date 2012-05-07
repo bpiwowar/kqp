@@ -1,5 +1,21 @@
+# This file is part of the Kernel Quantum Probability library (KQP).
+# 
+# KQP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#  
+# KQP is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#  
+# You should have received a copy of the GNU General Public License
+# along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+
 if (JAVA_KQP OR JAVA_PYTHON) 
 
+  # --- Set important variables
   FIND_PACKAGE(SWIG REQUIRED)
   SET(KQP_SWIG_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/generated")
   
@@ -9,41 +25,16 @@ if (JAVA_KQP OR JAVA_PYTHON)
   SET_SOURCE_FILES_PROPERTIES(kqp.i PROPERTIES CPLUSPLUS ON)
   
   FILE(GLOB KQP_SWIG_DEPS */*.i *.i)
-  # --- Process files to substitude each type
-  FILE(GLOB KQP_SWIG_EACH_FMATRIX for_each_fmatrix/*)
-  FILE(GLOB KQP_SWIG_EACH_SCALAR for_each_scalar/*)
   
-  FUNCTION(SPLIT2 IN A B)
-      STRING (REGEX MATCHALL "[^/]+" SPLIT2_PARTS "${IN}")
-      LIST (GET SPLIT2_PARTS 0 "${A}")
-      LIST (GET SPLIT2_PARTS 1 "${B}")
-  ENDFUNCTION()
+  # --- Command that generates the kqp_all.i (that depends on all the *.i files within the swig directory)
+  SET(PRE_SWIG_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/CMakePreSWIG.txt")
+  add_custom_command(
+    OUTPUT ${KQP_SWIG_GENERATED}/kqp_all.i
+    COMMAND ${CMAKE_COMMAND} -D KQP_SWIG_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" -D KQP_SWIG_GENERATED="${KQP_SWIG_GENERATED}" -P "${PRE_SWIG_SCRIPT}" SOURCES ${KQP_SWIG_DEPS} 
+    DEPENDS ${KQP_SWIG_DEPS} ${PRE_SWIG_SCRIPT})
   
-  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${KQP_SWIG_GENERATED})
-  
-  
-  # Loop over all types
-  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/kqp_all.i" "// Generated file\n\n")
-  FOREACH(SWIG_SCALAR "double/Double")
-      STRING (REGEX MATCHALL "[^/]+" SWIG_PARTS "${SWIG_SCALAR}")
-      LIST (GET SWIG_PARTS 0 RTYPE)
-      LIST (GET SWIG_PARTS 1 RNAME)
-      FOREACH(SWIG_COMPLEX "${RTYPE}/${RNAME}") # "std::complex<${RTYPE}>/Complex${RNAME}")
-          STRING (REGEX MATCHALL "[^/]+" SWIG_PARTS "${SWIG_COMPLEX}")
-          LIST (GET SWIG_PARTS 0 STYPE)
-          LIST (GET SWIG_PARTS 1 SNAME)          
-          FOREACH(KQP_SWIG_SCALAR ${KQP_SWIG_EACH_SCALAR})
-             get_filename_component(KQP_SWIG_FILENAME "${KQP_SWIG_SCALAR}" NAME)
-              file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/generated/kqp_all.i" "%include \"${SNAME}-${KQP_SWIG_FILENAME}\"\n")
-              configure_file(${KQP_SWIG_SCALAR} "${KQP_SWIG_GENERATED}/${SNAME}-${KQP_SWIG_FILENAME}")
-          ENDFOREACH()
 
-      ENDFOREACH()
-  ENDFOREACH()
-  
-  
-  
-  
+  # --- Java JNI module  
   if (JAVA_KQP)
       FIND_PACKAGE(JNI REQUIRED)
       INCLUDE_DIRECTORIES(${JNI_INCLUDE_DIRS})
@@ -52,14 +43,26 @@ if (JAVA_KQP OR JAVA_PYTHON)
       
       SET(JAVA_KQP_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/src/main/java/${JAVA_KQP_PACKAGE_PATH})
 
-      # FIXME: NAR_AOL should be set automatically
-      MESSAGE(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
-      
-      if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-          SET(NAR_AOL "x86_64-MacOSX")          
+      # Detect the architecture
+      if(${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+        # 32 bits
+        SET(NAR_AOL "x86")
+      elseif(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+        SET(NAR_AOL "x86_64")
       else()
-          MESSAGE(FATAL_ERROR " [JNI] Could not detect the NAR architecture")
+        MESSAGE(FATAL_ERROR " [JNI] Could not detect the compiler target architecture")
       endif()
+      
+      # Detection of the sytem
+      if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+          SET(NAR_AOL "${NAR_AOL}-MacOSX")          
+      elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+          SET(NAR_AOL "${NAR_AOL}-Windows")
+      elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+          MESSAGE(FATAL_ERROR " [JNI] Could not detect the operating system")
+      endif()
+      
+      MESSAGE(STATUS "Detected NAR-AOL: ${NAR_AOL}")
       
       SET(JAVA_KQP_NARDIR ${CMAKE_CURRENT_BINARY_DIR}/target/nar/${CMAKE_PROJECT_NAME}-${libkqp_VERSION}-${NAR_AOL}-jni/lib/)
       execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${JAVA_KQP_OUTDIR}")
@@ -67,11 +70,14 @@ if (JAVA_KQP OR JAVA_PYTHON)
       SET(CMAKE_SWIG_FLAGS -c++ -package ${JAVA_KQP_PACKAGE})  
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
-      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${KQP_SWIG_DEPS})
+      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i)
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)
       
-      # Build archives using NAR
+      # --- Test package
+      
+      
+      # --- Build archives using NAR (target kqp_jni_maven)
       
       CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/pom.xml.in ${CMAKE_CURRENT_BINARY_DIR}/pom.xml)
       
@@ -81,7 +87,11 @@ if (JAVA_KQP OR JAVA_PYTHON)
           COMMAND ${CMAKE_COMMAND} -E copy ${KQP_JNI_LOCATION} "${JAVA_KQP_NARDIR}"
           COMMAND mvn -q -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
           DEPENDS kqp_jni)
+          
+          
   endif()
+  
+  # --- Python support
   
   if (JAVA_PYTHON)
       INCLUDE_DIRECTORIES()
@@ -91,6 +101,7 @@ if (JAVA_KQP OR JAVA_PYTHON)
       set(CMAKE_SWIG_OUTDIR ".")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
       SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
+      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_DEPS} pre_swig)
   endif()
   
 endif()

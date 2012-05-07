@@ -136,16 +136,18 @@ endif(DOXYGEN_FOUND)
 # --- Tests
 
 ENABLE_TESTING()
-add_subdirectory(tests)
 
-
-# --- Subprojects: examples, benchmark 
+ADD_CUSTOM_TARGET(run-tests COMMAND ${CMAKE_CTEST_COMMAND})
 
 # Examples
 add_subdirectory(examples)
+
+# Tests
+add_subdirectory(tests)
 
 # Benchmark
 add_subdirectory(benchmark)
 
 #  Wrappers
 add_subdirectory(swig)
+

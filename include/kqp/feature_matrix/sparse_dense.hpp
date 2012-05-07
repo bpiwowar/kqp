@@ -37,27 +37,27 @@ namespace kqp {
      * @ingroup FeatureMatrix
      */
     template <typename Scalar> 
-    class SparseDenseMatrix : public FeatureMatrixBase<Scalar> {
+    class SparseDense : public FeatureMatrixBase<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
-        typedef SparseDenseMatrix<Scalar> Self;
+        typedef SparseDense<Scalar> Self;
 
         typedef std::map<Index,Index> RowMap;
 
-        virtual ~SparseDenseMatrix() {}
+        virtual ~SparseDense() {}
         
-        SparseDenseMatrix() :  m_dimension(0) {}
-        SparseDenseMatrix(Index dimension) :  m_dimension(dimension) {}
-        SparseDenseMatrix(const Self &other) :  m_dimension(other.m_dimension), m_map(other.m_map), m_matrix(other.m_matrix), m_gramMatrix(other.m_gramMatrix) {}
+        SparseDense() :  m_dimension(0) {}
+        SparseDense(Index dimension) :  m_dimension(dimension) {}
+        SparseDense(const Self &other) :  m_dimension(other.m_dimension), m_map(other.m_map), m_matrix(other.m_matrix), m_gramMatrix(other.m_gramMatrix) {}
 
 #ifndef SWIG
-        SparseDenseMatrix(RowMap &&map, ScalarMatrix &&matrix) : m_map(std::move(map)), m_matrix(std::move(matrix)) {
+        SparseDense(RowMap &&map, ScalarMatrix &&matrix) : m_map(std::move(map)), m_matrix(std::move(matrix)) {
             
         }
 #endif
 
         //! Creates from a sparse matrix
-        SparseDenseMatrix(const Eigen::SparseMatrix<Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDense(const Eigen::SparseMatrix<Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
             
             
@@ -98,7 +98,7 @@ namespace kqp {
 
         
         //! Creates from a sparse matrix
-        SparseDenseMatrix(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDense(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
             
                       
@@ -140,7 +140,7 @@ namespace kqp {
          * @param mat The matrix to copy
          * @param threshold The threshold for a value to be neglectable
          */
-        SparseDenseMatrix(const ScalarMatrix &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDense(const ScalarMatrix &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // Compute which rows we need
             Matrix<Real, 1, Dynamic> norms = mat.cwiseAbs2().colwise().sum();
             
@@ -219,12 +219,14 @@ namespace kqp {
             return m_dimension;
         }
         
+#ifndef SWIG
         struct Insert {
             RowMap &m_map;
             void operator()(const RowMap::const_reference &x) const {
                 m_map[x.first] = m_map.size();
             }
         };
+#endif
         
         void add(const FMatrixBase &_other, const std::vector<bool> *which = NULL) override {
             const Self &other = dynamic_cast<const Self&>(_other);
@@ -380,26 +382,26 @@ namespace kqp {
     
     
     template<typename Scalar>
-    class SparseDenseFeatureSpace : public FeatureSpaceBase<Scalar> {
+    class SparseDenseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        static FSpace create(Index dimension) { return FSpace(new SparseDenseFeatureSpace(dimension)); }
+        static FSpace create(Index dimension) { return FSpace(new SparseDenseSpace(dimension)); }
         
-        SparseDenseFeatureSpace(Index dimension) : m_dimension(dimension) {}
+        SparseDenseSpace(Index dimension) : m_dimension(dimension) {}
         
-        inline static const SparseDenseMatrix<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseDenseMatrix<Scalar> &>(mX); }
+        inline static const SparseDense<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseDense<Scalar> &>(mX); }
         
         
         Index dimension() const override { return m_dimension; }
         
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseDenseFeatureSpace(m_dimension));  }
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseDenseSpace(m_dimension));  }
 
         virtual FMatrixBasePtr newMatrix() const override {
-            return FMatrixBasePtr(new SparseDenseMatrix<Scalar>(m_dimension));
+            return FMatrixBasePtr(new SparseDense<Scalar>(m_dimension));
         }
         virtual FMatrixBasePtr newMatrix(const FMatrixBase &mX) const override {
-            return FMatrixBasePtr(new SparseDenseMatrix<Scalar>(cast(mX)));            
+            return FMatrixBasePtr(new SparseDense<Scalar>(cast(mX)));            
         }
         
         virtual bool canLinearlyCombine() const override {
@@ -419,7 +421,7 @@ namespace kqp {
         
         virtual FMatrixBasePtr linearCombination(const FeatureMatrixBase<Scalar> &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                           const FeatureMatrixBase<Scalar> *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
-            return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDenseMatrix<Scalar> *>(mY), mB, beta);
+            return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);
         }
         
     private:
@@ -432,8 +434,8 @@ namespace kqp {
 # // Extern templates
 #ifndef SWIG
 # define KQP_SCALAR_GEN(scalar) \
-  extern template class SparseDenseMatrix<scalar>; \
-  extern template class SparseDenseFeatureSpace<scalar>;
+  extern template class SparseDense<scalar>; \
+  extern template class SparseDenseSpace<scalar>;
 # include <kqp/for_all_scalar_gen>
 #endif    
 } // end namespace kqp

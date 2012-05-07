@@ -104,7 +104,7 @@ namespace kqp {
         
         template<typename _Scalar>
         struct BuilderConfigurator : public BuilderConfiguratorBase {
-            typedef DenseMatrix<_Scalar> FMatrix;
+            typedef Dense<_Scalar> FMatrix;
             KQP_SCALAR_TYPEDEFS(Scalar);
             
             virtual KernelEVD<Scalar>  *getBuilder(const KernelEVDBenchmark &) = 0;
@@ -224,7 +224,7 @@ namespace kqp {
         
         template<typename Scalar>
         struct DirectConfigurator : public BuilderConfigurator<Scalar> {
-            virtual KernelEVD<DenseMatrix<Scalar>> *getBuilder(const KernelEVDBenchmark &bm) override {
+            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &bm) override {
                 return new DenseDirectBuilder<Scalar>(bm.dimension);
             };
             virtual std::string getName() const { return "direct"; }
@@ -233,11 +233,11 @@ namespace kqp {
         template<typename Scalar> 
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
             
-            virtual KernelEVD<DenseMatrix<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
+            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
                 if (this->useLinearCombination) 
-                    return new AccumulatorKernelEVD<DenseMatrix<Scalar>,true>();
+                    return new AccumulatorKernelEVD<Dense<Scalar>,true>();
                 
-                return new AccumulatorKernelEVD<DenseMatrix<Scalar>,false>();
+                return new AccumulatorKernelEVD<Dense<Scalar>,false>();
             }
             
             virtual std::string getName() const {
@@ -277,7 +277,7 @@ namespace kqp {
         
             virtual std::string getName() const { return "incremental"; }
             
-            virtual KernelEVD<DenseMatrix<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
+            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(maxRank, this->targetRank));
                 boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>());
@@ -285,7 +285,7 @@ namespace kqp {
                 selector->add(minSelector);
                 selector->add(rankSelector);
                 
-                IncrementalKernelEVD<DenseMatrix<Scalar>> * builder  = new IncrementalKernelEVD<DenseMatrix<Scalar>>(); 
+                IncrementalKernelEVD<Dense<Scalar>> * builder  = new IncrementalKernelEVD<Dense<Scalar>>(); 
                 builder->setSelector(selector);
                 builder->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
                 builder->setUseLinearCombination(this->useLinearCombination);
@@ -338,9 +338,9 @@ namespace kqp {
                 return selector;
             }
             
-            virtual KernelEVD<DenseMatrix<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {                
+            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {                
 
-                DivideAndConquerBuilder<DenseMatrix<Scalar>> dc = new DivideAndConquerBuilder<DenseMatrix<Scalar>>();
+                DivideAndConquerBuilder<Dense<Scalar>> dc = new DivideAndConquerBuilder<Dense<Scalar>>();
                 dc->setBuilder(builder);
                 dc->setBuilderCleaner(getCleaner(*builder));
                 dc->setMerger(merger);
@@ -371,7 +371,7 @@ namespace kqp {
                     return new AccumulatorConfigurator<Scalar>();
                 
                 if (kevdName == "incremental") {
-                    IncrementalKernelEVD<DenseMatrix<Scalar>> builder;
+                    IncrementalKernelEVD<Dense<Scalar>> builder;
                     
                 }
                 

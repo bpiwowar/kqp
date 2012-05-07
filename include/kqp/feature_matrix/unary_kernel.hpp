@@ -22,7 +22,7 @@
 
 namespace kqp {
     template<typename Scalar> 
-    class UnaryKernelSpace : public FeatureSpaceBase< Scalar > {
+    class UnaryKernelSpace : public SpaceBase< Scalar > {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
 
@@ -72,14 +72,14 @@ namespace kqp {
 
 
     //! Gaussian Kernel \f$k'(x,y) = \exp(\frac{\vert k(x,x) + k(y,y) - 2k(x,y) \vert}{\sigma^2})\f$
-    template<typename Scalar> class GaussianKernelSpace : public UnaryKernelSpace<Scalar> {
+    template<typename Scalar> class GaussianSpace : public UnaryKernelSpace<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
 
-        GaussianKernelSpace(Real sigma, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new GaussianKernelSpace<Scalar>(m_sigma, m_base)); }        
+        GaussianSpace(Real sigma, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
 
         virtual Index dimension() const override { return -1; }
         virtual bool canLinearlyCombine() const override { return false; }
@@ -114,15 +114,15 @@ namespace kqp {
     };
     
     //! Polynomial Kernel \f$k'(x,y) = (k(x,y) + D)^p\f$
-    template<typename Scalar> class PolynomialKernelSpace  : public UnaryKernelSpace<Scalar> {
+    template<typename Scalar> class PolynomialSpace  : public UnaryKernelSpace<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
 
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new PolynomialKernelSpace<Scalar>(m_bias, m_degree, m_base)); }        
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
 
-        PolynomialKernelSpace(Real bias, int degree, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
+        PolynomialSpace(Real bias, int degree, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
         virtual Index dimension() const override { return -1; }
         virtual bool canLinearlyCombine() const override { return false; }
 
@@ -150,8 +150,8 @@ namespace kqp {
 }
 
 #define KQP_SCALAR_GEN(scalar) \
-    extern template class kqp::GaussianKernelSpace<scalar>; \
-    extern template class kqp::PolynomialKernelSpace<scalar>;
+    extern template class kqp::GaussianSpace<scalar>; \
+    extern template class kqp::PolynomialSpace<scalar>;
 #include <kqp/for_all_scalar_gen>
 #undef KQP_SCALAR_GEN
 

@@ -1,0 +1,49 @@
+# This file is part of the Kernel Quantum Probability library (KQP).
+# 
+# KQP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#  
+# KQP is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#  
+# You should have received a copy of the GNU General Public License
+# along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+
+MESSAGE(STATUS "Generating SWIG files")
+
+# Create the output directory
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${KQP_SWIG_GENERATED})
+
+# List of files to process
+FILE(GLOB KQP_SWIG_EACH_SCALAR ${KQP_SWIG_SOURCE_DIR}/for_each_scalar/*)
+
+# Split a string in two parts around "/"
+FUNCTION(SPLIT2 IN A B)
+    STRING (REGEX MATCHALL "[^/]+" SPLIT2_PARTS "${IN}")
+    LIST (GET SPLIT2_PARTS 0 "${A}")
+    LIST (GET SPLIT2_PARTS 1 "${B}")
+ENDFUNCTION()
+
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/kqp_all.i" "// Generated file\n\n")
+FOREACH(SWIG_SCALAR "double/Double")
+    STRING (REGEX MATCHALL "[^/]+" SWIG_PARTS "${SWIG_SCALAR}")
+    LIST (GET SWIG_PARTS 0 RTYPE)
+    LIST (GET SWIG_PARTS 1 RNAME)
+    FOREACH(SWIG_COMPLEX "${RTYPE}/${RNAME}") # "std::complex<${RTYPE}>/Complex${RNAME}")
+        STRING (REGEX MATCHALL "[^/]+" SWIG_PARTS "${SWIG_COMPLEX}")
+        LIST (GET SWIG_PARTS 0 STYPE)
+        LIST (GET SWIG_PARTS 1 SNAME)          
+        FOREACH(KQP_SWIG_SCALAR ${KQP_SWIG_EACH_SCALAR})
+           get_filename_component(KQP_SWIG_FILENAME "${KQP_SWIG_SCALAR}" NAME)
+            file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/generated/kqp_all.i" "%include \"${SNAME}-${KQP_SWIG_FILENAME}\"\n")
+            MESSAGE(STATUS "Generated ${SNAME}-${KQP_SWIG_FILENAME}")
+            configure_file(${KQP_SWIG_SCALAR} "${KQP_SWIG_GENERATED}/${SNAME}-${KQP_SWIG_FILENAME}")
+        ENDFOREACH()
+
+    ENDFOREACH()
+ENDFOREACH()

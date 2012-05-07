@@ -33,25 +33,25 @@ namespace kqp {
      * @ingroup FeatureMatrix
      */
     template <typename Scalar> 
-    class SparseMatrix : public FeatureMatrixBase<Scalar> {
+    class Sparse : public FeatureMatrixBase<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
-        typedef SparseMatrix<Scalar> Self;
+        typedef Sparse<Scalar> Self;
         typedef Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Storage;
         
-        virtual ~SparseMatrix() {}
+        virtual ~Sparse() {}
         
-        SparseMatrix()  {}
-        SparseMatrix(Index dimension) : m_matrix(dimension, 0) {}
-        SparseMatrix(const Self &other) : m_matrix(other.m_matrix) {}
+        Sparse()  {}
+        Sparse(Index dimension) : m_matrix(dimension, 0) {}
+        Sparse(const Self &other) : m_matrix(other.m_matrix) {}
         
 #ifndef SWIG
-        SparseMatrix(Storage &&storage) : m_matrix(std::move(storage)) {}
-        SparseMatrix(Self &&other) : m_matrix(std::move(other.m_matrix)) {}
+        Sparse(Storage &&storage) : m_matrix(std::move(storage)) {}
+        Sparse(Self &&other) : m_matrix(std::move(other.m_matrix)) {}
         
 #endif
 
-        SparseMatrix(const ScalarMatrix &mat, double threshold) : m_matrix(mat.rows(), mat.cols()) {            
+        Sparse(const ScalarMatrix &mat, double threshold) : m_matrix(mat.rows(), mat.cols()) {            
             Matrix<Real, 1, Dynamic> thresholds = threshold * mat.colwise().norm();
 
             Matrix<Index, 1, Dynamic> countsPerCol((mat.array().abs() >= thresholds.colwise().replicate(mat.rows()).array()).template cast<Index>().colwise().sum());
@@ -64,8 +64,8 @@ namespace kqp {
                         m_matrix.insert(i,j) = mat(i,j);
         }
         
-        SparseMatrix(const Storage &storage) : m_matrix(storage) {}
-        SparseMatrix(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor>  &storage) : m_matrix(storage) {}
+        Sparse(const Storage &storage) : m_matrix(storage) {}
+        Sparse(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor>  &storage) : m_matrix(storage) {}
 
         ScalarMatrix toDense() {
             return ScalarMatrix(m_matrix);
@@ -168,31 +168,31 @@ namespace kqp {
     
     
     template<typename Scalar>
-    std::ostream& operator<<(std::ostream &out, const SparseMatrix<Scalar> &f) {
+    std::ostream& operator<<(std::ostream &out, const Sparse<Scalar> &f) {
         return out << "[Sparse Matrix with scalar " << KQP_DEMANGLE((Scalar)0) << "]" << std::endl << f.getMatrix();
     }
     
     
     template<typename Scalar>
-    class SparseFeatureSpace : public FeatureSpaceBase<Scalar> {
+    class SparseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        static FSpace create(Index dimension) { return FSpace(new SparseFeatureSpace(dimension)); }
+        static FSpace create(Index dimension) { return FSpace(new SparseSpace(dimension)); }
         
-        SparseFeatureSpace(Index dimension) : m_dimension(dimension) {}
+        SparseSpace(Index dimension) : m_dimension(dimension) {}
         
-        inline static const SparseMatrix<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseMatrix<Scalar> &>(mX); }
+        inline static const Sparse<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const Sparse<Scalar> &>(mX); }
         
         Index dimension() const override { return m_dimension; }
         
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseFeatureSpace(m_dimension)); }
+        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseSpace(m_dimension)); }
         
         virtual FMatrixBasePtr newMatrix() const override {
-            return FMatrixBasePtr(new SparseMatrix<Scalar>(m_dimension));
+            return FMatrixBasePtr(new Sparse<Scalar>(m_dimension));
         }
         virtual FMatrixBasePtr newMatrix(const FMatrixBase &mX) const override {
-            return FMatrixBasePtr(new SparseMatrix<Scalar>(cast(mX)));            
+            return FMatrixBasePtr(new Sparse<Scalar>(cast(mX)));            
         }
         
         
@@ -214,7 +214,7 @@ namespace kqp {
 
 #ifndef SWIG    
 # // Extern templates
-# define KQP_SCALAR_GEN(scalar) extern template class SparseMatrix<scalar>; extern template class SparseFeatureSpace<scalar>;
+# define KQP_SCALAR_GEN(scalar) extern template class Sparse<scalar>; extern template class SparseSpace<scalar>;
 # include <kqp/for_all_scalar_gen>
 #endif
 

@@ -36,9 +36,9 @@ namespace kqp {
     template <class Scalar> class DenseDirectBuilder : public KernelEVD<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
-        typedef DenseMatrix<Scalar> FDense;
+        typedef Dense<Scalar> FDense;
         
-        DenseDirectBuilder(int dimension) : KernelEVD<Scalar>(DenseFeatureSpace<Scalar>::create(dimension)), matrix(dimension, dimension) {
+        DenseDirectBuilder(int dimension) : KernelEVD<Scalar>(DenseSpace<Scalar>::create(dimension)), matrix(dimension, dimension) {
             reset();
         }
         
@@ -61,7 +61,7 @@ namespace kqp {
             ScalarAltMatrix _mX;
             kqp::thinEVD(evd, _mX, d.mD);              
             
-            d.mX = FMatrix(new DenseMatrix<Scalar>(std::move(ScalarMatrix(_mX))));
+            d.mX = FMatrix(new Dense<Scalar>(std::move(ScalarMatrix(_mX))));
             d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
             return d;
         }

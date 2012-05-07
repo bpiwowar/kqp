@@ -9,7 +9,7 @@ namespace kqp {
     
     int test_reduced_set_unused(std::deque<std::string> &/*args*/) {
         Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(10,10);
-        FeatureMatrix<double> mF(DenseMatrix<double>::create(_mF));
+        FeatureMatrix<double> mF(Dense<double>::create(_mF));
         
         Eigen::MatrixXd mY = Eigen::MatrixXd::Random(10,8);
         mY.row(3).setZero();
@@ -19,7 +19,7 @@ namespace kqp {
         
         RemoveUnusedPreImages<double>::run(mF, mY);
         
-        Eigen::MatrixXd m1 = mF->as<DenseMatrix<double>>().getMatrix() * mY;
+        Eigen::MatrixXd m1 = mF->as<Dense<double>>().getMatrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;
         double error = (m1 - m2).norm();
         

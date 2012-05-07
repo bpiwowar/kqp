@@ -13,7 +13,7 @@ namespace kqp {
     
     int test_reduced_set_qp_exact(std::deque<std::string> &/*args*/) {        
         // Typedefs
-        typedef DenseMatrix<double> DMatrix;
+        typedef Dense<double> DMatrix;
         typedef double Scalar;
         KQP_SCALAR_TYPEDEFS(double);
         
@@ -23,7 +23,7 @@ namespace kqp {
         Index r_target = 9; // trivial test (just have to remove one)
         Index n = 3;
         
-        FeatureSpace<Scalar> fs(DenseFeatureSpace<Scalar>::create(dim));
+        Space<Scalar> fs(DenseSpace<Scalar>::create(dim));
         
         // Gets a rank-n matrix and a full rank matrix
         Eigen::MatrixXd _mF = generateMatrix<Scalar>(dim, dim);        
@@ -42,7 +42,7 @@ namespace kqp {
         AccumulatorKernelEVD<double, false> kEVD(fs);
         ScalarMatrix m;
         noalias(m) = _mY * _mD.cwiseSqrt().asDiagonal();
-        kEVD.add(1, DenseMatrix<double>::create(_mF), m);
+        kEVD.add(1, Dense<double>::create(_mF), m);
 
         Decomposition<double> d = kEVD.getDecomposition();
 
@@ -52,7 +52,7 @@ namespace kqp {
         
         // Compare
         
-        const ScalarMatrix &fm = dynamic_cast<const DenseMatrix<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
+        const ScalarMatrix &fm = dynamic_cast<const Dense<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
         Eigen::MatrixXd m1 = fm * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
             * qp_rs.getMixtureMatrix().transpose() * fm.transpose();
         Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.transpose() * _mF.transpose();
@@ -84,7 +84,7 @@ namespace kqp {
         
     int test_reduced_set_qp_approximate(std::deque<std::string> &/*args*/) {        
         // Typedefs
-        typedef DenseMatrix<double> DMatrix;
+        typedef Dense<double> DMatrix;
         typedef double Scalar;
        KQP_SCALAR_TYPEDEFS(double);
     
@@ -97,7 +97,7 @@ namespace kqp {
         Index r_target = nbPreImages - to_remove; // One pre-image to remove
         double alpha = 1e-2;
         
-        FeatureSpace<Scalar> fs(DenseFeatureSpace<Scalar>::create(dim));
+        Space<Scalar> fs(DenseSpace<Scalar>::create(dim));
 
         // --- Build the operator
         
@@ -137,7 +137,7 @@ namespace kqp {
         AccumulatorKernelEVD<Scalar, false> kEVD(fs);
         ScalarMatrix m;
         noalias(m) = mY * s.cwiseSqrt().asDiagonal();
-        kEVD.add(1, DenseMatrix<double>::create(mX), m);
+        kEVD.add(1, Dense<double>::create(mX), m);
         
         Decomposition<double> d = kEVD.getDecomposition();
         
@@ -148,7 +148,7 @@ namespace kqp {
         
         // Compare
         
-        const ScalarMatrix &mX_r = dynamic_cast<const DenseMatrix<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
+        const ScalarMatrix &mX_r = dynamic_cast<const Dense<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
 //        std::cerr << "mX_r\n" << mX_r << std::endl;
         Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().transpose() * mX_r.transpose();
         double diff = (m1 - pX0 * opX * pX0).norm();

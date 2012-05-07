@@ -37,7 +37,7 @@ namespace kqp {
          * \f$ tr( X_1 Y_1 D_1 Y_1^\dagger X1^\dagger  X_2 Y_2 D_2 Y_2^\dagger X_2^\dagger) \f$
          *
          */
-        static Scalar traceProduct(const FeatureSpace<Scalar> &fs,
+        static Scalar traceProduct(const Space<Scalar> &fs,
                                    
                                    const FeatureMatrix<Scalar> &mX1, 
                                    const ScalarAltMatrix  &mY1,
@@ -55,7 +55,7 @@ namespace kqp {
         /**
          * Computes the difference between two operators using trace functions
          */
-        static Scalar difference(const FeatureSpace<Scalar> &fs,
+        static Scalar difference(const Space<Scalar> &fs,
                                  
                                  const FeatureMatrix<Scalar> &mX1, 
                                  const ScalarAltMatrix  &mY1,
@@ -123,7 +123,7 @@ namespace kqp {
                     matrix.template selfadjointView<Eigen::Lower>().rankUpdate(m * mA, alpha);
                     
                     
-                    builder.add(alpha, DenseMatrix<Scalar>::create(m), mA);
+                    builder.add(alpha, Dense<Scalar>::create(m), mA);
                 }
                 
                 // Computing via EVD
@@ -133,7 +133,7 @@ namespace kqp {
                 LDLT ldlt = matrix.template selfadjointView<Eigen::Lower>().ldlt();
                 ScalarMatrix mL = ldlt.matrixL();
                 mL = ldlt.transpositionsP().transpose() * mL;
-                FeatureMatrix<Scalar>  mU(DenseMatrix<Scalar>::create(mL));
+                FeatureMatrix<Scalar>  mU(Dense<Scalar>::create(mL));
                 Eigen::Matrix<Scalar,Dynamic,1> mU_d = ldlt.vectorD();
                 
                 

@@ -28,45 +28,48 @@ int main(int, const char**) {
     typedef Eigen::Matrix<double,Dynamic,Dynamic> Matrix;
     int dim = 10;
     
+    // Feature space
+    Space<double> space(DenseSpace<double>::create(dim));
+    
     // Creating an incremental builder
-    IncrementalKernelEVD<DenseMatrix<double>> kevd;
+    IncrementalKernelEVD<double> kevd(space);
     
     // Add 10 vectors with $\alpha_i=1$
     for(int i = 0; i < 10; i++) {
         // Adds a random $\varphi_i$
         Matrix m = Matrix::Random(dim, 1);
-        kevd.add(DenseMatrix<double>(m));
+        kevd.add(Dense<double>::create(m));
     }
     
     // Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
-    Decomposition<DenseMatrix<double>> d = kevd.getDecomposition();
+    Decomposition<double> d = kevd.getDecomposition();
 
     // --- Compute a kEVD for a subspace
     
-    IncrementalKernelEVD<DenseMatrix<double>> kevd_event;
+    IncrementalKernelEVD<double> kevd_event(space);
     for(int i = 0; i < 3; i++) {
         // Adds a random $\varphi_i$
         Matrix m = Matrix::Random(dim, 1);
-        kevd_event.add(DenseMatrix<double>(m));
+        kevd_event.add(Dense<double>::create(m));
     }
 
     
     // --- Compute some probabilities
     
     // Setup densities and events
-    Density<DenseMatrix<double>> rho(kevd);
+    Density<double> rho(kevd);
     rho.normalize();
-    Event<DenseMatrix<double>> event(kevd_event);
+    Event<double> event(kevd_event);
     
     // Compute the probability
     std::cout << "Probability = " << rho.probability(event) << std::endl;
 
     // Conditional probability
-    Density<DenseMatrix<double>> rho_cond = event.project(kevd).normalize(); 
+    Density<double> rho_cond = event.project(kevd).normalize(); 
     std::cout << "Entropy rho/E = " << rho_cond.entropy() << std::endl;
     
     // Conditional probability (orthogonal event)
-    Density<DenseMatrix<double>> rho_cond_orth = event.project(kevd, true).normalize();
+    Density<double> rho_cond_orth = event.project(kevd, true).normalize();
     std::cout << "Entropy rho/not E = " << rho_cond_orth.entropy() << std::endl;
     
     return 0;

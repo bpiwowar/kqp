@@ -76,7 +76,7 @@
 
 %ignore kqp::Intervals;
 %ignore kqp::IntervalsIterator;
-%ignore kqp::DenseMatrix::getMatrix;
+%ignore kqp::Dense::getMatrix;
 %ignore kqp::LinearCombination;
 
 // ---- Some basic declarations

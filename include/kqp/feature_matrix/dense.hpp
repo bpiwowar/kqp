@@ -24,34 +24,34 @@
 
 namespace kqp {
     
-    template <typename Scalar> class DenseMatrix;
-    template <typename Scalar> class DenseFeatureSpace;
+    template <typename Scalar> class Dense;
+    template <typename Scalar> class DenseSpace;
     
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
      * @ingroup FeatureMatrix
      */
     template <typename Scalar> 
-    class DenseMatrix : public FeatureMatrixBase<Scalar> {
+    class Dense : public FeatureMatrixBase<Scalar> {
     public:       
         KQP_SCALAR_TYPEDEFS(Scalar);
-        typedef DenseMatrix<Scalar> Self;
+        typedef Dense<Scalar> Self;
    
    
-        ~DenseMatrix() {}
+        ~Dense() {}
         
         //! Null constructor: will set the dimension with the first feature vector
-        DenseMatrix() {}
+        Dense() {}
         
         //! Construct an empty feature matrix of a given dimension
-        DenseMatrix(Index dimension) : m_matrix(dimension, 0) {
+        Dense(Index dimension) : m_matrix(dimension, 0) {
         }
 
         //! Construction by copying a dense matrix
-        DenseMatrix(const ScalarMatrix &m) : m_matrix(m) {}
+        Dense(const ScalarMatrix &m) : m_matrix(m) {}
         
         //! Copy constructor
-        DenseMatrix(const Self &other) : m_gramMatrix(other.m_gramMatrix),  m_matrix(other.m_matrix) {}
+        Dense(const Self &other) : m_gramMatrix(other.m_gramMatrix),  m_matrix(other.m_matrix) {}
         
         //! Creates from a matrix
         static FMatrix create(const ScalarMatrix &m) {
@@ -60,7 +60,7 @@ namespace kqp {
         
 #ifndef SWIG
         //! Construction by copying a dense matrix
-        DenseMatrix(ScalarMatrix &&m) : m_matrix(m) {}
+        Dense(ScalarMatrix &&m) : m_matrix(m) {}
         
         //! Creates from a matrix
         static FMatrix create(const ScalarMatrix &&m) {
@@ -204,13 +204,13 @@ namespace kqp {
         //! Our m_matrix
         ScalarMatrix m_matrix;
 
-        friend class DenseFeatureSpace<Scalar>;
+        friend class DenseSpace<Scalar>;
     };
     
     
     
     template<typename Scalar>
-    std::ostream& operator<<(std::ostream &out, const DenseMatrix<Scalar> &f) {
+    std::ostream& operator<<(std::ostream &out, const Dense<Scalar> &f) {
         return out << "[Dense Matrix with scalar " << KQP_DEMANGLE((Scalar)0) << "]" << std::endl << f.getMatrix();
     }
     
@@ -219,23 +219,23 @@ namespace kqp {
      * The feature space for dense feature m_matrix with canonical kernel
      */
     template<typename Scalar>
-    class DenseFeatureSpace : public FeatureSpaceBase<Scalar> {
+    class DenseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        static FSpace create(Index dimension) { return FSpace(new DenseFeatureSpace(dimension)); }
+        static FSpace create(Index dimension) { return FSpace(new DenseSpace(dimension)); }
         
-        DenseFeatureSpace(Index dimension) : m_dimension(dimension) {}
+        DenseSpace(Index dimension) : m_dimension(dimension) {}
         
         FSpaceBasePtr copy() const override {
-            return FSpaceBasePtr(new DenseFeatureSpace(*this));
+            return FSpaceBasePtr(new DenseSpace(*this));
         }
         
-        inline static const DenseMatrix<Scalar>& cast(const FeatureMatrix<Scalar> &mX) { return dynamic_cast<const DenseMatrix<Scalar> &>(*mX); }
-        inline static const DenseMatrix<Scalar>& cast(const FMatrixBase &mX) { return dynamic_cast<const DenseMatrix<Scalar> &>(mX); }
+        inline static const Dense<Scalar>& cast(const FeatureMatrix<Scalar> &mX) { return dynamic_cast<const Dense<Scalar> &>(*mX); }
+        inline static const Dense<Scalar>& cast(const FMatrixBase &mX) { return dynamic_cast<const Dense<Scalar> &>(mX); }
 
         FMatrixBasePtr newMatrix(const ScalarMatrix &mX) const {
-            return FMatrixBasePtr(new DenseMatrix<Scalar>(mX));            
+            return FMatrixBasePtr(new Dense<Scalar>(mX));            
         }
         
         
@@ -245,10 +245,10 @@ namespace kqp {
 
 
         virtual FMatrixBasePtr newMatrix() const override {
-            return FMatrixBasePtr(new DenseMatrix<Scalar>(m_dimension));
+            return FMatrixBasePtr(new Dense<Scalar>(m_dimension));
         }
         virtual FMatrixBasePtr newMatrix(const FMatrixBase &mX) const override {
-            return FMatrixBasePtr(new DenseMatrix<Scalar>(cast(mX)));            
+            return FMatrixBasePtr(new Dense<Scalar>(cast(mX)));            
         }
 
         virtual bool canLinearlyCombine() const override {
@@ -266,7 +266,7 @@ namespace kqp {
         
         virtual FMatrixBasePtr linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                              const FMatrixBase *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
-            return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, dynamic_cast<const DenseMatrix<Scalar> *>(mY), mB, beta));
+            return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, dynamic_cast<const Dense<Scalar> *>(mY), mB, beta));
         }
 
     private:
@@ -275,7 +275,7 @@ namespace kqp {
     
 # // Extern templates
 # ifndef SWIG
-# define KQP_SCALAR_GEN(scalar) extern template class DenseMatrix<scalar>; extern template class DenseFeatureSpace<scalar>;
+# define KQP_SCALAR_GEN(scalar) extern template class Dense<scalar>; extern template class DenseSpace<scalar>;
 # include <kqp/for_all_scalar_gen>
 # endif
     

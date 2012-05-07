@@ -49,7 +49,8 @@ TARGET_LINK_LIBRARIES(test_projection kqp)
 
 
 # All tests
-add_custom_target(run-tests COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS test_alt-matrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
+
+ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
 
 # --- Useful functions
 

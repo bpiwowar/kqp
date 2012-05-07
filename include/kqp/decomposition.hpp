@@ -90,6 +90,7 @@ namespace kqp {
                 
         //! Copy assignement
         Decomposition &operator=(const Decomposition &other) {
+            fs = other.fs;
             mX = other.mX;
             mY = other.mY;
             mD = other.mD;

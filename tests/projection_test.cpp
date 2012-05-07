@@ -41,7 +41,7 @@ namespace kqp {
         
         int isApproxEqual(const std::string & name, const Density< double > &a, const Eigen::MatrixXd &b) {
             auto _a = a.matrix();
-            auto m = dynamic_cast<DenseMatrix<double>&>(*_a);
+            auto m = dynamic_cast<Dense<double>&>(*_a);
             KQP_MATRIX(double) op = m.getMatrix() * m.getMatrix().transpose();
             return isApproxEqual(name, op, b);
         }
@@ -50,7 +50,7 @@ namespace kqp {
     
     template<typename Scalar>
     const Matrix<Scalar,Dynamic,Dynamic> getMatrix(const Density<Scalar> &d) {
-        return dynamic_cast<DenseMatrix<double>&>(*d.matrix()).getMatrix();
+        return dynamic_cast<Dense<double>&>(*d.matrix()).getMatrix();
     }
     
     int simple_projection_test(std::deque<std::string> &/*args*/) {
@@ -58,18 +58,18 @@ namespace kqp {
         
         Index dimension = 100;
         
-        FSpace fs(new DenseFeatureSpace<double>(2));
+        FSpace fs(new DenseSpace<double>(2));
         
         DenseDirectBuilder<double> kevd(dimension);
         
         for (int i = 0; i < 10; i++) {
             Eigen::VectorXd v = Eigen::VectorXd::Random(dimension);
-            ((KernelEVD<double> &)kevd).add(DenseMatrix<double>::create(v));
+            ((KernelEVD<double> &)kevd).add(Dense<double>::create(v));
         }
         
         Event<double> subspace(kevd);
         
-        FeatureMatrix<double> v(DenseMatrix<double>::create(Eigen::VectorXd::Random(dimension)));
+        FeatureMatrix<double> v(Dense<double>::create(Eigen::VectorXd::Random(dimension)));
         
         Density<double> v1 = subspace.project(Density<double>(fs, v, true), false);
         Density<double> v2 = subspace.project(Density<double>(fs, v, true), true);
@@ -85,7 +85,7 @@ namespace kqp {
         return  inners.squaredNorm() < EPSILON 
         && getMatrix(v1_p).squaredNorm() < EPSILON
         && getMatrix(v2_p).squaredNorm() < EPSILON
-        && (getMatrix(v1) + getMatrix(v2) - v->as<DenseMatrix<double>>().getMatrix()).squaredNorm() < EPSILON 
+        && (getMatrix(v1) + getMatrix(v2) - v->as<Dense<double>>().getMatrix()).squaredNorm() < EPSILON 
         ? 0 : 1;
         
     }
@@ -107,14 +107,14 @@ namespace kqp {
         DensityTracker rhoTracker(dimension);
         
         for (int i = 0; i < rhoVectorsCount; i++) 
-            rhoTracker.add(DenseMatrix<double>::create(rhoVectors[i]));
+            rhoTracker.add(Dense<double>::create(rhoVectors[i]));
         Density<double> rho(rhoTracker);
         
         rho.normalize();
         
         DensityTracker sbTracker(dimension);
         for (int j = 0; j < sbVectorsCount; j++) 
-            sbTracker.add(DenseMatrix<double>::create(sbVectors[j]));
+            sbTracker.add(Dense<double>::create(sbVectors[j]));
         
         // Strict event
         Event<double> sb(sbTracker);

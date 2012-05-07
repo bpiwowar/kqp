@@ -57,7 +57,7 @@ namespace kqp {
 //     *
 //     */
 //    template<class Scalar>
-//    typename Scalar trace_function(const FeatureSpace<Scalar>
+//    typename Scalar trace_function(const Space<Scalar>
 //                          const FeatureMatrix<Scalar> &mX1, 
 //                          const typename ScalarAltMatrix  &mY1,
 //                          const typename RealVector &mD1,

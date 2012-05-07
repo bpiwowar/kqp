@@ -20,15 +20,15 @@ namespace kqp {
         Eigen::MatrixXd _mF = generateMatrix<double>(dim, n);        
         Eigen::MatrixXd _mY = generateMatrix<double>(dim, dim);                        
         
-        FeatureSpace<double> fs(DenseFeatureSpace<double>::create(2));
+        Space<double> fs(DenseSpace<double>::create(2));
         
         // Copy
         Eigen::MatrixXd mY = _mY;
-        FeatureMatrix<double> mF(DenseMatrix<double>::create(_mF));
+        FeatureMatrix<double> mF(Dense<double>::create(_mF));
         
         ReducedSetNullSpace<double>::run(fs, mF, mY);
         
-        Eigen::MatrixXd m1 = mF->as<DenseMatrix<double>>().getMatrix() * mY;
+        Eigen::MatrixXd m1 = mF->as<Dense<double>>().getMatrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;
         double error = (m1 - m2).norm();
         

@@ -32,17 +32,17 @@ namespace kqp {
         Eigen::MatrixXd mX = generateMatrix<double>(dim, dim).leftCols(n);
         Eigen::MatrixXd mY = Eigen::MatrixXd::Random(n, r);
         Eigen::VectorXd mD = Eigen::MatrixXd::Random(r,1);
-        auto fs = DenseFeatureSpace<double>::create(dim);
+        auto fs = DenseSpace<double>::create(dim);
 
         
-        Density<double> d(fs, DenseMatrix<double>::create(mX), mY, mD, false);
+        Density<double> d(fs, Dense<double>::create(mX), mY, mD, false);
         d.orthonormalize();
         Eigen::MatrixXd inners = fs.k(d.X(), d.Y());
         
         double error = (inners - Eigen::MatrixXd::Identity(inners.rows(),inners.rows())).squaredNorm();
         std::cerr << "Orthonormalization [1] error is " << error << std::endl;
         
-        Eigen::MatrixXd x = *d.matrix()->as<DenseMatrix<double>>();
+        Eigen::MatrixXd x = *d.matrix()->as<Dense<double>>();
         Eigen::MatrixXd y = mX * mY * mD.asDiagonal();
         double error2 = (x * x.adjoint() - y * y.adjoint()).squaredNorm();
         std::cerr << "Orthonormalization [2] error is " << error2 << std::endl;

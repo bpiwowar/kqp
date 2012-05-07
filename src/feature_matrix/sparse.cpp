@@ -3,9 +3,9 @@
 
 namespace kqp {
 #define KQP_SCALAR_GEN(scalar) \
-    template class SparseMatrix<scalar>; \
-    template class SparseDenseMatrix<scalar>; \
-    template class SparseFeatureSpace<scalar>; \
-    template class SparseDenseFeatureSpace<scalar>;
+    template class Sparse<scalar>; \
+    template class SparseDense<scalar>; \
+    template class SparseSpace<scalar>; \
+    template class SparseDenseSpace<scalar>;
 #include <kqp/for_all_scalar_gen>
 }

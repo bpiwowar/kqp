@@ -10,11 +10,11 @@ DEFINE_LOGGER(logger, "kqp.test.fmatrix");
 
 namespace kqp {
     
-    template class SparseDenseMatrix<double>;
+    template class SparseDense<double>;
     template class SparseMatrix<double>;
     
     template<typename Scalar> int test_dimension(const SparseMatrix<Scalar>&) { return 0; }
-    template<typename Scalar> int test_dimension(const SparseDenseMatrix<Scalar> &sdMatrix) {
+    template<typename Scalar> int test_dimension(const SparseDense<Scalar> &sdMatrix) {
         // --- Test that the number of stored rows is less than for the dense case
         KQP_LOG_INFO_F(logger, "Sparse matrix dense dimension = %d (real = %d)", %sdMatrix.denseDimension() %sdMatrix.dimension()); 
         return sdMatrix.denseDimension() >= sdMatrix.dimension();
@@ -187,11 +187,11 @@ namespace kqp {
 int main(int , const char **) {
     int code = 0;
     
-    code |= kqp::SparseTest<SparseDenseMatrix<double>>().test();
+    code |= kqp::SparseTest<SparseDense<double>>().test();
     
-    code |= kqp::SparseTest<SparseDenseMatrix<double>>().test();
+    code |= kqp::SparseTest<SparseDense<double>>().test();
     
-    code |= kqp::FMatrixTest<DenseMatrix<double>>().test();
+    code |= kqp::FMatrixTest<Dense<double>>().test();
     
     return code;
 }

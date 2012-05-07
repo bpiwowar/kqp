@@ -17,6 +17,6 @@
 #include <kqp/feature_matrix/unary_kernel.hpp>
 
 #define KQP_SCALAR_GEN(scalar) \
-    template class kqp::GaussianKernelSpace<scalar>; \
-    template class kqp::PolynomialKernelSpace<scalar>;
+    template class kqp::GaussianSpace<scalar>; \
+    template class kqp::PolynomialSpace<scalar>;
 #include <kqp/for_all_scalar_gen>

@@ -43,20 +43,20 @@ namespace kqp {
     typedef typename ScalarDefinitions<Scalar>::ScalarAltMatrix ScalarAltMatrix; \
     typedef typename ScalarDefinitions<Scalar>::RealAltVector RealAltVector; \
     typedef FeatureMatrix<Scalar> FMatrix; \
-    typedef FeatureSpace<Scalar> FSpace; \
+    typedef Space<Scalar> FSpace; \
     typedef typename AltVector<Real>::ConstantVectorType ConstantRealVector; \
     typedef typename AltDense<Scalar>::IdentityType IdentityScalarMatrix; \
     typedef FeatureMatrixBase<Scalar> FMatrixBase; \
     typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixBasePtr; \
-    typedef FeatureSpaceBase<Scalar> FSpaceBase; \
-    typedef boost::shared_ptr< FeatureSpaceBase<Scalar> > FSpaceBasePtr; \
-    typedef boost::shared_ptr< const FeatureSpaceBase<Scalar> > FSpaceBaseCPtr;
+    typedef SpaceBase<Scalar> FSpaceBase; \
+    typedef boost::shared_ptr< SpaceBase<Scalar> > FSpaceBasePtr; \
+    typedef boost::shared_ptr< const SpaceBase<Scalar> > FSpaceBaseCPtr;
 
     
     template<typename Scalar> class FeatureMatrixBase;
     template<typename Scalar> class FeatureMatrix;
-    template<typename Scalar> class FeatureSpaceBase;
-    template<typename Scalar> class FeatureSpace;
+    template<typename Scalar> class SpaceBase;
+    template<typename Scalar> class Space;
     
     /**
      * @brief Base for all feature matrix classes
@@ -175,7 +175,7 @@ namespace kqp {
     private:
         boost::shared_ptr< FeatureMatrixBase<Scalar> > m_fMatrix;
         
-        friend class FeatureSpace<Scalar>;
+        friend class Space<Scalar>;
     };
     
 
@@ -188,11 +188,11 @@ namespace kqp {
      *
      */
     template<typename Scalar>
-    class FeatureSpaceBase {
+    class SpaceBase {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
                
-        virtual ~FeatureSpaceBase() {}
+        virtual ~SpaceBase() {}
         
         //! Dimension of the underlying space (-1 for infinity)
         virtual Index dimension() const = 0;
@@ -203,7 +203,7 @@ namespace kqp {
         }
         
         //! Copy
-        virtual boost::shared_ptr< FeatureSpaceBase<Scalar> > copy() const = 0;
+        virtual boost::shared_ptr< SpaceBase<Scalar> > copy() const = 0;
         
         //! Gram matrix
         virtual const ScalarMatrix &k(const FMatrixBase &mX) const = 0;
@@ -253,31 +253,31 @@ namespace kqp {
      *
      */
     template<typename Scalar>
-    class FeatureSpace {
+    class Space {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         
         // Undefined space
-        FeatureSpace() {}
+        Space() {}
 
-        FeatureSpace(const FSpaceBasePtr &ptr) : m_fSpace(ptr) {}
-        FeatureSpace(const FeatureSpace &other) : m_fSpace(other.m_fSpace->copy()) {}
-        FeatureSpace &operator=(const FeatureSpace &other) {
+        Space(const FSpaceBasePtr &ptr) : m_fSpace(ptr) {}
+        Space(const Space &other) : m_fSpace(other.m_fSpace->copy()) {}
+        Space &operator=(const Space &other) {
             m_fSpace = other.m_fSpace->copy();
             return *this;
         }
         
 #ifndef SWIG
-        FeatureSpace(FSpaceBase *ptr) : m_fSpace(ptr) {}
-        FeatureSpace(FeatureSpace &&other) :  m_fSpace(std::move(other.m_fSpace)) {}
-        FeatureSpace &operator=(FeatureSpace &&other) {
+        Space(FSpaceBase *ptr) : m_fSpace(ptr) {}
+        Space(Space &&other) :  m_fSpace(std::move(other.m_fSpace)) {}
+        Space &operator=(Space &&other) {
             m_fSpace = std::move(other.m_fSpace);
             return *this;
         }
 #endif        
         
         //! Constant copy
-        const FeatureSpace constCopy() const { return FeatureSpace(m_fSpace); }
+        const Space constCopy() const { return Space(m_fSpace); }
         
         //! Dimension of the underlying space (-1 for infinity)
         inline Index dimension() const { return m_fSpace->dimension(); }
@@ -384,7 +384,7 @@ namespace kqp {
 
 
 # ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template class FeatureMatrix<Scalar>; extern template class FeatureSpace<Scalar>;
+# define KQP_SCALAR_GEN(Scalar) extern template class FeatureMatrix<Scalar>; extern template class Space<Scalar>;
 # include <kqp/for_all_scalar_gen>
 # endif 
 

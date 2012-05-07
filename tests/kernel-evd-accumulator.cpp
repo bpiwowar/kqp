@@ -28,7 +28,7 @@ namespace kqp {
         
         template<bool use_lc>
         int _accumulator(const Dense_evd_test &test) {
-            AccumulatorKernelEVD<double, use_lc> builder(DenseFeatureSpace<double>::create(test.n));
+            AccumulatorKernelEVD<double, use_lc> builder(DenseSpace<double>::create(test.n));
             return test.run<double>(logger, builder);
         }
         
