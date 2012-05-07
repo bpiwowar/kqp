@@ -42,6 +42,7 @@ if (JAVA_KQP OR JAVA_PYTHON)
       STRING(REGEX REPLACE "\\." / JAVA_KQP_PACKAGE_PATH "${JAVA_KQP_PACKAGE}")
       
       SET(JAVA_KQP_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/src/main/java/${JAVA_KQP_PACKAGE_PATH})
+      SET(JAVA_KQP_TESTDIR ${CMAKE_CURRENT_BINARY_DIR}/test/main/java/${JAVA_KQP_PACKAGE_PATH})
 
       # Detect the architecture
       if(${CMAKE_SIZEOF_VOID_P} EQUAL 4)
@@ -65,8 +66,10 @@ if (JAVA_KQP OR JAVA_PYTHON)
       MESSAGE(STATUS "Detected NAR-AOL: ${NAR_AOL}")
       
       SET(JAVA_KQP_NARDIR ${CMAKE_CURRENT_BINARY_DIR}/target/nar/${CMAKE_PROJECT_NAME}-${libkqp_VERSION}-${NAR_AOL}-jni/lib/)
-      execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${JAVA_KQP_OUTDIR}")
-      execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${JAVA_KQP_NARDIR}")
+      file(MAKE_DIRECTORY "${JAVA_KQP_OUTDIR}")
+      file(MAKE_DIRECTORY "${JAVA_KQP_NARDIR}")
+      file(MAKE_DIRECTORY "${JAVA_KQP_TESTDIR}")
+      
       SET(CMAKE_SWIG_FLAGS -c++ -package ${JAVA_KQP_PACKAGE})  
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
@@ -74,12 +77,13 @@ if (JAVA_KQP OR JAVA_PYTHON)
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)
       
-      # --- Test package
-      
       
       # --- Build archives using NAR (target kqp_jni_maven)
       
       CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/pom.xml.in ${CMAKE_CURRENT_BINARY_DIR}/pom.xml)
+      FILE(GLOB JAVA_EXAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/../examples/*.java)
+      execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${JAVA_EXAMPLES} "${JAVA_KQP_TESTDIR}")
+      # TODO create a test file with all the examples
       
       GET_TARGET_PROPERTY(KQP_JNI_LOCATION kqp_jni LOCATION)
       

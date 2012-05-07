@@ -139,8 +139,6 @@ ENABLE_TESTING()
 
 ADD_CUSTOM_TARGET(run-tests COMMAND ${CMAKE_CTEST_COMMAND})
 
-# Examples
-add_subdirectory(examples)
 
 # Tests
 add_subdirectory(tests)
@@ -151,3 +149,5 @@ add_subdirectory(benchmark)
 #  Wrappers
 add_subdirectory(swig)
 
+# Examples
+add_subdirectory(examples)
