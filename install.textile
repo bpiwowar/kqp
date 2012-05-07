@@ -1,0 +1,133 @@
+---
+layout: default
+title: Installing the Kernel Quantum Probability (KQP) library
+---
+
+h1. Building the KQP library
+
+We assume that there are two directories:
+- $KQP_SRCDIR that contains the sources
+- $KQP_BUILDDIR that will contain the compiled code
+
+h2. Pre-requisites
+
+* A c++ compiler (gcc >= 4.4, clang >= 3.0)
+* CMake
+* Boost libraries
+* log4cxx
+* Swig (for wrappers) and then, depending on the targets, JDK, Python
+
+h2. Options
+
+The following options can be given to the initial cmake command
+
+* @-DOPEN_MP=ON@ to enable OpenMP support (multithreading)
+* @-DJAVA_KQP=OFF@ to disable JAVA wrapper generationg
+
+h2. Working with KQP
+
+To build an optimized version of the library
+
+{% highlight sh %}
+cd $KQP_BUILDDIR
+cmake [options] $KQP_SRCDIR
+make kqp run-tests 
+{% endhighlight %}
+
+
+h3. Building for C++
+
+If all the tests pass, then you can type
+@make install@ 
+to install the library
+
+h3. Building with JAVA (with maven)
+
+If you have maven, just type
+@make kqp_jni_maven@
+
+This will build kqp, the jar and "nar":http://duns.github.com/maven-nar-plugin/ packages, and install them in your local repository. You can then start to code in Java by adding (and adapting) the following in you @pom.xml@ file:
+
+{% highlight xml %}
+<project ...>
+    ...
+    <pluginRepositories>
+        <pluginRepository>
+            <id>duns</id>
+            <name>Duns nar plugin repository</name>
+            <url>http://duns.github.com/maven-snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+    ...
+    <build>
+        <plugins>
+            <!-- NAR plugin -->
+            <plugin>
+                <artifactId>maven-nar-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <classifiers>
+                        <!--<classifier>x86-Windows-msvc</classifier>-->
+                        <classifier>x86_64-MacOSX-g++</classifier>
+                        <!--<classifier>i386-Linux-g++</classifier>-->
+                    </classifiers>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>nar-download</goal>
+                            <goal>nar-unpack</goal>
+                            <!--<goal>nar-assembly</goal>-->
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        ...
+        </plugins>
+        ...
+    </build>
+    ...
+    <dependencies>
+        <!-- Kernel Quantum Library -->
+        <dependency>
+            <groupId>net.bpiwowar</groupId>
+            <artifactId>kqp</artifactId>
+            <version>1.0.0</version>
+            <type>nar</type>
+        </dependency>
+        ...
+    </dependencies>
+</project>
+{% endhighlight %}
+
+h3. Working with Python
+
+@make _kqp_python@
+
+h2. Developping KQP
+
+If you want to contribute to the development of the library, you should follow these steps:
+
+* To build a debug version of the library
+
+{% highlight sh %}
+cd $KQP_BUILDIR
+cmake -DCMAKE_BUILD_TYPE=Debug $KQP_SRCDIR
+{% endhighlight %}
+
+* With Xcode
+
+{% highlight sh %}
+cmake -DCMAKE_XCODE_ATTRIBUTE_GCC_VERSION=com.apple.compilers.llvm.clang.1_0 -GXcode $KQP_SRCDIR
+{% endhighlight %}
+
+* If the default compiler is not 
+
+{% highlight sh %}
+CC=PATH_TO_CC CXX=PATH_TO_CXX cmake -DCMAKE_BUILD_TYPE=Debug $KQP_SRCDIR
+{% endhighlight %}
+

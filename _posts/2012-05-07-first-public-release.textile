@@ -1,0 +1,7 @@
+---
+layout: default
+title: First release
+---
+First release of the Kernel Quantum Probability library! Please email me so that I can update the "documentation":/ where needed.
+
+Find the 1.0.0 version at "kqp@github":https://github.com/bpiwowar/kqp/tags

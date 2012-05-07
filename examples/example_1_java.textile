@@ -1,0 +1,8 @@
+---
+layout: default
+title: Example of java code
+---
+
+{% highlight java %}
+{% include example_1.java %}
+{% endhighlight %}
