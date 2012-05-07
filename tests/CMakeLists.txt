@@ -116,6 +116,6 @@ do_test(probabilities probabilities orthonormalization)
 
 do_test(divergence_simpleTest divergence simple)
 do_test(divergence_fullTest divergence full)
-do_test(divergence_simpleEpsilonTest divergence simple-epsilon)
+do_test(divergence_simpleEpsilonTest divergence simpleEpsilon)
 do_test(divergence_zeroTest divergence zero)
 

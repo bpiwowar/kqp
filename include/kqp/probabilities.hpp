@@ -368,7 +368,7 @@ namespace kqp {
         Real entropy() const {
             this->orthonormalize();
             RealVector s = this->S();
-            return (2 * s.array().log() * s.array().abs2()).sum();
+            return - (2 * s.array().log() * s.array().abs2()).sum();
         }
         
         /**
@@ -416,7 +416,7 @@ namespace kqp {
             
             
             // --- Compute tr(p log p)
-            return this->entropy() - plogq;        
+            return - plogq - this->entropy();        
             
 		}
         

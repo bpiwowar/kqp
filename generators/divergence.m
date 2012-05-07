@@ -30,8 +30,8 @@ function dispTest(name, description, U1, S1, U2, S2, epsilon)
   dispDiag("S1", S1);
   dispDiag("S2", S2);
   printf("\ndouble epsilon = %.30g;\n\n", epsilon);
-  printf("Density< double > rho(fs, DenseMatrix<double>::create(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);\n");
-  printf("Density< double > tau(fs, DenseMatrix<double>::create(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);\n");
+  printf("Density< double > rho(fs, Dense<double>::create(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);\n");
+  printf("Density< double > tau(fs, Dense<double>::create(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);\n");
 
   eid = eye(rows(U1)) / min(columns(S1) + columns(S2), rows(U1));
   
@@ -41,7 +41,7 @@ function dispTest(name, description, U1, S1, U2, S2, epsilon)
   plogq = trace(rho * logm((1-epsilon) * tau + epsilon * eid));
   divergence = plogp - plogq;
   printf("double divergence = rho.computeDivergence(tau, epsilon);\n");
-  printf("// plogp = %.30g\n// qlogq = %.30g\n", plogp, plogq);
+  printf("// plogp = %.30g\n// plogq = %.30g\n", plogp, plogq);
   printf("double expected_divergence = %.30g;\n", divergence);
   printf("KQP_LOG_INFO_F(logger, \"Divergence = %%.10g [expected %%.10g]; delta = %%.10g\", %%divergence %%expected_divergence %%(std::abs(divergence - expected_divergence)));\n");
 
