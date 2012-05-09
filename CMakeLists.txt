@@ -55,7 +55,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 	SET(CXX_STD "c++0x")
   ENDIF()
 
-  SET (EXTRA_C_FLAGS "${EXTRA_C_FLAGS} --std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC")
+  SET (EXTRA_C_FLAGS "${EXTRA_C_FLAGS} --std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC -Werror")
   SET (EXTRA_C_FLAGS_RELEASE "-O3 ${EXTRA_C_FLAGS}")
   SET (EXTRA_C_FLAGS_DEBUG "-O0 -g ${EXTRA_C_FLAGS}")
 
@@ -153,3 +153,10 @@ add_subdirectory(swig)
 
 # Examples
 add_subdirectory(examples)
+
+# --- Installation
+
+INSTALL(DIRECTORY include/kqp  DESTINATION include)
+INSTALL(DIRECTORY include/Eigen  DESTINATION include/kqp)
+INSTALL(TARGETS kqp LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+

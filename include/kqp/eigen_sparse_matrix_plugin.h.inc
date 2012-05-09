@@ -16,7 +16,10 @@
  */
 
     // Add move semantics to MatrixBase
-    SparseMatrix(SparseMatrix &&other) : Base() {
+    SparseMatrix(SparseMatrix &&other) : Base(), m_outerSize(-1), m_innerSize(0), m_outerIndex(0), m_innerNonZeros(0)
+    {
+        check_template_parameters();
+        resize(0, 0);
         this->swap(other);
     }
 

@@ -19,23 +19,46 @@
 #define __KQP_INTERVALS_H__
 
 #include <vector>
-
+namespace kqp {
+  #   include <kqp/define_header_logger.hpp>
+      DEFINE_KQP_HLOGGER("kqp.intervals");
+  
 //! An interval iterator
 struct IntervalsIterator {
-    const std::vector<bool> &which;
+    const std::vector<bool> *which;
+    size_t size;
     std::pair<size_t, size_t> current;
+
+    void find(size_t fromInclusive) {
+      if (which) {
+        // Find the first "true" bit from current position
+        current.first  = std::find(which->begin() + fromInclusive, which->end(), true) - which->begin();
+        
+        // Find the first "false" bit from start
+        current.second = current.first == size ? size : std::find(which->begin() + current.first + 1, which->end(), false) - which->begin() - 1;
+      } else {
+        if (fromInclusive > 0) 
+          current.first = current.second = size;
+        else {
+          current.first = 0;
+          current.second = size - 1;
+        }
+      }
+      
+    }
     
-    IntervalsIterator &operator++(int) { 
-        current.first  = std::find(current.second + 1 + which.begin(), which.end(), true) - which.begin();
-        current.second = std::find(which.begin() + current.first, which.end(), false) - which.begin();
+    IntervalsIterator &operator++(int) {
+        find(current.second+1);
         return *this;
     }
     
-    IntervalsIterator(const std::vector<bool> &which) : which(which), current(0,0) {
-        (*this)++;
+    IntervalsIterator(const std::vector<bool> *which, size_t size) : which(which), size(size) {
+      find(0);
     }
-    IntervalsIterator(const std::vector<bool> &which, size_t begin, size_t end) : which(which), current(begin,end) {
+    
+    IntervalsIterator(const std::vector<bool> *which, size_t size, size_t begin, size_t end) : which(which),  size(size), current(begin,end) {
     }
+    
     const std::pair<size_t, size_t> & operator*() const {
         return current;
     }
@@ -43,31 +66,49 @@ struct IntervalsIterator {
         return &current;
     }
     bool operator!=(const IntervalsIterator &other) {
-        return &which != &other.which || current != other.current;
+        return which != other.which || current != other.current;
     }
 };
 
 
-struct Intervals {
-    std::vector<bool> which;
-    size_t _selected;
-    
+class Intervals {
+public:
     typedef IntervalsIterator Iterator;
-    
-    const Iterator _end;
-    
-    Intervals(const std::vector<bool> &which) : which(which), _end(which, which.size(), which.size()) {             
-        _selected = std::accumulate(which.begin(), which.end(), 0);
+
+    Intervals(const std::vector<bool> &which) : m_which(&which), m_size(which.size()), m_end(m_which, m_size, m_size, m_size) {             
+      m_selected = std::accumulate(which.begin(), which.end(), 0);
     }
-    size_t size() const { return which.size(); }
-    size_t selected() const { return _selected; }
+    
+    Intervals(const std::vector<bool> *which, size_t size) : m_which(which), m_size(size), m_end(m_which, m_size, m_size, m_size) {             
+        assert(!which || which->size() == m_size);
+        if (which) m_selected = std::accumulate(which->begin(), which->end(), 0);
+        else m_selected = m_size;
+    }
+    
+    size_t size() const { return m_size;}
+    size_t selected() const { return m_selected; }
     
     Iterator begin() { 
-        return Iterator(which);
+        return Iterator(m_which, m_size);
     }
     const Iterator &end() { 
-        return _end;
+        return m_end;
     }
-};
 
+  private:          
+      // Vector of selected entries
+      const std::vector<bool> *m_which;
+
+      // Number of entries
+      size_t m_size;
+
+      // End for the iterator
+      const Iterator m_end;
+
+      // Number of selected entries
+      size_t m_selected;
+
+      
+};
+}
 #endif

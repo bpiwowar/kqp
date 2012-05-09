@@ -1,0 +1,10 @@
+### HEAD ###
+
+* Installation with make install
+* Fix gcc 4.7 compilation problems
+* Fix entropy computation bug (opposite sign)
+* Fix various bugs on dense and sparse matrices (tests had been discarded)
+
+### 1.0.0 ###
+
+Initial release

@@ -46,6 +46,9 @@
 #endif // GCC
 
 
+// Define move operators if needed:
+// * clang with libstdc++
+#if (defined(__clang__) && defined(__GLIBCXX__))
 namespace std {
     inline namespace _kqp {
         template<class _Ty>
@@ -75,7 +78,7 @@ namespace std {
         
     }
 }
-
+#endif
 
 namespace kqp {
 

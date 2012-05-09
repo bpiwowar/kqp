@@ -45,18 +45,6 @@ namespace {
     namespace kqp { int name(std::deque<std::string> &args); } \
     namespace { Declare name ## _decl (id, &name); }
 
-// 
-// DEFINE_TEST("kqp-qp-solver", kqp_qp_solver_test)
-// DEFINE_TEST("kernel-evd", do_kevd_tests)
-// 
-// DEFINE_TEST("reduced-set/unused", test_reduced_set_unused)
-// DEFINE_TEST("reduced-set/null-space", test_reduced_set_null_space)
-// DEFINE_TEST("reduced-set/qp/exact", test_reduced_set_qp_exact)
-// DEFINE_TEST("reduced-set/qp/approximate", test_reduced_set_qp_approximate)
-// 
-// DEFINE_TEST("probabilities", do_probabilities_tests);
-// DEFINE_TEST("projections", projection_test);
-// 
 
 DEFINE_LOGGER(main_test_logger,  "kqp.test.main");
 

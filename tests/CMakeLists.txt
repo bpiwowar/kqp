@@ -50,7 +50,7 @@ TARGET_LINK_LIBRARIES(test_projection kqp)
 
 # All tests
 
-ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
+ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_fmatrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
 
 # --- Useful functions
 
@@ -63,6 +63,14 @@ FUNCTION(run_test task subtask)
    ADD_TEST("${task}/${subtask}" "${EXECUTABLE_OUTPUT_PATH}/test_${task}" ${subtask})
    set_tests_properties(${id} PROPERTIES TIMEOUT 5)
 ENDFUNCTION(run_test taskname)
+
+# --- Alt matrix
+do_test(alt-matrix alt-matrix)
+
+# --- Feature spaces
+FOREACH(t dense sparse sparseDense)
+do_test(fmatrix_${t} fmatrix ${t})
+ENDFOREACH()
 
 # --- EVD update tests
 

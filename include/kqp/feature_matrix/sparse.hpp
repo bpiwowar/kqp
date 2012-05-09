@@ -51,7 +51,7 @@ namespace kqp {
         
 #endif
 
-        Sparse(const ScalarMatrix &mat, double threshold) : m_matrix(mat.rows(), mat.cols()) {            
+        Sparse(const ScalarMatrix &mat, double threshold = 0) : m_matrix(mat.rows(), mat.cols()) {            
             Matrix<Real, 1, Dynamic> thresholds = threshold * mat.colwise().norm();
 
             Matrix<Index, 1, Dynamic> countsPerCol((mat.array().abs() >= thresholds.colwise().replicate(mat.rows()).array()).template cast<Index>().colwise().sum());
@@ -80,18 +80,54 @@ namespace kqp {
             return m_matrix.rows();
         }
         
-        void add(const FMatrixBase &other, const std::vector<bool> *which = NULL) override {
+        void add(const FMatrixBase &_other, const std::vector<bool> *which = NULL) override {
+            const Self &other = dynamic_cast<const Self&>(_other);
+            
             // Computes the indices of the vectors to add
             std::vector<Index> ix;
             Index toAdd = 0;
             if (which) {
                 for(size_t i = 0; i < which->size(); i++)
-                    if ((*which)[i]) ix.push_back(i);
+                    if ((*which)[i]) 
+                        ix.push_back(i);
+                    
+                toAdd = ix.size();
             } 
             else toAdd = other.size();
             
-            KQP_THROW_EXCEPTION(not_implemented_exception, "add");
+            //FIXME: re-implement when conservativeResize is implemented in Eigen::SparseMatrix
             
+            // Construct the vector of non zero entries count
+        
+            std::vector<Index> counts;
+            for(Index i = 0; i < m_matrix.cols(); i++) 
+              counts.push_back(m_matrix.col(i).nonZeros());
+        
+            for(Index i = 0; i < toAdd; i++)
+              counts.push_back(other.m_matrix.col(ix.empty() ? i : ix[i]).nonZeros());
+            
+        
+            // Prepare the resultant sparse matrix
+        
+            // FIXME: m_matrix.conservativeResize(m_matrix.rows(), m_matrix.cols() + toAdd)
+            Index offset = m_matrix.cols();
+            Storage s(m_matrix.rows(), m_matrix.cols() + toAdd);
+            s.reserve(counts);
+            
+            // Fill the result
+        
+            for(Index i = 0; i < m_matrix.cols(); ++i) // FIXME: remove this
+                for (typename Storage::InnerIterator it(m_matrix,i); it; ++it) 
+                    s.insert(it.row(), i) = it.value();
+                    
+            for(Index i = 0; i < toAdd; ++i)
+                for (typename Storage::InnerIterator it(other.m_matrix, ix.empty() ? i : ix[i]); it; ++it) 
+                    s.insert(it.row(), offset+i) = it.value();
+                
+                    
+            // Compress (should not do anything but free the non zero buffer)
+            m_matrix = std::move(s);
+            m_matrix.makeCompressed();
         }
         
         const ScalarMatrix &gramMatrix() const {
@@ -130,7 +166,7 @@ namespace kqp {
             for(size_t i = 0; i < selected.size(); ++i)
                 counts[i] = m_matrix.col(selected[i]).nonZeros();
             s.reserve(counts);
-            
+
             // Fill the result
             for(size_t i = 0; i < selected.size(); ++i)
                 for (typename Storage::InnerIterator it(m_matrix,selected[i]); it; ++it) 
@@ -147,12 +183,18 @@ namespace kqp {
         
         //! Direct access to underlying matrix
         const Storage *operator->() const { return &m_matrix; }
-        
-        virtual FMatrixBase& operator=(const FMatrixBase &other) override {
-            m_matrix = dynamic_cast<const Self&>(other).m_matrix;
-            m_gramMatrix = dynamic_cast<const Self&>(other).m_gramMatrix;
+        const Storage &operator*() const { return m_matrix; }
+
+        FMatrixBase& operator=(const Self &other)  {
+            m_matrix = other.m_matrix;
+            m_gramMatrix = other.m_gramMatrix;
             return *this;
         }
+
+        virtual FMatrixBase& operator=(const FMatrixBase &other) override {
+            return *this = dynamic_cast<const Self&>(other);
+        }
+
 
     private:
         
@@ -177,6 +219,7 @@ namespace kqp {
     class SparseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
+        using SpaceBase<Scalar>::k;
         
         static FSpace create(Index dimension) { return FSpace(new SparseSpace(dimension)); }
         
@@ -202,7 +245,7 @@ namespace kqp {
         
         virtual ScalarMatrix k(const FeatureMatrixBase<Scalar> &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
                                const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
-            return mD1.asDiagonal() * mY1.transpose() * cast(mX1)->adjoint() * cast(mX2)->adjoint() * mY2 * mD2.asDiagonal();
+            return mD1.asDiagonal() * mY1.transpose() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
         };
         
         

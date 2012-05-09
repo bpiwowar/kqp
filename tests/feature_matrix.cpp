@@ -11,9 +11,10 @@ DEFINE_LOGGER(logger, "kqp.test.fmatrix");
 namespace kqp {
     
     template class SparseDense<double>;
-    template class SparseMatrix<double>;
+    template class Sparse<double>;
     
-    template<typename Scalar> int test_dimension(const SparseMatrix<Scalar>&) { return 0; }
+    template<typename Scalar> int test_dimension(const Sparse<Scalar>&) { return 0; }
+    
     template<typename Scalar> int test_dimension(const SparseDense<Scalar> &sdMatrix) {
         // --- Test that the number of stored rows is less than for the dense case
         KQP_LOG_INFO_F(logger, "Sparse matrix dense dimension = %d (real = %d)", %sdMatrix.denseDimension() %sdMatrix.dimension()); 
@@ -21,29 +22,32 @@ namespace kqp {
     }
     
     
-    template<typename FMatrix>
+    template<typename KQPSpace, typename KQPMatrix>
     struct FMatrixTest {
+        Index dimension = 5;
+        
+        typedef typename KQPMatrix::ScalarMatrix::Scalar Scalar;
         KQP_SCALAR_TYPEDEFS(Scalar);
         std::string fmatrixName;
         
         ScalarMatrix m, m2;
-        FMatrix sdMatrix, sdMatrix2;
+        KQPMatrix sdMatrix, sdMatrix2;
         double error;
         
-        FMatrixTest() : fmatrixName(KQP_DEMANGLE(FMatrix)) {
+        FMatrixTest() : fmatrixName(KQP_DEMANGLE(KQPMatrix)) {
             KQP_LOG_INFO_F(logger, "*** Tests with %s ***", %fmatrixName);
             
             // --- Initialisation
-            m = Matrix<double,Dynamic,Dynamic>::Random(5,8);
+            m = Matrix<double,Dynamic,Dynamic>::Random(dimension,8);
             m.row(3) *= 0;
             
-            sdMatrix = FMatrix(m);
+            sdMatrix = KQPMatrix(m);
             
-            m2 = Matrix<double,Dynamic,Dynamic>::Random(5,3);
+            m2 = Matrix<double,Dynamic,Dynamic>::Random(dimension,4);
             m2.row(2) *= 0;
             m2.row(4) *= 0;
             
-            sdMatrix2 = FMatrix(m2);
+            sdMatrix2 = KQPMatrix(m2);
         }
         
         
@@ -60,60 +64,87 @@ namespace kqp {
         
         int test() {
             double error;
+            KQPSpace fs(this->dimension);
             
             
             // --- Test the difference
             error = (sdMatrix.toDense() - m).norm() / m.norm();
             checkError("matrix", error);
-
-            // --- Test adding
-            FMatrix sdAdd = sdMatrix;
-            sdAdd.add(sdMatrix2);
-            error = std::sqrt(
-                              ( (sdAdd.toDense().leftCols(m.cols()) - m).squaredNorm() + (sdAdd.toDense().rightCols(m2.cols()) - m2).squaredNorm() )
-                              / (m.squaredNorm() + m2.squaredNorm())
-                              );
-            checkError("add matrix", error);
             
             // --- Test adding
-            sdAdd = sdMatrix;
-            std::vector<bool> which(3,true);
-            which[2] = false;
-            ScalarMatrix m2Sel;
-            select_columns(which, m2, m2Sel);
-            sdAdd.add(sdMatrix2, &which);
-            error = std::sqrt(
-                              ( (sdAdd.toDense().leftCols(m.cols()) - m).squaredNorm() + (sdAdd.toDense().rightCols(m2Sel.cols()) - m2Sel).squaredNorm() )
-                              / (m.squaredNorm() + m2.squaredNorm())
-                              );
-            checkError("add matrix [self]", error);
+            {
+                KQPMatrix sdAdd = sdMatrix;
+                sdAdd.add(sdMatrix2);
+                error = std::sqrt(
+                                  ( (sdAdd.toDense().leftCols(m.cols()) - m).squaredNorm() + (sdAdd.toDense().rightCols(m2.cols()) - m2).squaredNorm() )
+                                  / (m.squaredNorm() + m2.squaredNorm())
+                                  );
+                checkError("add matrix", error);
+            }
             
-
+            // --- Test adding 
+            {
+                KQPMatrix sdAdd = sdMatrix;
+                std::vector<bool> which(4,true);
+                which[2] = false;
+                ScalarMatrix m2Sel;
+                select_columns(which, m2, m2Sel);
+                sdAdd.add(sdMatrix2, &which);
+                error = std::sqrt(
+                                  ( (sdAdd.toDense().leftCols(m.cols()) - m).squaredNorm() + (sdAdd.toDense().rightCols(m2Sel.cols()) - m2Sel).squaredNorm() )
+                                  / (m.squaredNorm() + m2.squaredNorm())
+                                  );
+                checkError("add matrix [subset]", error);
+            }
+            
             // --- Test subset
-            std::vector<bool> selected(8,true);
-            selected[2] = selected[6] = false;
-            ScalarMatrix mSelect;
-            kqp::select_columns(selected, m, mSelect);
-            FMatrix sdSelect;
-            sdMatrix.subset(selected.begin(), selected.end(), sdSelect);
-            error = (sdSelect.toDense() - mSelect).norm() / mSelect.norm();
-            checkError("select matrix", error);
+
+            {
+                std::vector<bool> selected(8,true);
+                selected[2] = selected[6] = false;
+                ScalarMatrix mSelect;
+                kqp::select_columns(selected, m, mSelect);
+
+                FMatrixBasePtr sdSelect = sdMatrix.subset(selected.begin(), selected.end());
+                error = (sdSelect->template as<KQPMatrix>().toDense() - mSelect).norm() / mSelect.norm();
+                checkError("subset", error);
+            }
             
-            sdSelect = sdMatrix;
-            sdSelect.subset(selected.begin(), selected.end(), sdSelect);
-            error = (sdSelect.toDense() - mSelect).norm() / mSelect.norm();
-            checkError("select matrix [self]", error);
+            // --- Test the inner product
+            error = (m.adjoint() * m - fs.k(sdMatrix)).norm() / m.norm();
+            checkError("gram matrix", error);
+
+            // --- Test inner product with other matrix
+            error = (m.adjoint() * m2 - fs.k(sdMatrix, sdMatrix2)).norm() / (m.norm() * m2.norm());
+            checkError("inner", error);
+            
+            // --- Test linear combination
+            if (fs.canLinearlyCombine()) {
+                Scalar alpha = 1.2;
+                Scalar beta = 2.3;
+                ScalarMatrix mA = ScalarMatrix::Random(m.cols(),4);
+                ScalarMatrix mB = ScalarMatrix::Random(m2.cols(),4);
+                
+                ScalarMatrix dLC = alpha * m * mA + beta * m2 * mB;
+                ScalarAltMatrix _mB(mB);
+                FMatrixBasePtr sdLC = fs.linearCombination(sdMatrix, mA, alpha, &sdMatrix2, &_mB, beta);
+                
+                error = (sdLC->template as<KQPMatrix>().toDense() - dLC).norm() / dLC.norm();
+                KQP_LOG_INFO_F(logger, "Delta (lc, %s) is %g", %fmatrixName %error);
+                code |= error >= EPSILON;
+            }
             
             return code;
         }
         
     };
     
-    template<typename FMatrix>
-    struct SparseTest : public FMatrixTest<FMatrix> {
+    template<typename KQPSpace, typename KQPMatrix>
+    struct SparseTest : public FMatrixTest<KQPSpace, KQPMatrix> {
+        typedef typename KQPMatrix::ScalarMatrix::Scalar Scalar;
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        typedef FMatrixTest<FMatrix> Base;
+        typedef FMatrixTest<KQPSpace, KQPMatrix> Base;
         using Base::code;
         using Base::sdMatrix;
         using Base::sdMatrix2;
@@ -121,9 +152,11 @@ namespace kqp {
         using Base::m2;
         using Base::error;
         using Base::fmatrixName;
-
+        
         int test() {
-            code = FMatrixTest<FMatrix>::test();
+            KQPSpace fs(this->dimension);
+            
+            code = Base::test();
             
             // --- test dimension (if applicable)
             test_dimension(sdMatrix);
@@ -136,7 +169,7 @@ namespace kqp {
                 for(Index j = 0; j < m.cols(); j++)
                     if (m(i,j) != 0) sm.insert(i,j) = m(i,j);
             
-            error = (FMatrix(sm).toDense() - m).norm() / m.norm();
+            error = (KQPMatrix(sm).toDense() - m).norm() / m.norm();
             KQP_LOG_INFO_F(logger, "Delta (sparse matrix, %s) is %g", %fmatrixName %error);
             code |= error >= EPSILON;
             
@@ -147,51 +180,26 @@ namespace kqp {
                 for(Index j = 0; j < m.cols(); j++)
                     if (m(i,j) != 0) smCol.insert(i,j) = m(i,j);
             
-            error = (FMatrix(smCol).toDense() - m).norm() / m.norm();
+            error = (KQPMatrix(smCol).toDense() - m).norm() / m.norm();
             KQP_LOG_INFO_F(logger, "Delta (sparse matrix, %s) is %g", %fmatrixName %error);
             code |= error >= EPSILON;
-            
-            
-            // --- Test the inner product
-            error = (m.adjoint() * m - sdMatrix.inner()).norm() / m.norm();
-            KQP_LOG_INFO_F(logger, "Delta (inner, %s) is %g", %fmatrixName %error);
-            code |= error >= EPSILON;
-            
-            // --- Test inner product with other matrix
-            error = (m.adjoint() * m2 - kqp::inner(sdMatrix,sdMatrix2)).norm() / (m.norm() * m2.norm());
-            KQP_LOG_INFO_F(logger, "Delta (inner with other, %s) is %g", %fmatrixName %error);
-            code |= error >= EPSILON;
-            
-            
-            // --- Test linear combination
-            if (sdMatrix.canLinearlyCombine()) {
-                Scalar alpha = 1.2;
-                Scalar beta = 2.3;
-                ScalarMatrix mA = ScalarMatrix::Random(8,4);
-                ScalarMatrix mB = ScalarMatrix::Random(3,4);
-                
-                ScalarMatrix dLC = alpha * m * mA + beta * m2 * mB;
-                FMatrix sdLC = sdMatrix.linear_combination(mA, alpha, sdMatrix2, mB, beta);
-                
-                error = (sdLC.toDense() - dLC).norm() / dLC.norm();
-                KQP_LOG_INFO_F(logger, "Delta (lc, %s) is %g", %fmatrixName %error);
-                code |= error >= EPSILON;
-            }
             
             return code;
         }
     };
-    
+
+    int test_dense(std::deque<std::string> &) {
+        return kqp::FMatrixTest<DenseSpace<double>, Dense<double>>().test();  
+    }
+    int test_sparse(std::deque<std::string> &) {
+        return kqp::SparseTest<SparseDenseSpace<double>, SparseDense<double>>().test();  
+    }
+    int test_sparseDense(std::deque<std::string> &) {
+        return kqp::SparseTest<SparseSpace<double>, Sparse<double>>().test();  
+    }
 }
 
-int main(int , const char **) {
-    int code = 0;
-    
-    code |= kqp::SparseTest<SparseDense<double>>().test();
-    
-    code |= kqp::SparseTest<SparseDense<double>>().test();
-    
-    code |= kqp::FMatrixTest<Dense<double>>().test();
-    
-    return code;
-}
+#include "main-tests.inc"
+DEFINE_TEST("dense", test_dense);
+DEFINE_TEST("sparse-dense", test_sparse);
+DEFINE_TEST("sparse", test_sparseDense);

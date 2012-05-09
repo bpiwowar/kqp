@@ -138,7 +138,7 @@ namespace kqp {
             if (alpha < 0) 
                 KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot multiply a kernel operator by a negative value (%g)", %alpha);
             
-            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_multiple_op<double>(std::sqrt(alpha)));
+            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_multiple_op<Real>(std::sqrt(alpha)));
         }
         
         

@@ -26,6 +26,10 @@ namespace kqp {
     
     template <typename Scalar> class Dense;
     template <typename Scalar> class DenseSpace;
+
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.feature-matrix.dense");
+
     
     /**
      * @brief A feature matrix where vectors are dense vectors in a fixed dimension.
@@ -69,40 +73,28 @@ namespace kqp {
 #endif
 
    
-        /**
-         * Add a vector (from a template expression)
-         */
-        template<typename Derived>
-        void add(const Eigen::DenseBase<Derived> &m) {
-            if (m_matrix.cols() == 0) 
-                m_matrix.resize(m.rows(), 0);
-            else if (m.rows() != m_matrix.rows())
-                KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
-                                      "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % m_matrix.rows());
 
-            Index n = m_matrix.cols();
-            m_matrix.conservativeResize(m_matrix.rows(), n + m.cols());
-            this->m_matrix.block(0, n, m_matrix.rows(), m.cols()) = m; 
-        }
-        
           /**
          * Add a vector (from a template expression)
          */
         template<typename Derived>
-        void add(const Eigen::DenseBase<Derived> &m, const std::vector<bool> &which) {
+        void add(const Eigen::DenseBase<Derived> &m, const std::vector<bool> *which = NULL) {
             if (m_matrix.cols() == 0) 
                 m_matrix.resize(m.rows(), 0);
             if (m.rows() != m_matrix.rows())
                 KQP_THROW_EXCEPTION_F(illegal_operation_exception, 
                                       "Cannot add a vector of dimension %d (dimension is %d)", % m.rows() % m_matrix.rows());
             
-            Index s = std::accumulate(which.begin(), which.end(), 0);
-            m_matrix.conservativeResize(m_matrix.rows(), s + m.cols());
 
-            Intervals intervals(which);
+            Intervals intervals(which, m.cols());
             Index offset = m_matrix.cols();
+            m_matrix.conservativeResize(m_matrix.rows(), intervals.selected() + m_matrix.cols());
+
             for(auto i = intervals.begin(); i != intervals.end(); i++) {
-                Index cols = i->second - i->first;
+                Index cols = i->second - i->first + 1;
+                KQP_HLOG_DEBUG_F("Copying cols %d to %d from a %d x %d matrix into (%d-%d) in a %d x %d matrix",
+                                %i->first %i->second % m.rows() % m.cols() 
+                                %offset %(offset+cols-1) % m_matrix.rows() % m_matrix.cols());
                 this->m_matrix.block(0, offset, m_matrix.rows(), cols) = m.block(0, i->first, m_matrix.rows(), cols);
                 offset += cols;
             }
@@ -123,9 +115,7 @@ namespace kqp {
         }
         
         void add(const FMatrixBase &other, const std::vector<bool> *which = NULL) override {
-    
-            if (which) this->add(cast(other).getMatrix(), *which);
-            else this->add(cast(other).getMatrix());
+           this->add(cast(other).getMatrix(), which);
         }
         
                        
@@ -183,11 +173,15 @@ namespace kqp {
         }
 
 
-               
-        virtual FMatrixBase& operator=(const FMatrixBase &other) override {
-            m_matrix = dynamic_cast<const Self&>(other).m_matrix;
-            m_gramMatrix = dynamic_cast<const Self&>(other).m_matrix;
+
+        Self& operator=(const Self &other)  {
+            m_matrix = other.m_matrix;
+            m_gramMatrix = other.m_gramMatrix;
             return *this;
+        }
+
+        virtual FMatrixBase& operator=(const FMatrixBase &other) override {
+            return *this = dynamic_cast<const Self&>(other);
         }
 
         
@@ -222,6 +216,7 @@ namespace kqp {
     class DenseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
+        using SpaceBase<Scalar>::k;
         
         static FSpace create(Index dimension) { return FSpace(new DenseSpace(dimension)); }
         

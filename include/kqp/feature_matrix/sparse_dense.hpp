@@ -51,7 +51,7 @@ namespace kqp {
         SparseDense(const Self &other) :  m_dimension(other.m_dimension), m_map(other.m_map), m_matrix(other.m_matrix), m_gramMatrix(other.m_gramMatrix) {}
 
 #ifndef SWIG
-        SparseDense(RowMap &&map, ScalarMatrix &&matrix) : m_map(std::move(map)), m_matrix(std::move(matrix)) {
+        SparseDense(RowMap &&map, ScalarMatrix &&matrix) : m_dimension(matrix.rows()), m_map(std::move(map)), m_matrix(std::move(matrix)) {
             
         }
 #endif
@@ -59,7 +59,6 @@ namespace kqp {
         //! Creates from a sparse matrix
         SparseDense(const Eigen::SparseMatrix<Scalar, Eigen::ColMajor> &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
             // --- Compute which rows we need
-            
             
             // Computing the column norms
             RealVector norms(mat.cols());
@@ -74,18 +73,20 @@ namespace kqp {
             norms = norms.cwiseSqrt();
             
             // Computing selected rows map
+            Index rows = 0;
             for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
                 for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
                     if (std::abs(it.value()) / norms[it.col()] > threshold) {
                         if (m_map.find(it.row()) == m_map.end()) {
-                            m_map[it.row()] = m_map.size();                            
+                          m_map[it.row()] = rows;
+                          rows += 1;                            
                         }
                     }
                 }
             }
             
             // --- Copying
-            m_matrix.resize(m_map.size(), mat.cols());
+            m_matrix.resize(rows, mat.cols());
             m_matrix.setZero();
             
             for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
@@ -111,17 +112,20 @@ namespace kqp {
 
             // Computing selected rows
             norms = norms.cwiseSqrt();
+            Index rows = 0;
             for (int k=0; k<mat.outerSize(); ++k) {
                 bool any = false;
                 for (typename Eigen::SparseMatrix<Scalar, Eigen::RowMajor>::InnerIterator it(mat,k); it && !any; ++it) {
                     any |= std::abs(it.value()) / norms[it.col()] > threshold;
                 }
-                if (any) 
-                    m_map[k] = m_map.size();
+                if (any) {
+                    m_map[k] = rows;
+                    rows += 1;
+                }
             }
 
             // --- Copying
-            m_matrix.resize(m_map.size(), mat.cols());
+            m_matrix.resize(rows, mat.cols());
             m_matrix.setZero();
             
             for(auto i = m_map.begin(); i != m_map.end(); i++) {
@@ -144,18 +148,22 @@ namespace kqp {
             // Compute which rows we need
             Matrix<Real, 1, Dynamic> norms = mat.cwiseAbs2().colwise().sum();
             
+            size_t rows = 0;
             for(Index i = 0; i < mat.rows(); i++) {
-                if ((std::abs(mat.row(i).array()) / norms.array() > threshold).any()) 
-                    m_map[i] = m_map.size();
+                if ((std::abs(mat.row(i).array()) / norms.array() > threshold).any()) {
+                    m_map[i] = rows;
+                    rows += 1;
+                }
             }
             
             // Copy the selected rows
-            m_matrix.resize(m_map.size(), mat.cols());
+            m_matrix.resize(rows, mat.cols());
             if ((size_t)mat.rows() == m_map.size())
                 m_matrix = mat;
             else 
-                for(auto i = m_map.begin(); i != m_map.end(); i++) 
+                for(auto i = m_map.begin(); i != m_map.end(); i++) {
                     m_matrix.row(i->second) = mat.row(i->first);
+                }
             
         }
         
@@ -211,7 +219,7 @@ namespace kqp {
         }
         
         // --- Base methods 
-        inline Index size() const { 
+        virtual Index size() const { 
             return m_matrix.cols();
         }
         
@@ -223,7 +231,14 @@ namespace kqp {
         struct Insert {
             RowMap &m_map;
             void operator()(const RowMap::const_reference &x) const {
-                m_map[x.first] = m_map.size();
+                size_t s = m_map.size();
+                m_map[x.first] = s;
+            }
+        };
+        
+        struct KeyComparator {
+            bool operator()(const RowMap::const_reference &a, const RowMap::const_reference b) {
+                return a.first < b.first;
             }
         };
 #endif
@@ -247,7 +262,7 @@ namespace kqp {
             
             Index oldRows = m_map.size();
             std::set_difference(other.m_map.begin(), other.m_map.end(), m_map.begin(), m_map.end(), 
-                                boost::make_function_output_iterator(Insert({m_map})));
+                                boost::make_function_output_iterator(Insert({m_map})), KeyComparator());
             
             Index newRows = m_map.size() - oldRows;
             
@@ -272,7 +287,7 @@ namespace kqp {
         
         
         const ScalarMatrix &gramMatrix() const {
-            if (size() == 0) return m_gramMatrix;
+            if (size() == m_gramMatrix.rows()) return m_gramMatrix;
             
             // We lose space here, could be used otherwise???
             Index current = m_gramMatrix.rows();
@@ -293,6 +308,8 @@ namespace kqp {
         //! Computes the inner product with another matrix
         template<class DerivedMatrix>
         void inner(const Self &other, DerivedMatrix &result) const {
+            if (result.rows() != this->size() || result.cols() != other.size())
+              result.resize(this->size(), other.size());
             result.setZero();
             
             struct Collector {
@@ -308,7 +325,7 @@ namespace kqp {
             } collector({m_matrix, other.m_matrix, m_map, other.m_map, result});
 
             std::set_intersection(m_map.begin(), m_map.end(), other.m_map.begin(), other.m_map.end(), 
-                                  boost::make_function_output_iterator(collector));
+                                  boost::make_function_output_iterator(collector), KeyComparator());
             
         }
         
@@ -322,7 +339,8 @@ namespace kqp {
             // Add the keys
             RowMap newMap;
             std::set_union(mY->m_map.begin(), mY->m_map.end(), m_map.begin(), m_map.end(), 
-                           boost::make_function_output_iterator(Insert({newMap})));
+                           boost::make_function_output_iterator(Insert({newMap})),
+                           KeyComparator());
 
 
             // Perform the linear combination
@@ -357,12 +375,17 @@ namespace kqp {
             return FMatrixBasePtr(new Self(*this));
         }
 
+        Self &operator=(const Self &other)  {
+            m_dimension = other.m_dimension;
+            m_matrix = other.m_matrix;
+            m_map = other.m_map;
+            m_gramMatrix = other.m_gramMatrix;
+            return *this;
+        }
+
+
         virtual FMatrixBase &operator=(const FMatrixBase &_other) override {
-          const Self &other = dynamic_cast<const Self&>(_other);
-          m_dimension = other.m_dimension;
-          m_matrix = other.m_matrix;
-          m_gramMatrix = other.m_gramMatrix;
-          return *this;
+          return *this = dynamic_cast<const Self&>(_other);
         }
 
     private:
@@ -385,6 +408,7 @@ namespace kqp {
     class SparseDenseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
+        using SpaceBase<Scalar>::k;
         
         static FSpace create(Index dimension) { return FSpace(new SparseDenseSpace(dimension)); }
         
