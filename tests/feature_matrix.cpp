@@ -24,7 +24,7 @@ namespace kqp {
     
     template<typename KQPSpace, typename KQPMatrix>
     struct FMatrixTest {
-        Index dimension = 5;
+        Index dimension;
         
         typedef typename KQPMatrix::ScalarMatrix::Scalar Scalar;
         KQP_SCALAR_TYPEDEFS(Scalar);
@@ -34,7 +34,7 @@ namespace kqp {
         KQPMatrix sdMatrix, sdMatrix2;
         double error;
         
-        FMatrixTest() : fmatrixName(KQP_DEMANGLE(KQPMatrix)) {
+        FMatrixTest() : dimension(5), fmatrixName(KQP_DEMANGLE(KQPMatrix)),  code(0) {
             KQP_LOG_INFO_F(logger, "*** Tests with %s ***", %fmatrixName);
             
             // --- Initialisation
@@ -51,7 +51,7 @@ namespace kqp {
         }
         
         
-        int code = 0;
+        int code;
         
         void checkError(const std::string &name, double error) {
             if (error < EPSILON) {

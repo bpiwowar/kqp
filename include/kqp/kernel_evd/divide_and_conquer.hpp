@@ -31,7 +31,8 @@ namespace kqp {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);        
         
-        DivideAndConquerBuilder(const FSpace &fs) : KernelEVD<Scalar>(fs) {}
+        DivideAndConquerBuilder(const FSpace &fs) : KernelEVD<Scalar>(fs), batchSize(100) {}
+        
         virtual ~DivideAndConquerBuilder() {}
         
         //! Set the maximum number of rank updates before using a combiner
@@ -179,7 +180,7 @@ namespace kqp {
         std::vector<Decomposition<Scalar> > decompositions;
         
         //! Number of rank updates
-        Index batchSize = 100;
+        Index batchSize;
         
         boost::shared_ptr<KernelEVD<Scalar>  > builder;
         boost::shared_ptr<Cleaner<Scalar> > builderCleaner;

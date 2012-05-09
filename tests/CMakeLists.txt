@@ -68,7 +68,7 @@ ENDFUNCTION(run_test taskname)
 do_test(alt-matrix alt-matrix)
 
 # --- Feature spaces
-FOREACH(t dense sparse sparseDense)
+FOREACH(t dense sparse sparse-dense)
 do_test(fmatrix_${t} fmatrix ${t})
 ENDFOREACH()
 
