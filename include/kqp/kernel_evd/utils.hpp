@@ -106,7 +106,7 @@ namespace kqp {
         KQP_SCALAR_TYPEDEFS(Scalar);
 
         //! Orthonormalization with Alt matrices (generic method)
-        void run(const FSpace &fs, const FMatrix &mX,
+        static void run(const FSpace &fs, const FMatrix &mX,
                             ScalarAltMatrix &mY,
                             RealAltVector &mD) {
             // FIXME: should swap if dense types

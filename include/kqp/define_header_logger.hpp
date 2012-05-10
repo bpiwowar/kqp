@@ -49,6 +49,15 @@
 #   elif (KQP_HLOGGER_N == 3) 
 #     undef  KQP_HLOGGER_N
 #     define KQP_HLOGGER_N 4
+#   elif (KQP_HLOGGER_N == 4) 
+#     undef  KQP_HLOGGER_N
+#     define KQP_HLOGGER_N 5
+#   elif (KQP_HLOGGER_N == 5) 
+#     undef  KQP_HLOGGER_N
+#     define KQP_HLOGGER_N 6
+#   elif (KQP_HLOGGER_N == 6) 
+#     undef  KQP_HLOGGER_N
+#     define KQP_HLOGGER_N 7
 #   else
 #     error
 #   endif

@@ -20,6 +20,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${KQP_SWIG_GENERATED}
 
 # List of files to process
 FILE(GLOB KQP_SWIG_EACH_SCALAR ${KQP_SWIG_SOURCE_DIR}/for_each_scalar/*)
+list(SORT KQP_SWIG_EACH_SCALAR)
 
 # Split a string in two parts around "/"
 FUNCTION(SPLIT2 IN A B)

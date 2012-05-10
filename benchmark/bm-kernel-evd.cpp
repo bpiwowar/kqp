@@ -1,3 +1,19 @@
+/*
+ This file is part of the Kernel Quantum Probability library (KQP).
+ 
+ KQP is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ KQP is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #include <iostream>
 #include <ctime>
 #include <deque>
@@ -29,72 +45,82 @@ namespace kqp {
         std::string id;
         
         // Seed
-        long seed = 0;
+        long seed;
         
         // Space dimension
-        Index dimension = 100;
-        Index updates = 1000;
+        Index dimension;
+        Index updates;
+        
+        // Use linear combination
+        bool useLC;
         
         // --- Base vector
         
-        // Number of generated vectors
+        // Number of vectors use to generate new ones (uniform distribution for each component)
         Index nbVectors;
-        
+               
         // Noise ratio for generated vector components
-        float noise = 1e-4;
-        
-        // Binomial for picking a given rank
-        
+        float noise;
         
         // --- Settings for the generation
         
         // Range for the number of pre-images at each update
-        Index min_preimages = 1;
-        Index max_preimages = 1;
+        Index min_preimages;
+        Index max_preimages;
         
         // Range for the number of vectors at each update
-        Index min_lc = 1;
-        Index max_lc = 1;
+        Index min_lc;
+        Index max_lc;
         
-        
+        KernelEVDBenchmark() :
+        seed(0), 
+        dimension(100),
+        updates(1000),
+        useLC(true),
+        nbVectors(0),
+        noise(0),
+        min_preimages(1),
+        max_preimages(1),
+        min_lc(1),
+        max_lc(1)
+        {}
         
         
         
         // --- 
         
         struct BuilderConfiguratorBase {
-            std::pair<float,float> preImageRatios;
-            Index targetRank = std::numeric_limits<Index>::max();            
-            Index targetPreImageRatio = std::numeric_limits<float>::infinity();
-            bool useLinearCombination = true;
+            Index targetRank;
+            float targetPreImageRatio;
             
-            virtual void print(std::string prefix = "") {
-                std::cout << prefix << "rank\t" << targetRank << std::endl;
-                std::cout << prefix << "pre_images\t" << targetPreImageRatio << std::endl;
-                std::cout << prefix << "builder\t" << this->getName() << std::endl;
-                std::cout << prefix << "lc\t" << useLinearCombination;
+            BuilderConfiguratorBase() :
+                targetRank(std::numeric_limits<Index>::max()),
+                targetPreImageRatio(std::numeric_limits<float>::infinity())
+            {
+                
+            }
+            
+            virtual void print(const KernelEVDBenchmark &bm, const std::string & prefix = "") const {
+                std::cout << prefix << "\t" << this->getName() << std::endl;
+                std::cout << prefix << ".rank\t" << targetRank << std::endl;
+                if (!bm.useLC) std::cout << prefix << ".pre_images\t" << targetPreImageRatio << std::endl;
             }
             
             virtual std::string getName() const = 0;
             virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) {
-                if (options[0] == "rank" && args.size() >= 2) {
+                if (options.size() == 1 && options[0] == "rank" && args.size() >= 2) {
                     args.pop_front();
                     targetRank = boost::lexical_cast<Index>(args[0]);
                     args.pop_front();
                     return true;
                 }
                 
-                if (args[0] == "pre-images" && args.size() >= 3) {
+                if (options.size() == 2 && options[0] == "pre" && options[1] == "images" && args.size() >= 2) {
                     args.pop_front();
                     targetPreImageRatio = boost::lexical_cast<float>(args[0]);
                     args.pop_front();
                     return true;
                 }
-                if (args[0] == "no-lc") {
-                    useLinearCombination = false;
-                    args.pop_front();
-                    return true;
-                } 
 
                 return false;
             }
@@ -104,13 +130,18 @@ namespace kqp {
         
         template<typename _Scalar>
         struct BuilderConfigurator : public BuilderConfiguratorBase {
-            typedef Dense<_Scalar> FMatrix;
+            typedef _Scalar Scalar;
             KQP_SCALAR_TYPEDEFS(Scalar);
             
-            virtual KernelEVD<Scalar>  *getBuilder(const KernelEVDBenchmark &) = 0;
+            typedef Dense<Scalar> KQPMatrix;
+            typedef DenseSpace<Scalar> KQPSpace;
+
+            virtual KernelEVD<Scalar>  *getBuilder(const Space<Scalar> &, const KernelEVDBenchmark &) = 0;
             
             int run(const KernelEVDBenchmark &bm) {
-                boost::scoped_ptr<KernelEVD<Scalar> > builder(this->getBuilder(bm));
+                FSpace fs = KQPSpace::create(bm.dimension);
+                
+                boost::scoped_ptr<KernelEVD<Scalar>> builder(this->getBuilder(fs, bm));
                 
                 std::clock_t total_time = 0;
                 
@@ -136,7 +167,7 @@ namespace kqp {
                     ScalarMatrix mA = ScalarMatrix::Random(k, p);
                     
                     
-                    builder->add(alpha, FMatrix(m), mA);
+                    builder->add(alpha, KQPMatrix::create(m), mA);
                 }        
                 
                 Decomposition<Scalar> result = builder->getDecomposition();
@@ -149,17 +180,17 @@ namespace kqp {
                 
                 KQP_LOG_INFO(logger, "Cleaning up");
                 c_start = std::clock();
-                StandardCleaner<FMatrix> cleaner;
+                StandardCleaner<Real> cleaner;
                 
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>());
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
                 cleaner.setSelector(rankSelector);
                 
                 cleaner.setPreImagesPerRank(this->targetPreImageRatio, this->targetPreImageRatio);
-                cleaner.setUseLinearCombination(this->useLinearCombination);
+                cleaner.setUseLinearCombination(bm.useLC);
                 cleaner.cleanup(result);
                 
                 c_end = std::clock();
@@ -169,7 +200,7 @@ namespace kqp {
                 if (!result.orthonormal) {
                     KQP_LOG_INFO(logger, "Re-orthonormalizing");
                     c_start = std::clock();
-                    kqp::orthonormalize(result.mX, result.mY, result.mD);
+                    Orthonormalize<Scalar>::run(fs, result.mX, result.mY, result.mD);
                     
                     c_end = std::clock();
                     total_time += c_end-c_start;
@@ -188,7 +219,7 @@ namespace kqp {
                 ScalarMatrix sumWWT(result.mY.cols(), result.mY.cols());
                 sumWWT.setZero();
                 
-                ScalarMatrix mYTXT = result.mY.transpose() * result.mX.get_matrix().transpose();
+                ScalarMatrix mYTXT = result.mY.transpose() * result.mX->template as<Dense<Scalar>>()->transpose();
                 
                 for(int i = 0; i < bm.updates; i++) {
                     
@@ -224,7 +255,7 @@ namespace kqp {
         
         template<typename Scalar>
         struct DirectConfigurator : public BuilderConfigurator<Scalar> {
-            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &bm) override {
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &, const KernelEVDBenchmark &bm) override {
                 return new DenseDirectBuilder<Scalar>(bm.dimension);
             };
             virtual std::string getName() const { return "direct"; }
@@ -233,11 +264,11 @@ namespace kqp {
         template<typename Scalar> 
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
             
-            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
-                if (this->useLinearCombination) 
-                    return new AccumulatorKernelEVD<Dense<Scalar>,true>();
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {
+                if (bm.useLC) 
+                    return new AccumulatorKernelEVD<Scalar,true>(fs);
                 
-                return new AccumulatorKernelEVD<Dense<Scalar>,false>();
+                return new AccumulatorKernelEVD<Scalar,false>(fs);
             }
             
             virtual std::string getName() const {
@@ -249,46 +280,49 @@ namespace kqp {
         template<typename Scalar> 
         struct IncrementalConfigurator : public BuilderConfigurator<Scalar> {
             typedef typename Eigen::NumTraits<Scalar>::Real Real;
-            float maxPreImageRatio = std::numeric_limits<float>::infinity();
-            Index maxRank = -1;
+            float maxPreImageRatio;
+            Index maxRank;
             
-            virtual void print(std::string prefix = "") override {
-                std::cout << prefix << "max_pre_images\t" << maxPreImageRatio << std::endl;
-                std::cout << prefix << "max_rank\t" << maxRank << std::endl;
+            IncrementalConfigurator() : maxPreImageRatio(std::numeric_limits<float>::infinity()), maxRank(-1) {}
+            
+            virtual void print(const KernelEVDBenchmark &bm, const std::string& prefix = "") const override {
+                BuilderConfigurator<Scalar>::print(bm, prefix);
+                if (!bm.useLC) std::cout << prefix << ".max_pre_images\t" << maxPreImageRatio << std::endl;
+                std::cout << prefix << ".max_rank\t" << maxRank << std::endl;
             }
             
             virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
-                if (options[0] == "max-rank" && args.size() >= 2) {
+                if (options[0] == "maxrank" && args.size() >= 2) {
                     args.pop_front();
                     maxRank = boost::lexical_cast<Index>(args[0]);
                     args.pop_front();
                     return true;
                 }
                 
-                if (args[0] == "max-pre-images" && args.size() >= 2) {
+                if (args[0] == "maxpreimages" && args.size() >= 2) {
                     args.pop_front();
                     maxPreImageRatio = boost::lexical_cast<float>(args[0]);
                     args.pop_front();
                     return true;
                 }
                 
-                return false;            
+                return BuilderConfigurator<Scalar>::processOption(options, args);            
             }
         
             virtual std::string getName() const { return "incremental"; }
             
-            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(maxRank, this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>());
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
                 
-                IncrementalKernelEVD<Dense<Scalar>> * builder  = new IncrementalKernelEVD<Dense<Scalar>>(); 
+                IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(fs); 
                 builder->setSelector(selector);
                 builder->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
-                builder->setUseLinearCombination(this->useLinearCombination);
+                builder->setUseLinearCombination(bm.useLC);
                 
                 return builder;
             }
@@ -297,23 +331,41 @@ namespace kqp {
         
         template<typename Scalar> struct BuilderChooser;
         
+        
+        /** Configurator for "Divide and Conquer" KEVD */
         template<typename Scalar> 
         struct DivideAndConquerConfigurator : public BuilderConfigurator<Scalar> {
-            boost::scoped_ptr<BuilderConfigurator<Scalar>> builder, merger;
             typedef typename Eigen::NumTraits<Scalar>::Real Real;
+            typedef boost::shared_ptr<KernelEVD<Scalar>> KEVDPtr;
 
+            boost::scoped_ptr<BuilderConfigurator<Scalar>> builder, merger;
+            Index batchSize;
+            
             virtual std::string getName() const { return "divide-and-conquer"; }
 
+            DivideAndConquerConfigurator() : batchSize(100) {}
+            
             virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
+                
+                if (options.size() == 2 && options[0] == "batch" && options[1] == "size" && args.size() >= 2) {
+                    batchSize = boost::lexical_cast<Index>(args[1]);
+                    args.pop_front();
+                    args.pop_front();
+                    return true;
+                }
+                
                 if (options[0] != "merger" && options[0] != "builder")
                     return false;
                 boost::scoped_ptr<BuilderConfigurator<Scalar>> &cf = options[0] == "builder" ? builder : merger;
 
+                
                 if (options.size() == 1) {
                     if (args.size() >= 2) {
                         args.pop_front();
                         cf.reset(BuilderChooser<Scalar>().getBuilder(args[0]));
+                        KQP_LOG_INFO_F(logger, "%s for D&C is %s", %options[0] %args[0]);
                         args.pop_front();
+                        return true;
                     }
                 } else {
                     options.pop_front();
@@ -323,28 +375,37 @@ namespace kqp {
                 return false;
             }
             
-            virtual void print(std::string prefix = "") override {
-                builder->print(prefix + ".builder");
-                merger->print(prefix + ".merger");
+            virtual void print(const KernelEVDBenchmark &bm, const std::string & prefix = "") const override {
+                BuilderConfigurator<Scalar>::print(bm, prefix);
+                std::cout << prefix << ".batch_size\t" << batchSize << std::endl;
+                builder->print(bm, prefix + ".builder");
+                merger->print(bm, prefix + ".merger");
             }
 
-            boost::shared_ptr<ChainSelector<Real>>  getCleaner(const BuilderConfigurator<Scalar> &bc) {
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc->targetRank, bc->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>());
+            boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &bm, const BuilderConfigurator<Scalar> &bc) {
+                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.targetRank, bc.targetRank));
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
                 
-                return selector;
+                boost::shared_ptr<Cleaner<Scalar>> cleaner(new StandardCleaner<Scalar>());
+                cleaner->setSelector(selector);
+                cleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.targetPreImageRatio);
+                cleaner->setUseLinearCombination(bm.useLC);
+                return cleaner;
             }
             
-            virtual KernelEVD<Dense<Scalar>> *getBuilder(const KernelEVDBenchmark &) override {                
-
-                DivideAndConquerBuilder<Dense<Scalar>> dc = new DivideAndConquerBuilder<Dense<Scalar>>();
-                dc->setBuilder(builder);
-                dc->setBuilderCleaner(getCleaner(*builder));
-                dc->setMerger(merger);
-                dc->setMergerCleaner(getCleaner(*merger));
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {                
+                DivideAndConquerBuilder<Scalar> *dc = new DivideAndConquerBuilder<Scalar>(fs);
+                dc->setBatchSize(batchSize);
+                
+                dc->setBuilder(KEVDPtr(builder->getBuilder(fs, bm)));
+                dc->setBuilderCleaner(getCleaner(bm, *builder));
+                
+                dc->setMerger(KEVDPtr(merger->getBuilder(fs,bm)));
+                dc->setMergerCleaner(getCleaner(bm, *merger));
+                return dc;
             }
         };
 
@@ -356,6 +417,7 @@ namespace kqp {
             
         };
         
+        /** Chooser for the Kernel EVD algorithm */
         template<typename Scalar>
         struct BuilderChooser : public BuilderChooserBase {
             BuilderConfigurator<Scalar> * getBuilder(std::string &kevdName) override {
@@ -370,11 +432,12 @@ namespace kqp {
                 if (kevdName == "accumulator") 
                     return new AccumulatorConfigurator<Scalar>();
                 
-                if (kevdName == "incremental") {
-                    IncrementalKernelEVD<Dense<Scalar>> builder;
-                    
-                }
-                
+                if (kevdName == "incremental") 
+                    return new IncrementalConfigurator<Scalar>();
+
+                if (kevdName == "divide-and-conquer") 
+                    return new DivideAndConquerConfigurator<Scalar>();
+
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown kernel-evd builder type [%s]", %kevdName);
                 
             }
@@ -382,7 +445,7 @@ namespace kqp {
         
         int process(std::deque<std::string> &args) {
            
-            const std::string builderPrefix = "--builder";
+            const std::string builderPrefix = "--builder-";
             
             boost::scoped_ptr<BuilderChooserBase> builderChooser;
             boost::scoped_ptr<BuilderConfiguratorBase> builderConfigurator;
@@ -396,7 +459,12 @@ namespace kqp {
                     seed = std::atol(args[0].c_str());
                     args.pop_front();
                 } 
-                
+
+                if (args[0] == "--no-lc") {
+                    args.pop_front();
+                    useLC = false;
+                } 
+
                 else if (args[0] == "--scalar" && args.size() >= 2) {
                     args.pop_front();
                      scalarName = args[0];
@@ -441,7 +509,6 @@ namespace kqp {
                     if (!builderConfigurator->processOption(options, args))
                         break;
                     
-                    args.pop_front();
                 }
                 
                 else break;
@@ -454,11 +521,15 @@ namespace kqp {
             // Outputs the paramaters
             std::cout << "dimension\t" << dimension << std::endl;
             std::cout << "updates\t" << updates << std::endl;
+            std::cout << "lc\t" << (useLC ? "true" : "false")  << std::endl;
             std::cout << "seed\t" << seed << std::endl;
             std::cout << "scalar\t" << scalarName << std::endl;
+            std::cout << "noise\t" << noise << std::endl;
 
-
-            builderConfigurator->print();
+            if (!builderConfigurator.get()) 
+                KQP_THROW_EXCEPTION(illegal_argument_exception, "No builder was given (with --builder)");
+                
+            builderConfigurator->print(*this, "builder");
             
             return builderConfigurator->run(*this);
             

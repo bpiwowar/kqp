@@ -1554,7 +1554,7 @@ namespace kqp { namespace cvxopt {
                     }
                     r.primal_slack = -max_step(s, dims);
                     r.dual_slack = -max_step(z, dims);
-                    std::cerr << "Terminated (singular KKT matrix).";
+                    std::cerr << "Terminated [A] (singular KKT matrix).";
                     status = SINGULAR_KKT_MATRIX;
                     return;
                 }
@@ -1653,7 +1653,7 @@ namespace kqp { namespace cvxopt {
                     }
                     r.primal_slack = -max_step(s, dims);
                     r.dual_slack = -max_step(z, dims);
-                    std::cerr << "Terminated (singular KKT matrix)." << std::endl;
+                    std::cerr << "Terminated [B] (singular KKT matrix)." << std::endl;
                     status = SINGULAR_KKT_MATRIX;
                     return;
                     

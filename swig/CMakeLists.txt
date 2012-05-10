@@ -58,12 +58,14 @@ if (JAVA_KQP OR JAVA_PYTHON)
       if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
           SET(NAR_AOL "${NAR_AOL}-MacOSX")          
       elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-          SET(NAR_AOL "${NAR_AOL}-Windows")
+          SET(NAR_AOL "${NAR_AOL}-Linux")
       elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+        SET(NAR_AOL "${NAR_AOL}-Windows")
+      else()
           MESSAGE(FATAL_ERROR " [JNI] Could not detect the operating system")
       endif()
       
-      MESSAGE(STATUS "Detected NAR-AOL: ${NAR_AOL}")
+      MESSAGE(STATUS "Detected NAR-AOL: ${NAR_AOL} [${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_SIZEOF_VOID_P}/${CMAKE_SYSTEM_NAME}]")
       
       SET(JAVA_KQP_NARDIR ${CMAKE_CURRENT_BINARY_DIR}/target/nar/${CMAKE_PROJECT_NAME}-${libkqp_VERSION}-${NAR_AOL}-jni/lib/)
       file(MAKE_DIRECTORY "${JAVA_KQP_OUTDIR}")
@@ -89,7 +91,7 @@ if (JAVA_KQP OR JAVA_PYTHON)
       
       ADD_CUSTOM_TARGET(kqp_jni_maven 
           COMMAND ${CMAKE_COMMAND} -E copy ${KQP_JNI_LOCATION} "${JAVA_KQP_NARDIR}"
-          COMMAND mvn -q -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
+          COMMAND mvn -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
           DEPENDS kqp_jni)
           
           

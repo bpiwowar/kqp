@@ -52,7 +52,7 @@ namespace kqp {
         }
         
         //! Cleanup
-        virtual void cleanup(Decomposition<Scalar> &) {}
+        virtual void cleanup(Decomposition<Scalar> &) const {}
         
     protected:
         /**
@@ -74,10 +74,12 @@ namespace kqp {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
 	
+        virtual ~StandardCleaner() {}
+        
         /**
          * @brief Ensures the decomposition has the right rank and number of pre-images 
          */
-        void cleanup(Decomposition<Scalar> &d) override {
+        virtual void cleanup(Decomposition<Scalar> &d) const override {
             // --- Rank selection   
             DecompositionList<Real> list(d.mD);
             if (this->selector) {

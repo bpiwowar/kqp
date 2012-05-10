@@ -70,6 +70,7 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 %shared_ptr(kqp::Selector< @STYPE@ >);
 %shared_ptr(kqp::RankSelector< @STYPE@, true >);
 %shared_ptr(kqp::RankSelector< @STYPE@, false >);
+%shared_ptr(kqp::MinimumSelector< @STYPE@ >);
 
 
 %ignore kqp::Selector< @STYPE@ >::selection;

@@ -219,8 +219,9 @@ namespace kqp {
     class SparseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
+#ifndef SWIG
         using SpaceBase<Scalar>::k;
-        
+#endif        
         static FSpace create(Index dimension) { return FSpace(new SparseSpace(dimension)); }
         
         SparseSpace(Index dimension) : m_dimension(dimension) {}

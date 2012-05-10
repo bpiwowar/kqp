@@ -1045,7 +1045,7 @@ namespace kqp {
         }
         
         template<typename Dest> inline void evalTo(Dest&) const {
-            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo")
+            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo");
         }
         
         
@@ -1078,7 +1078,7 @@ namespace kqp {
         }
         
         template<typename Dest> inline void evalTo(Dest&) const {
-            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo")
+            KQP_THROW_EXCEPTION(not_implemented_exception, "evalTo");
         }
         
         

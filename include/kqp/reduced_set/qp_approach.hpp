@@ -177,10 +177,18 @@ namespace kqp {
             // (2) Solve the cone quadratic problem
             //
             kqp::cvxopt::ConeQPReturn<Real> result;
-            solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseInverse().cwiseSqrt(), result);
+            
+            do {
+                solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseInverse().cwiseSqrt(), result);
+                
+                if (result.status == cvxopt::OPTIMAL) break;
 
-            if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
-                KQP_THROW_EXCEPTION_F(arithmetic_exception, "QP approach did not converge (singular KKT matrix)", %result.status);
+                if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
+                    KQP_HLOG_INFO("QP approach did not converge (singular KKT matrix)");
+                
+                lambda /= 2.;
+                KQP_HLOG_INFO_F("Halving lambda to %g", %lambda);
+            } while (true);
             
             // FIXME: case not converged
             

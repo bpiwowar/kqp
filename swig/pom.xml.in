@@ -31,8 +31,12 @@ along with KQP.  If not, see <http://www.gnu.org/licenses/>.
                 <id>duns</id>
                 <name>Duns nar plugin repository</name>
                 <url>http://duns.github.com/maven-snapshots/</url>
+                <releases>
+                  <updatePolicy>daily</updatePolicy>
+                </releases>
                 <snapshots>
                         <enabled>true</enabled>
+                        <updatePolicy>daily</updatePolicy>
                 </snapshots>
         </pluginRepository>    
     </pluginRepositories>

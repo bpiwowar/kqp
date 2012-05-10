@@ -216,8 +216,9 @@ namespace kqp {
     class DenseSpace : public SpaceBase<Scalar> {
     public:  
         KQP_SCALAR_TYPEDEFS(Scalar);
+#ifndef SWIG
         using SpaceBase<Scalar>::k;
-        
+#endif        
         static FSpace create(Index dimension) { return FSpace(new DenseSpace(dimension)); }
         
         DenseSpace(Index dimension) : m_dimension(dimension) {}

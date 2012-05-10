@@ -26,7 +26,7 @@ namespace kqp {
     //! An "EVD" decomposition
     template<typename Scalar>
     struct Decomposition {
-        KQP_SCALAR_TYPEDEFS(Scalar)
+        KQP_SCALAR_TYPEDEFS(Scalar);
         
         //! Feature space
         FSpace fs;

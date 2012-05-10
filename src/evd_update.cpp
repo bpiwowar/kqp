@@ -197,10 +197,13 @@ namespace kqp {
         }
         
     private:
+#ifdef NDEBUG
+        inline void check(std::size_t ) const {}
+#else
         inline void check(std::size_t i) const {
             assert(i < (std::size_t)size());
         }
-        
+#endif
     };
     
     

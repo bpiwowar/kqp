@@ -15,6 +15,7 @@ while read DIM UPDATES RANKRESET RANKMAX PREIMRESET PREIMMAX; do
     RANKRESET=$RANKMAX
   fi
 
+  # Run the benchmark if needed
   id="$KEVD$LC-$DIM-$UPDATES-$RANKRESET-$RANKMAX-$PREIMRESET-$PREIMMAX"  
   if ! test -s "$OUTDIR/$id.out"; then
       echo "# Running $KEVD$LC ($DIM/$UPDATES) ranks=($RANKRESET,$RANKMAX) pre-images=($PREIMRESET,$PREIMMAX) [$id]"
@@ -35,6 +36,7 @@ done << EOF
 1000  1000     80    120      1.2  2
 2000  2000     80    120      1.2  2
 EOF
+
 done # LC
 done # KEVD
 

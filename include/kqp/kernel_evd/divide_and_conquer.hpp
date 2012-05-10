@@ -22,7 +22,10 @@
 #include <kqp/kernel_evd.hpp>
 
 namespace kqp {
-    
+
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.kevd.dc");
+
     /**
      * @brief Meta builder: Uses other operator builders and combine them at regular intervals.
      * @ingroup KernelEVD
@@ -158,18 +161,28 @@ namespace kqp {
         void merge(bool force) {
             // Merge while the number of merged decompositions is the same for the two last decompositions
             // (or less, to handle the case of previous unbalanced merges)
-            while (decompositions.size() >= 2 && (force || (decompositions.back().updateCount >= (decompositions.end()-1)->updateCount))) {
+            while (decompositions.size() >= 2 && (force || (decompositions.back().updateCount >= (decompositions.end()-2)->updateCount))) {
+                
+                Decomposition<Scalar> d1 = std::move(decompositions.back());
+                decompositions.pop_back();
+                Decomposition<Scalar> d2 = std::move(decompositions.back());
+                decompositions.pop_back();
+
                 merger->reset();
-                for(int i = 0; i < 2; i++) {
-                    const Decomposition<Scalar> &d = decompositions.back();
-                    Merge<Scalar>::merge(*merger, d);
-                    decompositions.pop_back();
-                } 
+                Merge<Scalar>::merge(*merger, d1);
+                Merge<Scalar>::merge(*merger, d2);
                 
                 // Push back new decomposition
                 decompositions.push_back(merger->getDecomposition());
+                auto &d = decompositions.back();
                 if (mergerCleaner.get())
-                    mergerCleaner->cleanup(decompositions.back());
+                    mergerCleaner->cleanup(d);
+                d.updateCount = d1.updateCount + d2.updateCount;
+
+                KQP_HLOG_INFO_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
+                                 %d1.mD.rows() %d1.mX.size() %d1.updateCount 
+                                 %d2.mD.rows() %d2.mX.size() %d2.updateCount 
+                                 %d.mD.rows()  %d.mX.size()  %d.updateCount);
             }
         }
         
