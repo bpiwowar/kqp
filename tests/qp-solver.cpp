@@ -7,7 +7,7 @@
 
 #include <kqp/kqp.hpp>
 #include <kqp/coneprog.hpp>
-#include <kqp/reduced_set/qp_approach.hpp>
+#include <kqp/cleaning/qp_approach.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 

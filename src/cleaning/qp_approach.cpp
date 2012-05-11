@@ -2,7 +2,7 @@
 
 #include <kqp/coneprog.hpp>
 
-#include <kqp/reduced_set/qp_approach.hpp>
+#include <kqp/cleaning/qp_approach.hpp>
 
 DEFINE_LOGGER(logger, "kqp.qp-approach");
 
@@ -432,9 +432,9 @@ namespace kqp {
     
     
     
-# define KQP_SCALAR_GEN(Scalar) \
-    template class KQP_KKTPreSolver<Scalar>; template struct LambdaError<Scalar>; template struct ReducedSetWithQP<Scalar>; \
-template void solve_qp<Scalar>(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);
+# define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(, scalar) \
+ template void solve_qp<scalar>(int r, KQP_REAL_OF(scalar) lambda, const KQP_MATRIX(scalar) &gramMatrix, const KQP_MATRIX(scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(scalar)> &result);
+
 # include <kqp/for_all_scalar_gen.h.inc>
    
 }

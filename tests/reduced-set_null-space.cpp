@@ -1,6 +1,6 @@
 #include <kqp/kqp.hpp>
 
-#include <kqp/reduced_set/null_space.hpp>
+#include <kqp/cleaning/null_space.hpp>
 #include <kqp/feature_matrix/dense.hpp>
 #include "tests_utils.hpp"
 

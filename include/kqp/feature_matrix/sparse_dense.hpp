@@ -144,7 +144,7 @@ namespace kqp {
          * @param mat The matrix to copy
          * @param threshold The threshold for a value to be neglectable
          */
-        SparseDense(const ScalarMatrix &mat, double threshold = EPSILON) : m_dimension(mat.rows()) {
+        SparseDense(const ScalarMatrix &mat, double threshold = Eigen::NumTraits<Scalar>::epsilon()) : m_dimension(mat.rows()) {
             // Compute which rows we need
             Matrix<Real, 1, Dynamic> norms = mat.cwiseAbs2().colwise().sum();
             

@@ -18,6 +18,7 @@
 #ifndef __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 #define __KQP_DIVIDE_AND_CONQUER_BUILDER_H__
 
+#include <boost/type_traits/is_complex.hpp>
 #include <kqp/cleanup.hpp>
 #include <kqp/kernel_evd.hpp>
 

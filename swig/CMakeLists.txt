@@ -82,17 +82,25 @@ if (JAVA_KQP OR JAVA_PYTHON)
       
       # --- Build archives using NAR (target kqp_jni_maven)
       
-      CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/pom.xml.in ${CMAKE_CURRENT_BINARY_DIR}/pom.xml)
-      FILE(GLOB JAVA_EXAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/../examples/*.java)
-      execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${JAVA_EXAMPLES} "${JAVA_KQP_TESTDIR}")
-      # TODO create a test file with all the examples
+      find_program(MAVEN_PATH mvn DOC "Path to maven executable" PATH ${MAVEN_PATH})
       
-      GET_TARGET_PROPERTY(KQP_JNI_LOCATION kqp_jni LOCATION)
+      if(${MAVEN_PATH} EQUAL "")
+        MESSAGE(WARNING "Did not find maven executable (use MAVEN_PATH to set it manually)")
+      else()
+        MESSAGE(STATUS "Found maven: ${MAVEN_PATH}")
       
-      ADD_CUSTOM_TARGET(kqp_jni_maven 
-          COMMAND ${CMAKE_COMMAND} -E copy ${KQP_JNI_LOCATION} "${JAVA_KQP_NARDIR}"
-          COMMAND mvn -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
-          DEPENDS kqp_jni)
+        CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/pom.xml.in ${CMAKE_CURRENT_BINARY_DIR}/pom.xml)
+        FILE(GLOB JAVA_EXAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/../examples/*.java)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${JAVA_EXAMPLES} "${JAVA_KQP_TESTDIR}")
+        GET_TARGET_PROPERTY(KQP_JNI_LOCATION kqp_jni LOCATION)
+      
+        ADD_CUSTOM_TARGET(kqp_jni_maven 
+            COMMAND ${CMAKE_COMMAND} -E copy ${KQP_JNI_LOCATION} "${JAVA_KQP_NARDIR}"
+            COMMAND ${MAVEN_PATH} -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
+            DEPENDS kqp_jni)
+
+      endif()
+      
           
           
   endif()

@@ -27,6 +27,10 @@
 #include <kqp/alt_matrix.hpp>
 #include <kqp/kernel_evd/utils.hpp>
 
+#include <kqp/cleaning/unused.hpp>
+#include <kqp/cleaning/null_space.hpp>
+#include <kqp/cleaning/qp_approach.hpp>
+
 namespace kqp {
 
 #   include <kqp/define_header_logger.hpp>
@@ -38,7 +42,7 @@ namespace kqp {
      * @brief Uses other operator builders and combine them.
      * @ingroup KernelEVD
      */
-    template <typename Scalar> class IncrementalKernelEVD : public KernelEVD<Scalar> , public Cleaner<Scalar> {
+    template <typename Scalar> class IncrementalKernelEVD : public KernelEVD<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         
@@ -59,6 +63,16 @@ namespace kqp {
         void reset() {
             *this = IncrementalKernelEVD(this->getFSpace());
         }
+               
+        void setSelector(const boost::shared_ptr< const Selector<Real> > &selector) {
+            this->selector = selector;
+        }
+        
+        //! Set constraints on the number of pre-images
+        void setPreImagesPerRank(float minimum, float maximum) {
+           this->preImageRatios = std::make_pair(minimum, maximum);
+        }
+        
                
         virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
             // --- Info
@@ -155,7 +169,7 @@ namespace kqp {
             
             
             // First, tries to remove unused pre-images images
-            RemoveUnusedPreImages<Scalar>::run(mX, mY);
+            CleanerUnused<Scalar>::run(mX, mY);
             
             // --- Ensure we have a small enough number of pre-images
             Index maxRank = this->preImageRatios.second * (float)mD.rows();
@@ -166,7 +180,7 @@ namespace kqp {
                 identityZ = true;
 
                 // Try again to remove unused pre-images
-                RemoveUnusedPreImages<Scalar>::run(mX, mY);
+                CleanerUnused<Scalar>::run(mX, mY);
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after unused pre-images algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 // Try to remove null space pre-images
@@ -174,7 +188,7 @@ namespace kqp {
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 if (mX.size() > maxRank) {
-                    if (getFSpace().canLinearlyCombine() && this->useLinearCombination) {
+                    if (getFSpace().canLinearlyCombine()) {
                         // Easy case: we can linearly combine pre-images
                         mX = getFSpace().linearCombination(mX, mY);
                         mY = ScalarMatrix::Identity(mX.size(), mX.size());
@@ -234,7 +248,13 @@ namespace kqp {
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
         
         // Used in computation
-        mutable ScalarMatrix k;       
+        mutable ScalarMatrix k;    
+        
+        //! Eigen value selector
+        boost::shared_ptr< const Selector<Real> > selector;   
+       
+        //! Minimum/Maximum number of pre-images per rank
+        std::pair<float,float> preImageRatios;            
         
     };
 

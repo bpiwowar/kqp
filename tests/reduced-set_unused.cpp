@@ -1,6 +1,6 @@
 #include <kqp/kqp.hpp>
 
-#include <kqp/reduced_set/unused.hpp>
+#include <kqp/cleaning/unused.hpp>
 #include <kqp/feature_matrix/dense.hpp>
 
 DEFINE_LOGGER(logger, "kqp.test.null-space")
@@ -17,7 +17,7 @@ namespace kqp {
         Eigen::MatrixXd _mY = mY;
         
         
-        RemoveUnusedPreImages<double>::run(mF, mY);
+        CleanerUnused<double>::run(mF, mY);
         
         Eigen::MatrixXd m1 = mF->as<Dense<double>>().getMatrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;

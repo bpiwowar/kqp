@@ -18,13 +18,18 @@
 #ifndef __KQP_REDUCED_SET_UNUSED_H__
 #define __KQP_REDUCED_SET_UNUSED_H__
 
+#include <kqp/cleanup.hpp>
 #include <kqp/feature_matrix.hpp>
 #include <kqp/subset.hpp>
 
 namespace kqp {
     template<typename Scalar>
-    struct RemoveUnusedPreImages {
+    struct CleanerUnused : public Cleaner<Scalar> {
         KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        virtual void cleanup(Decomposition<Scalar> &d) const override {
+            run(d.mX, d.mY);
+        }
         
         /**
          * @brief Removes unused pre-images
@@ -38,7 +43,7 @@ namespace kqp {
             
             // Removes unused pre-images
             for(Index i = 0; i < N; i++) 
-                if (mY.row(i).norm() < EPSILON) 
+                if (mY.row(i).norm() < Eigen::NumTraits<Scalar>::epsilon()) 
                     to_keep[i] = false;
             
             select_rows(to_keep, mY, mY);
@@ -57,7 +62,7 @@ namespace kqp {
             bool change = false;
             std::vector<bool> to_keep(N, true);
             for(Index i = 0; i < N; i++) 
-                if (v(i) < EPSILON) {
+                if (v(i) < Eigen::NumTraits<Scalar>::epsilon()) {
                     change = true;
                     to_keep[i] = false;
                 }
@@ -71,7 +76,7 @@ namespace kqp {
     };
     
 # ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template struct RemoveUnusedPreImages<Scalar>;
+# define KQP_SCALAR_GEN(Scalar) extern template struct CleanerUnused<Scalar>;
 # include <kqp/for_all_scalar_gen.h.inc>
 # endif 
 }

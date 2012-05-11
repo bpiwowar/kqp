@@ -44,7 +44,7 @@ namespace kqp {
         Index dimension = evd.eigenvectors().rows();
         
         const Eigen::Matrix<Real,Dynamic,1> &d = evd.eigenvalues();
-        Real threshold = EPSILON * (Real)d.size();
+        Real threshold = Eigen::NumTraits<Scalar>::epsilon() * (Real)d.size() *  d.cwiseAbs().maxCoeff();
         
         Index n = d.rows();
         Index negatives = 0, zeros = 0;

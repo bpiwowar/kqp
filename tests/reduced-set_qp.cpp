@@ -2,7 +2,7 @@
 
 #include <kqp/kqp.hpp>
 
-#include <kqp/reduced_set/qp_approach.hpp>
+#include <kqp/cleaning/qp_approach.hpp>
 #include <kqp/feature_matrix/dense.hpp>
 #include "tests_utils.hpp"
 #include <kqp/kernel_evd/accumulator.hpp>

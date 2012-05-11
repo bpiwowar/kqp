@@ -25,7 +25,7 @@
 
 #include <kqp/feature_matrix.hpp>
 #include <kqp/subset.hpp>
-#include <kqp/reduced_set/unused.hpp>
+#include <kqp/cleaning/unused.hpp>
 
 namespace kqp {
     
@@ -53,7 +53,7 @@ namespace kqp {
          * @param weights give an order to the different pre-images
          * @param delta
          */
-        static void remove(FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
+        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
             
             // --- Look up at the indices to remove
@@ -117,7 +117,7 @@ namespace kqp {
             // --- Remove the vectors from mF and set the permutation matrix
             
             // Remove unuseful vectors
-            mF = mF.subset(selection.begin(), selection.end());
+            
             select_rows(selection.begin(), selection.end(), kernel, kernel);
             
             // Complete the permutation matrix
@@ -127,6 +127,7 @@ namespace kqp {
                     mP.indices()(index) = count++;
                 }
             
+            return mF.subset(selection.begin(), selection.end());
         }
         
         /**
@@ -139,7 +140,7 @@ namespace kqp {
         static void run(const FSpace &fs, FMatrix &mF, ScalarAltMatrix &mY) {
             
             // Removes unused pre-images
-            RemoveUnusedPreImages<Scalar>::run(mF, mY);
+            CleanerUnused<Scalar>::run(mF, mY);
             
             // Dimension of the problem
             Index N = mY.rows();
@@ -156,7 +157,7 @@ namespace kqp {
             ScalarMatrix kernel = lu_decomposition.kernel();
             RealVector weights = mY.rowwise().squaredNorm().array() * fs.k(mF).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            remove(mF, kernel, mP, weights);
+            mF = remove(mF, kernel, mP, weights);
             
             // Y <- (Id A) P Y
             ScalarMatrix mY2(mY);
@@ -164,7 +165,7 @@ namespace kqp {
             mY.swap(mY2);
             
             // Removes unused pre-images
-            RemoveUnusedPreImages<Scalar>::run(mF, mY);
+            CleanerUnused<Scalar>::run(mF, mY);
         }
         
         static void run(const FSpace &fs, FMatrix &mF, ScalarMatrix &mY) {

@@ -28,7 +28,7 @@ SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 OPTION(CMAKE_BUILD_TYPE         "Type of building"             "Release")
 OPTION(JAVA_KQP                 "Build Java wrapper"            ON)
 OPTION(JAVA_PYTHON              "Build Python wrapper"          ON)
-OPTION(OPEN_MP                  "Use Open MP (if available)"    OFF)
+OPTION(OPEN_MP                  "Use Open MP (ON/OFF/AUTO)"     AUTO)
 
 # --- Get version number from libkqp_VERSION
 
@@ -40,6 +40,9 @@ LIST (GET libkqp_VERSION_PARTS 2 libkqp_VERSION_PATCH)
 
 SET (libkqp_SOVERSION "${libkqp_VERSION_MAJOR}.${libkqp_VERSION_MINOR}")
 
+# --- Output some information
+
+MESSAGE(STATUS "Creating project KQP ${libkqp_VERSION} with build type ${CMAKE_BUILD_TYPE}")
 
 # --- Compilation flags
 
@@ -91,11 +94,25 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Check for openmp
 
+IF(OPEN_MP MATCHES "AUTO")
+  SET(OLD_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+  try_compile(COMPILES_OPENMP "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/openmp/dummy.cpp" 
+    CMAKE_FLAGS "-fopenmp" OUTPUT_VARIABLE comp)
+  IF(NOT(COMPILES_OPENMP))
+    MESSAGE(STATUS "No OpenMP support: disabling")
+    # MESSAGE(STATUS "${comp}")
+	  SET(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS}")
+  ELSE()
+    MESSAGE(STATUS "OpenMP enabled")
+  ENDIF()
+ENDIF()
+
 IF(OPEN_MP MATCHES "ON")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 	MESSAGE(STATUS "Using OpenMP")
-ENDIF(OPEN_MP MATCHES "ON")
+ENDIF()
 
 # --- Build kqp library
 
@@ -103,24 +120,24 @@ ENDIF(OPEN_MP MATCHES "ON")
 file(GLOB kqp_kqp_H  "include/kqp/*.hpp" "include/kqp/for_all*")
 file(GLOB kqp_fmatrix_H "include/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
 file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
-file(GLOB kqp_reduced_set_H "include/kqp/reduced_set/*.hpp" "include/kqp/reduced_set.hpp")
+file(GLOB kqp_cleaning_H "include/kqp/cleaning/*.hpp" "include/kqp/cleaning.hpp")
 
 file(GLOB kqp_kqp_CPP  "src/*.cpp")
 file(GLOB kqp_fmatrix_CPP "src/feature_matrix/*.cpp"  "src/feature_matrix.cpp")
 file(GLOB kqp_kernel_evd_CPP "src/kernel_evd/*.cpp" "src/kernel_evd.cpp")
-file(GLOB kqp_reduced_set_CPP "src/reduced_set/*.cpp" "src/reduced_set.cpp")
+file(GLOB kqp_cleaning_CPP "src/cleaning/*.cpp" "src/cleaning.cpp")
 
-FOREACH(name kqp fmatrix kernel_evd reduced_set)
+FOREACH(name kqp fmatrix cleaning kernel_evd)
 	SET(kqp_${name}_SRC ${kqp_${name}_H} ${kqp_${name}_CPP})
 ENDFOREACH(name)
 
 SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_SRC})
 SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
-SOURCE_GROUP("Reduced Set" FILES ${kqp_reduced_set_SRC})
+SOURCE_GROUP("Reduced Set" FILES ${kqp_cleaning_SRC})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-ADD_LIBRARY (kqp ${kqp_kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_reduced_set_SRC} "${CMAKE_CURRENT_SOURCE_DIR}/include/Eigen")
+ADD_LIBRARY (kqp ${kqp_kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_cleaning_SRC} "${CMAKE_CURRENT_SOURCE_DIR}/include/Eigen")
 
 TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY})
 

@@ -157,8 +157,8 @@ namespace kqp {
     
     
 
-
-    
+# //! New shared ptr
+# define NEW_SHARED(T,...) boost::shared_ptr<T>(T(__VA_ARGS__))
 
 # //! Real value type of a numeric type
 # define KQP_REAL_OF(Scalar) typename Eigen::NumTraits<Scalar>::Real

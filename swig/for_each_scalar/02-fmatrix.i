@@ -1,4 +1,8 @@
 
+%define shared_template(NAME, TYPE)
+%shared_ptr(TYPE)
+%template(NAME) TYPE;
+%enddef
 
 // --- Features matrices
 
@@ -63,10 +67,9 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 %template(PolynomialSpace@SNAME@) kqp::PolynomialSpace< @STYPE@ >;
 
 
-// ---- Decompositions & cleaning
+// ---- Rank selection
 
 %include "kqp/rank_selector.hpp"
-%include "kqp/cleanup.hpp"
 %shared_ptr(kqp::Selector< @STYPE@ >);
 %shared_ptr(kqp::RankSelector< @STYPE@, true >);
 %shared_ptr(kqp::RankSelector< @STYPE@, false >);
@@ -85,3 +88,8 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 %ignore kqp::RankSelector< @STYPE@, false >::selection;
 %template(RankSelector@SNAME@) kqp::RankSelector< @STYPE@,false >;
 
+// --- Cleanup
+%include "kqp/cleanup.hpp"
+%shared_template(Cleaner@SNAME@, kqp::Cleaner< @STYPE@ >);
+%shared_template(CleanerRank@SNAME@, kqp::CleanerRank< @STYPE@ >);
+%shared_template(CleanerList@SNAME@, kqp::CleanerList< @STYPE@ >);

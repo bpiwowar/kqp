@@ -260,18 +260,20 @@ namespace kqp {
         // Undefined space
         Space() {}
 
-        Space(const FSpaceBasePtr &ptr) : m_fSpace(ptr) {}
-        Space(const Space &other) : m_fSpace(other.m_fSpace->copy()) {}
+        Space(const FSpaceBasePtr &ptr) : m_fSpace(ptr), m_useLinearCombination(true) {}
+        Space(const Space &other) : m_fSpace(other.m_fSpace->copy()), m_useLinearCombination(other.m_useLinearCombination) {}
         Space &operator=(const Space &other) {
             m_fSpace = other.m_fSpace->copy();
+            m_useLinearCombination = other.m_useLinearCombination;
             return *this;
         }
         
 #ifndef SWIG
-        Space(FSpaceBase *ptr) : m_fSpace(ptr) {}
-        Space(Space &&other) :  m_fSpace(std::move(other.m_fSpace)) {}
+        Space(FSpaceBase *ptr) : m_fSpace(ptr), m_useLinearCombination(true) {}
+        Space(Space &&other) :  m_fSpace(std::move(other.m_fSpace)), m_useLinearCombination(other.m_useLinearCombination) {}
         Space &operator=(Space &&other) {
             m_fSpace = std::move(other.m_fSpace);
+            m_useLinearCombination = other.m_useLinearCombination;
             return *this;
         }
 #endif        
@@ -327,7 +329,7 @@ namespace kqp {
         
         //! Returns whether the pre-images can be linearly combined
         inline bool canLinearlyCombine() const {
-            return m_fSpace->canLinearlyCombine();
+            return m_useLinearCombination && m_fSpace->canLinearlyCombine();
         };
         
         
@@ -368,6 +370,12 @@ namespace kqp {
             return FMatrix(m_fSpace->linearCombination(*mX, mA, alpha, NULL, NULL, 0));
         }
         
+        //! Sets the flag for linear combination use (debug)
+        void setUseLinearCombination(bool flag) {
+            m_useLinearCombination = flag; 
+        }
+        
+        
 #ifndef SWIG
         
         const FSpaceBase * operator->() const { return m_fSpace.get();  }        
@@ -379,6 +387,9 @@ namespace kqp {
         
     private:
         FSpaceBasePtr m_fSpace;
+        
+        //! Force the linear combination flag
+        bool m_useLinearCombination;
         
     };
 

@@ -18,6 +18,9 @@
 #include <ctime>
 #include <deque>
 
+#include <boost/random/inversive_congruential.hpp>
+#include <boost/random/uniform_01.hpp>
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
@@ -86,6 +89,8 @@ namespace kqp {
         {}
         
         
+          
+        
         
         // --- 
         
@@ -135,11 +140,53 @@ namespace kqp {
             
             typedef Dense<Scalar> KQPMatrix;
             typedef DenseSpace<Scalar> KQPSpace;
+            typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
 
             virtual KernelEVD<Scalar>  *getBuilder(const Space<Scalar> &, const KernelEVDBenchmark &) = 0;
+
+            ScalarMatrix m_genVectors;
+            
+            boost::hellekalek1995 generator;
+            boost::uniform_01<double> uniformGenerator; 
+            
+            //! Initialise
+            void init(const KernelEVDBenchmark &bm) {
+                generator.seed(bm.seed);
+                
+                if (bm.nbVectors > 0) {
+                    KQP_LOG_INFO_F(logger, "Creating %d base vectors in dimension %d", %bm.nbVectors %bm.dimension);
+                    m_genVectors = ScalarMatrix::Random(bm.dimension, bm.nbVectors);
+                }
+            }
+            
+            //! Get the next feature matrix + mixture matrix
+            void getNext(const KernelEVDBenchmark &bm, Real &alpha, ScalarMatrix &m, ScalarMatrix &mA) const {
+                alpha = Eigen::internal::abs(Eigen::internal::random_impl<Real>::run()) + 1e-3;
+            
+                int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_preimages-bm.min_preimages)) + bm.min_preimages;
+                int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_lc-bm.min_lc)) + bm.min_lc;
+                KQP_LOG_DEBUG(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % bm.dimension % k % k % p);
+            
+                // Generate the linear combination matrix
+                mA = ScalarMatrix::Random(k, p);
+            
+                // Generate k pre-images
+                if (bm.nbVectors > 0) {
+                    // TODO: weights should be generated according to some distribution
+                    RealVector weights = RealVector::Random(bm.nbVectors);
+                    
+                    m = m_genVectors * weights.asDiagonal() * ScalarMatrix::Random(bm.nbVectors,k) + bm.noise * ScalarMatrix::Random(bm.dimension, k);
+                } else {
+                    m = ScalarMatrix::Random(bm.dimension, k);         
+                }
+            }
+
             
             int run(const KernelEVDBenchmark &bm) {
+                
                 FSpace fs = KQPSpace::create(bm.dimension);
+                fs.setUseLinearCombination(bm.useLC);
+                init(bm);
                 
                 boost::scoped_ptr<KernelEVD<Scalar>> builder(this->getBuilder(fs, bm));
                 
@@ -152,22 +199,11 @@ namespace kqp {
                 std::clock_t c_start = std::clock();
                 
                 std::srand(bm.seed);
+                ScalarMatrix mU, mA;
+                Real alpha;
                 for(int i = 0; i < bm.updates; i++) {
-                    
-                    Real alpha = Eigen::internal::abs(Eigen::internal::random_impl<Real>::run()) + 1e-3;
-                    
-                    int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_preimages-bm.min_preimages)) + bm.min_preimages;
-                    int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_lc-bm.min_lc)) + bm.min_lc;
-                    KQP_LOG_DEBUG(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % bm.dimension % k % k % p);
-                    
-                    // Generate a number of pre-images
-                    ScalarMatrix m = ScalarMatrix::Random(bm.dimension, k);
-                    
-                    // Generate the linear combination matrix
-                    ScalarMatrix mA = ScalarMatrix::Random(k, p);
-                    
-                    
-                    builder->add(alpha, KQPMatrix::create(m), mA);
+                    getNext(bm, alpha, mU, mA);
+                    builder->add(alpha, KQPMatrix::create(mU), mA);
                 }        
                 
                 Decomposition<Scalar> result = builder->getDecomposition();
@@ -180,17 +216,21 @@ namespace kqp {
                 
                 KQP_LOG_INFO(logger, "Cleaning up");
                 c_start = std::clock();
-                StandardCleaner<Real> cleaner;
+                CleanerList<Real> cleaner;
                 
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
-                cleaner.setSelector(rankSelector);
                 
-                cleaner.setPreImagesPerRank(this->targetPreImageRatio, this->targetPreImageRatio);
-                cleaner.setUseLinearCombination(bm.useLC);
+                cleaner.add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
+                cleaner.add(CleanerPtr(new CleanerUnused<Scalar>()));
+                
+                boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
+                qpCleaner->setPreImagesPerRank(this->targetPreImageRatio, this->targetPreImageRatio);
+                cleaner.add(qpCleaner);
+                
                 cleaner.cleanup(result);
                 
                 c_end = std::clock();
@@ -213,7 +253,6 @@ namespace kqp {
                 
                 // --- Computing the error
                 KQP_LOG_INFO(logger, "Computing the error");
-                std::srand(bm.seed);
                 
                 double orthogononal_error = 0;            
                 ScalarMatrix sumWWT(result.mY.cols(), result.mY.cols());
@@ -221,19 +260,10 @@ namespace kqp {
                 
                 ScalarMatrix mYTXT = result.mY.transpose() * result.mX->template as<Dense<Scalar>>()->transpose();
                 
+                std::srand(bm.seed);
                 for(int i = 0; i < bm.updates; i++) {
-                    
-                    Real alpha = Eigen::internal::abs(Eigen::internal::random_impl<Real>::run()) + 1e-3;
-                    
-                    int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_preimages-bm.min_preimages)) + bm.min_preimages;
-                    int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_lc-bm.min_lc)) + bm.min_lc;
-                    KQP_LOG_DEBUG(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % bm.dimension % k % k % p);
-                    
-                    // Generate a number of pre-images
-                    ScalarMatrix mU = ScalarMatrix::Random(bm.dimension, k);
-                    
-                    // Generate the linear combination matrix
-                    ScalarMatrix mA = ScalarMatrix::Random(k, p);
+                    // Get the next matrix
+                    getNext(bm, alpha, mU, mA);
                     
                     // Project
                     ScalarMatrix mW = mYTXT * mU * mA;
@@ -264,10 +294,11 @@ namespace kqp {
         template<typename Scalar> 
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
             
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {
-                if (bm.useLC) 
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &) override {
+                if (fs.canLinearlyCombine()) 
                     return new AccumulatorKernelEVD<Scalar,true>(fs);
                 
+                KQP_LOG_INFO(logger, "Accumulator without linear combination selected");
                 return new AccumulatorKernelEVD<Scalar,false>(fs);
             }
             
@@ -311,10 +342,10 @@ namespace kqp {
         
             virtual std::string getName() const { return "incremental"; }
             
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {
+            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &) override {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(maxRank, this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
@@ -322,7 +353,6 @@ namespace kqp {
                 IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(fs); 
                 builder->setSelector(selector);
                 builder->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
-                builder->setUseLinearCombination(bm.useLC);
                 
                 return builder;
             }
@@ -337,6 +367,7 @@ namespace kqp {
         struct DivideAndConquerConfigurator : public BuilderConfigurator<Scalar> {
             typedef typename Eigen::NumTraits<Scalar>::Real Real;
             typedef boost::shared_ptr<KernelEVD<Scalar>> KEVDPtr;
+            typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
 
             boost::scoped_ptr<BuilderConfigurator<Scalar>> builder, merger;
             Index batchSize;
@@ -382,18 +413,26 @@ namespace kqp {
                 merger->print(bm, prefix + ".merger");
             }
 
-            boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &bm, const BuilderConfigurator<Scalar> &bc) {
+            boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &, const BuilderConfigurator<Scalar> &bc) {
+                // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.targetRank, bc.targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(EPSILON));
+                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Scalar>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
                 
-                boost::shared_ptr<Cleaner<Scalar>> cleaner(new StandardCleaner<Scalar>());
-                cleaner->setSelector(selector);
-                cleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.targetPreImageRatio);
-                cleaner->setUseLinearCombination(bm.useLC);
+                // Construct the cleaner
+                boost::shared_ptr<CleanerList<Scalar>> cleaner(new CleanerList<Scalar>());
+                
+                cleaner->add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
+                cleaner->add(CleanerPtr(new CleanerUnused<Scalar>()));
+                
+                boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
+                qpCleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.targetPreImageRatio);
+                cleaner->add(qpCleaner);
+                
                 return cleaner;
+
             }
             
             virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {                
@@ -460,11 +499,24 @@ namespace kqp {
                     args.pop_front();
                 } 
 
-                if (args[0] == "--no-lc") {
+                else if (args[0] == "--no-lc") {
                     args.pop_front();
                     useLC = false;
                 } 
 
+                else if (args[0] == "--noise" && args.size() >= 2) {
+                    args.pop_front();
+                    noise = boost::lexical_cast<double>(args[0]);
+                    args.pop_front();
+                } 
+
+                else if (args[0] == "--nb-vectors" && args.size() >= 2) {
+                    args.pop_front();
+                    nbVectors = boost::lexical_cast<Index>(args[0]);
+                    args.pop_front();
+                } 
+
+                
                 else if (args[0] == "--scalar" && args.size() >= 2) {
                     args.pop_front();
                      scalarName = args[0];
@@ -515,6 +567,8 @@ namespace kqp {
             }
             
             
+            std::cerr << "boost uniform [0,1]" << rg(gen) << std::endl;
+            
             if (args.size() > 0) 
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "There are %d unprocessed command line arguments, starting with [%s]", %args.size() %args[0]);
             
@@ -524,6 +578,7 @@ namespace kqp {
             std::cout << "lc\t" << (useLC ? "true" : "false")  << std::endl;
             std::cout << "seed\t" << seed << std::endl;
             std::cout << "scalar\t" << scalarName << std::endl;
+            std::cout << "nb_v\t" << nbVectors << std::endl;
             std::cout << "noise\t" << noise << std::endl;
 
             if (!builderConfigurator.get()) 
