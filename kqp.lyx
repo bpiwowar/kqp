@@ -1390,39 +1390,50 @@ The first part corresponds to the entropy, and the second part can be computed
  as follows.
  In order to deal with infinities, in practice we want to compute the divergence
  using 
-\begin_inset Formula $\tau^{\prime}=\left(1-\epsilon\right)\tau+\epsilon\alpha\Id$
+\begin_inset Formula $\tau^{\prime}=\left(1-\epsilon\right)\tau+\epsilon\alpha N$
 \end_inset
 
  where 
-\begin_inset Formula $\alpha\Id$
+\begin_inset Formula $\alpha N$
 \end_inset
 
- is a blank noise, i.e.
+ is a blank noise on the subspace defined by the span of 
+\begin_inset Formula $\rho$
+\end_inset
+
+ and 
+\begin_inset Formula $\tau$
+\end_inset
+
+, i.e.
  
-\begin_inset Formula $\tr\left(\alpha\Id\right)=1$
+\begin_inset Formula $\tr\left(\alpha N\right)=1$
+\end_inset
+
+ and 
+\begin_inset Formula $N\rho=\rho$
 \end_inset
 
 .
- In case of infinities, 
-\begin_inset Formula $\alpha$
-\end_inset
-
- can be set to a small value.
- We have:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\tr\left(\rho\log\tau^{\prime}\right) & =\tr\left(\rho\log\left(\left(1-\epsilon\right)\tau+\epsilon\alpha\Id\right)\right)\\
- & \oequal{\tau}\tr\left(\rho\left[\X_{\tau}Y_{\tau}\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}+\log\left(\epsilon\alpha\right)\left(\Id-\X_{\tau}Y_{\tau}Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\right)\right]\right)\\
+\tr\left(\rho\log\tau^{\prime}\right) & =\tr\left(\rho\log\left(\left(1-\epsilon\right)\tau+\epsilon\alpha N\right)\right)\\
+ & \oequal{\tau}\tr\left(\rho\left[\X_{\tau}Y_{\tau}\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}+\log\left(\epsilon\alpha\right)\left(N-\X_{\tau}Y_{\tau}Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\right)\right]\right)\\
  & =\tr\left(\Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\X_{\rho}Y_{\rho}\Sigma_{\rho}\right)+\log\left(\epsilon\alpha\right)\left(\tr\left(\rho\right)-\tr\left(\rho\X_{\tau}Y_{\tau}Y_{\tau}^{\dagger}\X_{\tau}^{\dagger}\right)\right)\\
  & =-\left\Vert \Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\left(\log\left(\left(1-\epsilon\right)\Sigma_{\tau}^{2}+\epsilon\alpha\Id\right)\right)^{1/2}\right\Vert ^{2}+\log\left(\epsilon\alpha\right)\left(1-\left\Vert \Sigma_{\rho}Y_{\rho}^{\dagger}\X_{\rho}^{\dagger}\X_{\tau}Y_{\tau}\right\Vert ^{2}\right)
 \end{align*}
 
 \end_inset
 
- 
+In practice, we set 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ as the inverse of the sum of the density ranks (and ensure the sum is less
+ than the dimension of the space).
 \end_layout
 
 \begin_layout Subsection
@@ -3325,7 +3336,7 @@ If we remove the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\text{\sigma}_{j}A_{ij}\right|+\sum_{j}\underbrace{\left\Vert \sigma_{j}^{3/2}\left(\X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right)\right\Vert ^{2}}_{\sigma_{j}^{3}\left|K_{ii}A_{ij}\right|^{2}}
+E_{RS}^{(i)}=E_{RS}^{(0)}-\lambda\max_{j}\left|\text{\sigma}_{j}A_{ij}\right|+\sum_{j}\underbrace{\left\Vert \sigma_{j}^{3/2}\left(\X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right)\right\Vert ^{2}}_{\left|\sigma_{j}\right|^{3}\Delta_{ij}}
 \]
 
 \end_inset
@@ -3334,7 +3345,16 @@ where
 \begin_inset Formula $A^{(i)}$
 \end_inset
 
- is 
+ can be any matrix where the 
+\begin_inset Formula $i^{\nth}$
+\end_inset
+
+ row is set to 0.
+ An upper bound is given by setting 
+\begin_inset Formula $A^{(i)}$
+\end_inset
+
+ as 
 \begin_inset Formula $A$
 \end_inset
 
@@ -3343,7 +3363,75 @@ where
 \end_inset
 
  row set to zero.
- Hence, in order to remove the 
+ This gives
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Delta_{ij}=\left\Vert \X A_{\bullet j}-\X A_{\bullet j}^{(i)}\right\Vert ^{2}=\left\Vert \X_{i}A_{ij}\right\Vert ^{2}=K_{ii}\left|A_{ij}\right|^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However, this this gives usually a 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ which is greater than necessary, making the optimisation process prone
+ to convergence problems.
+ A lower bound could be found by using the EVD of 
+\begin_inset Formula $EDE^{\dagger}=\X^{\dagger}\X$
+\end_inset
+
+.
+ We have
+\begin_inset Formula 
+\[
+E_{\bullet k}^{\dagger}\left(\X^{\dagger}\X E_{\bullet k}\right)=E_{\bullet k}^{\dagger}D_{k}E_{\bullet k}=D_{k}\implies\left\Vert \X E_{\bullet k}\right\Vert ^{2}=D_{k}
+\]
+
+\end_inset
+
+and posing 
+\begin_inset Formula $A_{\bullet j}^{(i,k)}=A_{\bullet j}-\gamma\frac{A_{ij}}{E_{ik}}E_{\bullet k}-(1-\gamma)A_{ij}\mathbf{1}_{i}$
+\end_inset
+
+ for some 
+\begin_inset Formula $k$
+\end_inset
+
+ such that 
+\begin_inset Formula $E_{ik}\not=0$
+\end_inset
+
+, we have 
+\begin_inset Formula 
+\begin{align*}
+\left\Vert \X A_{\bullet j}-\X A_{\bullet j}^{(i,k)}\right\Vert ^{2} & =\left\Vert \gamma\frac{A_{ij}}{E_{ik}}\X E_{\bullet k}+\left(1-\text{\gamma}\right)A_{ij}\X_{i}\right\Vert ^{2}\\
+ & =\left|A_{ij}\right|^{2}\left(\gamma^{2}\frac{D_{k}}{\left|E_{ik}\right|^{2}}+\left(1-\gamma\right)^{2}K_{ii}+2\gamma(1-\gamma)D_{k}\frac{E_{ik}}{E_{ik}}\right)\\
+ & =\left|A_{ij}\right|^{2}\left(\left(K_{ii}+\frac{D_{k}}{\left|E_{ik}\right|^{2}}+2D_{k}\right)\gamma^{2}+2\left(D_{k}-K_{ii}\right)\gamma+K_{ii}\right)
+\end{align*}
+
+\end_inset
+
+that defines a lower bound (when removing more than 1 pre-image) since 
+\begin_inset Formula $A_{\bullet j}^{(i)}$
+\end_inset
+
+ should be equal for any 
+\begin_inset Formula $i$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Hence, in order to remove the 
 \begin_inset Formula $i^{\nth}$
 \end_inset
 
@@ -3357,7 +3445,7 @@ where
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}\left|A_{ij}\right|^{2}-\lambda\max_{j}\left|\sigma_{j}A_{ij}\right|\le0
+E_{RS}^{(i)}-E_{RS}^{(0)} & =\sum_{j=1}^{r}\sigma_{j}^{3}\Delta_{ij}-\lambda\max_{j}\left|\sigma_{j}A_{ij}\right|\le0
 \end{align*}
 
 \end_inset
@@ -3381,12 +3469,12 @@ E_{RS}^{(i)}-E_{RS}^{(0)} & =\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\lambda\ge\frac{\sum_{i\in M}\left|K_{ii}\right|^{2}\sum_{j=1}^{r}\sigma_{j}^{3}\left|A_{ij}\right|^{2}}{\sum_{i\in M}\max_{j}\left|\sigma_{j}A_{ij}\right|}
+\lambda\ge\frac{\sum_{i\in M}\sum_{j=1}^{r}\sigma_{j}^{3}\Delta_{ij}}{\sum_{i\in M}\max_{j}\left|\sigma_{j}A_{ij}\right|}
 \]
 
 \end_inset
 
-As an heuristic, we set 
+ As an heuristic, we set 
 \begin_inset Formula $M$
 \end_inset
 
@@ -4087,7 +4175,7 @@ where
  times in the diagonal where 
 \begin_inset Formula 
 \[
-S=\mbox{diag}\left(\nu_{1}G_{0},\ldots\nu_{1}G_{0}\right)
+S=\mbox{diag}\left(\nu_{1}G_{0},\ldots\nu_{r}G_{0}\right)
 \]
 
 \end_inset
@@ -4096,7 +4184,7 @@ with
 \begin_inset Formula $G_{0}$
 \end_inset
 
- defined latter.
+ defined below.
 \end_layout
 
 \begin_layout Paragraph
