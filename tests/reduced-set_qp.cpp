@@ -54,8 +54,8 @@ namespace kqp {
         
         const ScalarMatrix &fm = dynamic_cast<const Dense<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
         Eigen::MatrixXd m1 = fm * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
-            * qp_rs.getMixtureMatrix().transpose() * fm.transpose();
-        Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.transpose() * _mF.transpose();
+            * qp_rs.getMixtureMatrix().adjoint() * fm.adjoint();
+        Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.adjoint() * _mF.adjoint();
         double error = (m1 - m2).norm() / m2.norm();
         
         Index delta = (_mF.cols() - qp_rs.getFeatureMatrix()->size());
@@ -95,7 +95,7 @@ namespace kqp {
         Index p = 4; // Number of vectors for the basis
         Index to_remove = 2;
         Index r_target = nbPreImages - to_remove; // One pre-image to remove
-        double alpha = 1e-2;
+        double alpha = 1e-1;
         
         Space<Scalar> fs(DenseSpace<Scalar>::create(dim));
 
@@ -105,7 +105,7 @@ namespace kqp {
         ScalarMatrix mU(dim,r_target);
         mU.topRows(dim-to_remove) = generateOrthonormalMatrix<Scalar>(dim-to_remove, r_target);
         mU.bottomRows(to_remove).setZero();
-        ScalarMatrix pX0 = mU * mU.transpose(); // projector on X0 subspace
+        ScalarMatrix pX0 = mU * mU.adjoint(); // projector on X0 subspace
 
         // Construct X = (X0 x0; 0 alpha)
         ScalarMatrix mX(dim,nbPreImages);
@@ -117,7 +117,7 @@ namespace kqp {
                 
         // Random permutation of columns
         mX = mX * getRandomPermutation(mX.cols());
-//        std::cerr << "X\n" << mX << std::endl;
+        std::cerr << "X\n" << mX << std::endl;
         
         // Linear combination matrix
         ScalarMatrix mY(generateMatrix<Scalar>(nbPreImages, nbPreImages).leftCols(p));
@@ -129,7 +129,7 @@ namespace kqp {
         
 
         
-        ScalarMatrix opX = mX * mY * s.asDiagonal() * mY.transpose() * mX.transpose();
+        ScalarMatrix opX = mX * mY * s.asDiagonal() * mY.adjoint() * mX.adjoint();
 
         // --- Reduced set
         
@@ -149,8 +149,9 @@ namespace kqp {
         // Compare
         
         const ScalarMatrix &mX_r = dynamic_cast<const Dense<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
-//        std::cerr << "mX_r\n" << mX_r << std::endl;
-        Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().transpose() * mX_r.transpose();
+        std::cerr << "mX_r\n" << mX_r << std::endl;
+        std::cerr << "mY_r\n" << ScalarMatrix(qp_rs.getMixtureMatrix()) << std::endl;
+        Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().adjoint() * mX_r.adjoint();
         double diff = (m1 - pX0 * opX * pX0).norm();
                 
         double error_qp = (m1 - opX).norm();;

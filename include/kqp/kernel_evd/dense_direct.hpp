@@ -25,7 +25,7 @@
 
 #include <kqp/kernel_evd.hpp>
 #include <kqp/feature_matrix/dense.hpp>
-#include <kqp/kernel_evd/utils.hpp>
+#include <kqp/evd_utils.hpp>
 
 namespace kqp {
     /**
@@ -59,7 +59,7 @@ namespace kqp {
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(matrix.template selfadjointView<Eigen::Lower>());
             
             ScalarAltMatrix _mX;
-            kqp::thinEVD(evd, _mX, d.mD);              
+            kqp::ThinEVD<ScalarMatrix>::run(evd, _mX, d.mD);              
             
             d.mX = FMatrix(new Dense<Scalar>(std::move(ScalarMatrix(_mX))));
             d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());

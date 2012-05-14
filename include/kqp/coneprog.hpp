@@ -109,7 +109,7 @@ namespace kqp {
         class QPMatrix {
         public:    
             //! Computes Q * x and stores the result in y (y might be the same as x)
-            virtual void mult(const KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, bool transpose = false) const = 0;
+            virtual void mult(const KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, bool adjoint = false) const = 0;
             virtual  Eigen::MatrixXd::Index rows() const = 0;
             virtual  Eigen::MatrixXd::Index cols() const = 0;
         };
@@ -124,7 +124,7 @@ namespace kqp {
          - W['v']: lists of 2nd order cone vectors with unit hyperbolic norms
          - W['beta']: list of positive numbers
          - W['r']: list of square matrices 
-         - W['rti']: list of square matrices.  rti[k] is the inverse transpose
+         - W['rti']: list of square matrices.  rti[k] is the inverse adjoint
          of r[k].
          */
         template<typename Scalar>
@@ -376,7 +376,7 @@ namespace kqp {
          - W['v'] is a list [ v_0, ..., v_{N-1} ]
          - W['r'] is a list [ r_0, ..., r_{M-1} ]
          - W['rti'] is a list [ rti_0, ..., rti_{M-1} ], with rti_k the
-         inverse of the transpose of r_k.
+         inverse of the adjoint of r_k.
          
          The call g = kktsolver(W) should return a function g that solves 
          the KKT system by g(x, y, z).  On entry, x, y, z contain the 

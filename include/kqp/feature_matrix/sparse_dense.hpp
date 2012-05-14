@@ -320,7 +320,7 @@ namespace kqp {
                 void operator()(const RowMap::const_reference & x) const {
                     Index ix1 = this->map1.find(x.first)->second;
                     Index ix2 = this->map2.find(x.first)->second;
-                    this->mat += this->mat1.row(ix1).transpose() * this->mat2.row(ix2);
+                    this->mat += this->mat1.row(ix1).adjoint() * this->mat2.row(ix2);
                 }
             } collector({m_matrix, other.m_matrix, m_map, other.m_map, result});
 
@@ -441,7 +441,7 @@ namespace kqp {
                                const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
             ScalarMatrix inner;
             cast(mX1).inner(cast(mX2), inner);
-            return mD1.asDiagonal() * mY1.transpose() * inner * mY2 * mD2.asDiagonal();
+            return mD1.asDiagonal() * mY1.adjoint() * inner * mY2 * mD2.asDiagonal();
         };
         
         virtual FMatrixBasePtr linearCombination(const FeatureMatrixBase<Scalar> &mX, const ScalarAltMatrix &mA, Scalar alpha, 

@@ -133,7 +133,7 @@ ENDFOREACH(name)
 
 SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_SRC})
 SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
-SOURCE_GROUP("Reduced Set" FILES ${kqp_cleaning_SRC})
+SOURCE_GROUP("Cleaning" FILES ${kqp_cleaning_SRC})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 

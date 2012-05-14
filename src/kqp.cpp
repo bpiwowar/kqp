@@ -1,6 +1,7 @@
 
 #include <kqp/kqp.hpp>
 
+
 namespace kqp {
     
     // Machine zero
@@ -14,6 +15,11 @@ namespace kqp {
     
 }
 
+// Explicit instanciation of print
+#define KQP_SCALAR_GEN(type) \
+    template void Eigen::Matrix<type, Eigen::Dynamic, 1>::print() const; \
+    template void Eigen::Matrix<type, Eigen::Dynamic, Eigen::Dynamic>::print() const; 
+#include <kqp/for_all_scalar_gen.h.inc>
 
 /** 
  

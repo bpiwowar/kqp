@@ -1,6 +1,11 @@
 
 FILE(GLOB kqp.basefiles ../src/kqp.cpp ../src/logging.cpp)
 
+# Orthonormalization
+FILE(GLOB kqp.test.evd-utils test_evd-utils.cpp ../src/subset.cpp ${kqp.basefiles})
+ADD_EXECUTABLE(test_evd-utils ${kqp.test.evd-utils})
+TARGET_LINK_LIBRARIES(test_evd-utils ${LIBLOG4CXX_LIBRARY})
+
 # Alt matrix
 FILE(GLOB kqp.test.alt-matrix alt_matrix_tests.cpp ${kqp.basefiles})
 ADD_EXECUTABLE(test_alt-matrix ${kqp.test.alt-matrix})
@@ -50,7 +55,7 @@ TARGET_LINK_LIBRARIES(test_projection kqp)
 
 # All tests
 
-ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_fmatrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
+ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_evd-utils test_fmatrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
 
 # --- Useful functions
 
@@ -66,6 +71,12 @@ ENDFUNCTION(run_test taskname)
 
 # --- Alt matrix
 do_test(alt-matrix alt-matrix)
+
+# --- EVD utils
+
+do_test(evd-utils/orthonormalize/real-positive evd-utils orthonormalization/real-positive)
+do_test(evd-utils/orthonormalize/real evd-utils orthonormalization/real)
+do_test(evd-utils/orthonormalize/complex evd-utils orthonormalization/complex)
 
 # --- Feature spaces
 FOREACH(t dense sparse sparse-dense)
@@ -118,7 +129,7 @@ do_kevd_test(kernel-evd/divide-and-conquer divide-and-conquer)
 do_test(projection_simple projection simple)
 do_test(projection_normal projection normal)
 
-do_test(probabilities probabilities orthonormalization)
+do_test(probabilities/orth probabilities orthonormalization)
 
 # --- Quantum Probabilities (divergence)
 

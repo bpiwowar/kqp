@@ -20,13 +20,14 @@
 
 #include <iostream>
 #include <functional>
+#include <list>
 #include <boost/type_traits/is_complex.hpp>
 #include <numeric>
 
 #include <kqp/kqp.hpp>
 #include <Eigen/Eigenvalues>
 
-#include <kqp/kernel_evd/utils.hpp>
+#include <kqp/evd_utils.hpp>
 #include <kqp/cleanup.hpp>
 #include <kqp/cleaning/null_space.hpp>
 #include <kqp/feature_matrix.hpp>
@@ -35,7 +36,7 @@
 
 
 namespace kqp {
-
+    
 #   include <kqp/define_header_logger.hpp>
     DEFINE_KQP_HLOGGER("kqp.qp-approach");
     
@@ -67,7 +68,7 @@ namespace kqp {
             r.deltaMin = this->deltaMin + other.deltaMin;
             r.deltaMax = this->deltaMax + other.deltaMax;
             r.maxa = this->maxa + other.maxa;
-//            std::cerr << "[[" << *this << " + " << other << "]] = " << r << std::endl;
+            //            std::cerr << "[[" << *this << " + " << other << "]] = " << r << std::endl;
             return r;
         }
         
@@ -89,28 +90,61 @@ namespace kqp {
     std::ostream &operator<<(std::ostream &out, const LambdaError<Scalar> &l) {
         return out << boost::format("<delta=%g, maxa=%g, index=%d>") % l.delta %l.maxa %l.j;
     }
-                             
-    /// Compares using indices that refers to an array of comparable elements
+    
     template<class IndexedComparable>
-    struct IndirectComparator {
+    struct QPResultComparator {
         const IndexedComparable &x;
-        IndirectComparator(const IndexedComparable &x) : x(x) {}
+        Index r,n;
+        
+        bool isComplex;
+        Index size;
+        
+        typedef typename Eigen::internal::remove_all<decltype(x[0])>::type Real;
+        
+        QPResultComparator(bool isComplex, const IndexedComparable &x, Index r, Index n) : x(x), r(r), n(n), isComplex(isComplex),
+        size(isComplex ? 2*n*r : n*r) {}
+        
+        inline Real getXi(int i) {
+            return std::abs(x[size+i]);
+        }
+        
+        inline Real getAbsSum(int i) {
+            Real sum = 0;
+            for(Index j = 0; j < r; j++) {
+                if (isComplex) sum += Eigen::internal::abs2(x[2*i*n + j]) + Eigen::internal::abs2(x[2*i*n + n + j]);
+                else sum += Eigen::internal::abs2(x[i*n + j]);
+                
+            }
+            return std::sqrt(sum);
+        }
+        
+        inline Real getAbsMax(int i) {
+            Real max = 0;
+            for(Index j = 0; j < r; j++) {
+                if (isComplex) max = std::max(max, std::max(std::abs(x[2*i*n + j]),std::abs(x[2*i*n + n + j])));
+                else max = std::max(max, std::abs(x[i*n + j]));
+                
+            }
+            return max;
+        }
+        
+        
         bool operator() (int i1, int i2) {
-            return std::abs(x[i1]) < std::abs(x[i2]);
+            return  getAbsSum(i1) < getAbsSum(i2);
         }
     };
     
-    template<typename Derived> IndirectComparator<Derived> getIndirectComparator(const Derived &x) {
-        return IndirectComparator<Derived>(x);
+    template<typename Derived> QPResultComparator<Derived> getQPResultComparator(bool isComplex, const Derived &x, Index r, Index n) {
+        return QPResultComparator<Derived>(isComplex, x, r, n);
     }
     
     
-
- 
+    
+    
     template <typename Scalar>
     struct ReducedSetWithQP {
         KQP_SCALAR_TYPEDEFS(Scalar);
-
+        
         
         /// Result of a run
         FMatrix new_mF;
@@ -136,14 +170,17 @@ namespace kqp {
          */
         void run(Index target, const FSpace &fs, const FMatrix &_mF, const ScalarAltMatrix &_mY, const RealVector &mD) {            
             KQP_LOG_ASSERT_F(main_logger, _mY.rows() == _mF.size(), "Incompatible dimensions (%d vs %d)", %_mY.rows() %_mF.size());
-
+            
             // Diagonal won't change
             new_mD = mD;
-
+            
             // Early stop
-            if (target >= _mF.size())
+            if (target >= _mF.size()) {
+                new_mY = _mY;
+                new_mF = _mF;
                 return;
-                        
+            }
+            
             //
             // (0) Compute the EVD (used by lambda computation), and use it to remove the null space 
             //     so that we are sure that we won't have a singular KKT
@@ -152,69 +189,61 @@ namespace kqp {
             // Compute the eigenvalue decomposition of the Gram matrix
             // (assumes the eigenvalues are sorted by increasing order)
             
-            ScalarMatrix eigenvectors;
-            RealVector eigenvalues;
-            boost::shared_ptr<ScalarMatrix> kernel(new ScalarMatrix());
-            kqp::thinEVD(Eigen::SelfAdjointEigenSolver<ScalarMatrix>(fs.k(_mF).template selfadjointView<Eigen::Lower>()),
-                eigenvectors, eigenvalues, kernel.get());
-           
-           // Remove using the null space approach if we can
-           bool useNew = false;
-           ScalarAltMatrix new_alt_mY;
-           if (kernel->cols() > 0) {
-               Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-               RealVector weights = _mY.rowwise().squaredNorm().array() * fs.k(_mF).diagonal().array().abs();
-               new_mF = ReducedSetNullSpace<Scalar>::remove(_mF, *kernel, mP, weights);
-               ScalarMatrix mY2(_mY);
-               new_mY = (mP * mY2).topRows(new_mF.size()) + *kernel * (mP * mY2).bottomRows(_mY.rows() - new_mF.size());
-               if (target >= new_mF.size()) 
-                   return;
-               
-               useNew = true;
-               new_alt_mY = std::move(new_mY);
-               
-               // Select the right eigenvectors
-               eigenvectors = (mP * eigenvectors).topRows(new_mF.size());
-               KQP_HLOG_INFO_F("Reduced rank to %d with null space (%d)", %new_mF.size() %kernel->cols())
-           }
-           
-
-           // --- Set some variables before next operations
-           
-           const ScalarAltMatrix &mY = useNew ? new_alt_mY : _mY;
-           const FMatrix &mF = useNew ? new_mF : _mF;
-           const ScalarMatrix &gram = fs.k(mF);
-           
+            // Remove using the null space approach if we can
+            bool useNew = false;
+            ScalarAltMatrix new_alt_mY;
+            {
+                
+                ScalarMatrix eigenvectors;
+                RealVector eigenvalues;
+                boost::shared_ptr<ScalarMatrix> kernel(new ScalarMatrix());
+                Real threshold = fs.k(_mF).squaredNorm() * std::sqrt(Eigen::NumTraits<Real>::epsilon());
+                kqp::ThinEVD<ScalarMatrix>::run(Eigen::SelfAdjointEigenSolver<ScalarMatrix>(fs.k(_mF).template selfadjointView<Eigen::Lower>()),
+                                                eigenvectors, eigenvalues, kernel.get(), threshold);
+                
+                
+                if (kernel->cols() > 0) {
+                    Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
+                    RealVector weights = _mY.rowwise().squaredNorm().array() * fs.k(_mF).diagonal().array().abs();
+                    
+                    // kernel will contain a matrix such that *kernel * mP * mY
+                    new_mF = ReducedSetNullSpace<Scalar>::remove(_mF, *kernel, mP, weights);
+                    
+                    // Y <- (Id A) P Y
+                    ScalarMatrix mY2(_mY); // FIXME: .topRows() should be defined in AltMatrix expressions
+                    ScalarMatrix mY3 = (mP * mY2).topRows(new_mF.size()) + *kernel * (mP * mY2).bottomRows(_mY.rows() - new_mF.size());
+                    
+                    KQP_HLOG_INFO_F("Reduced rank to %d [target %d] with null space (kernel size: %d)", %new_mF.size() %target %kernel->cols())
+                    if (target >= new_mF.size()) {
+                        new_mY = std::move(mY3);
+                        return;
+                    }
+                    
+                    useNew = true;
+                    new_alt_mY = std::move(mY3);
+                }
+                
+                // --- Set some variables before next operations
+                
+            }
+            const FMatrix &mF = useNew ? new_mF : _mF;
+            const ScalarAltMatrix &mY = useNew ? new_alt_mY : _mY;
+            const ScalarMatrix &gram = fs.k(mF);
+            
             // Dimension of the basis
             Index r = mY.cols();
-
+            
             // Number of pre-images
             Index n = gram.rows();
-
-           //
-           // (1) Estimate the regularization coefficient \f$lambda\f$
-           //
-           
-          // RealVector sigma_3 = mD.array().abs().pow(3).matrix();
-          //  
-          //  // FIXME: rowwise should be implemented in AltMatrix
-          //  RealVector sum_minDelta = ScalarMatrix(
-          //      // Mimimum of |D_k / E_ik|^2
-          //       (eigenvalues.rowwise().replicate(eigenvectors.cols()).array() / eigenvectors.array())
-          //           .abs2().rowwise().minCoeff().matrix().asDiagonal()
-          //   
-          //       // A
-          //       * mY.cwiseAbs2()
-          //       
-          //       // Sigma^3
-          //       * sigma_3.asDiagonal()
-          //   ).rowwise().sum();
             
-           
+            //
+            // (1) Estimate the regularization coefficient \f$lambda\f$
+            //
+            
             // mAS_.j = sigma_j^1/2 A_.j
             ScalarMatrix mAS = mY * mD.cwiseAbs().cwiseSqrt().asDiagonal();
-           
             
+            // We first order the pre-images 
             std::vector< LambdaError<Real> > errors;
             for(Index i = 0; i < n; i++) {
                 Real maxa = mAS.cwiseAbs().row(i).maxCoeff();
@@ -229,22 +258,28 @@ namespace kqp {
             std::sort(errors.begin(), errors.end(), LambdaComparator());
             LambdaError<Real> acc_lambda = std::accumulate(errors.begin(), errors.begin() + n - target, LambdaError<Real>());
             
-           // for(Index j = 0; j < n; j++) 
-           //     std::cerr << boost::format("[%d] delta=(%g,%g) and maxa=%g\n") %j %errors[j].deltaMin %errors[j].deltaMax %errors[j].maxa;
-           // std::cerr << boost::format("delta=(%g,%g)  and maxa=%g\n") %acc_lambda.deltaMin %acc_lambda.deltaMax % acc_lambda.maxa;
-
-            Real lambda =  acc_lambda.delta() / acc_lambda.maxa;   
+            // for(Index j = 0; j < n; j++) 
+            //     std::cerr << boost::format("[%d] delta=(%g,%g) and maxa=%g\n") %j %errors[j].deltaMin %errors[j].deltaMax %errors[j].maxa;
+            // std::cerr << boost::format("delta=(%g,%g)  and maxa=%g\n") %acc_lambda.deltaMin %acc_lambda.deltaMax % acc_lambda.maxa;
+            
+            // Check for a trivial solution
             if (acc_lambda.maxa <= EPSILON * acc_lambda.delta()) {
                 KQP_HLOG_WARN("There are only trivial solutions, calling cleanUnused");
-                if (!useNew) new_mY = mY;
-                new_mF = mF;
+                if (!useNew) {
+                    new_mY = mY;
+                    new_mF = mF;   
+                }
                 new_mD = mD;
                 CleanerUnused<Scalar>::run(new_mF, new_mY);
                 if (target >= new_mF.size()) 
                     return;
                 KQP_THROW_EXCEPTION_F(arithmetic_exception, "Trivial solutions were not found (target %d, size %d)", %target %new_mF.size());
             }
-                
+            
+            // Now, we compute a more accurate lambda
+            Real lambda = acc_lambda.delta() / acc_lambda.maxa; 
+            
+            
             KQP_HLOG_INFO_F("Lambda = %g", %lambda);                
             
             //
@@ -252,11 +287,13 @@ namespace kqp {
             //
             kqp::cvxopt::ConeQPReturn<Real> result;
             
+            RealVector nu = mD.cwiseAbs().cwiseInverse().cwiseSqrt();
+            
             do {
-                solve_qp<Scalar>(r, lambda, gram, mAS, mD.cwiseAbs().cwiseInverse().cwiseSqrt(), result);
+                solve_qp<Scalar>(r, lambda, gram, mAS, nu, result);
                 
                 if (result.status == cvxopt::OPTIMAL) break;
-
+                
                 if (result.status == cvxopt::SINGULAR_KKT_MATRIX) 
                     KQP_HLOG_INFO("QP approach did not converge (singular KKT matrix)");
                 
@@ -267,20 +304,22 @@ namespace kqp {
                     KQP_THROW_EXCEPTION(arithmetic_exception, "Lambda is too small");
             } while (true);
             
-            // FIXME: case not converged
             
             //
             // (3) Get the subset 
             //
             
-            // In result.x, the last n components are the maximum of the norm of the coefficients for each pre-image
+            // In result.x,
+            // - the r mixture vectors (of size n or 2n in the complex case) are stored one after each other
+            // - the last n components are the maximum of the norm of the coefficients for each pre-image
             // we use the <target> first
             std::vector<Index> indices(n);
             for(Index i = 0; i < n; i++)
                 indices[i] = i;
             
             // Sort by increasing order: we will keep only the target last vectors
-            std::sort(indices.begin(), indices.end(), getIndirectComparator(result.x.tail(n)));
+            auto comparator = getQPResultComparator(boost::is_complex<Scalar>::value, result.x, n, r);
+            std::sort(indices.begin(), indices.end(), comparator);
             
             Real lowest   = result.x.tail(n)[indices[0]];
             Real last_nsel = n-target-1 >= 0 ? result.x.tail(n)[indices[n-target-1]] : -1;
@@ -291,7 +330,9 @@ namespace kqp {
             
             if (KQP_IS_DEBUG_ENABLED(KQP_HLOGGER)) {
                 for(Index i = 0; i < n; i++) {
-                    KQP_HLOG_DEBUG_F(boost::format("[%d] %g"), % indices[i] % result.x[result.x.size() - n + indices[i]]);
+                    Index j = indices[i];
+                    KQP_HLOG_DEBUG_F(boost::format("[%d] absXi=%g absSum=%g absMax=%g"), % indices[i] 
+                                     % comparator.getXi(j) %comparator.getAbsSum(j) %comparator.getAbsMax(j));
                 }
             }
             
@@ -300,7 +341,7 @@ namespace kqp {
             for(Index i = n-target; i < n; i++) {
                 to_keep[indices[i]] = true;
             }
-            new_mF = mF.subset(to_keep.begin(), to_keep.end());
+            FMatrix _new_mF = mF.subset(to_keep.begin(), to_keep.end());
             
             
             //
@@ -309,53 +350,51 @@ namespace kqp {
             
             // Compute new_mY so that new_mF Y is orthonormal, ie new_mY' new_mF' new_mF new_mY is the identity
             
-            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs.k(new_mF).template selfadjointView<Eigen::Lower>());
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs.k(_new_mF).template selfadjointView<Eigen::Lower>());
             
             new_mY.swap(evd.eigenvectors());
-            new_mY *= evd.eigenvalues().cwiseSqrt().cwiseInverse().asDiagonal();
+            new_mY *= evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             
             // Project onto new_mF new_mY
             
-            KQP_MATRIX(Scalar) inner;
-            inner = fs.k(new_mF, mF);
-            new_mY *= new_mY.adjoint() * inner * mY;
-
+            new_mY *= fs.k(_new_mF, new_mY, mF, mY);
+            new_mF = std::move(_new_mF);
         }
     };
     
     template <typename Scalar>
     class CleanerQP : public Cleaner<Scalar> {
     public:
-          KQP_SCALAR_TYPEDEFS(Scalar);
-
-          //! Set constraints on the number of pre-images
-          void setPreImagesPerRank(float minimum, float maximum) {
-              this->preImageRatios = std::make_pair(minimum, maximum);
-          }
-
-          virtual void cleanup(Decomposition<Scalar> &d) const override {
-              // --- Ensure we have a small enough number of pre-images
-              if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
-                  if (d.fs.canLinearlyCombine()) {
-                      // Easy case: we can linearly combine pre-images
-                      d.mX = d.fs.linearCombination(d.mX, d.mY);
-                      d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
-                  } else {
-                      // Use QP approach
-                      ReducedSetWithQP<Scalar> qp_rs;
-                      qp_rs.run(this->preImageRatios.first * d.mD.rows(), d.fs, d.mX, d.mY, d.mD);
-
-                      // Get the decomposition
-                      d.mX = qp_rs.getFeatureMatrix();
-                      d.mY = qp_rs.getMixtureMatrix();
-                      d.mD = qp_rs.getEigenValues();
-
-                      // The decomposition is not orthonormal anymore
-                      d.orthonormal = false;
-                  }
-
-              }
-          }
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        //! Set constraints on the number of pre-images
+        void setPreImagesPerRank(float minimum, float maximum) {
+            this->preImageRatios = std::make_pair(minimum, maximum);
+        }
+        
+        virtual void cleanup(Decomposition<Scalar> &d) const override {
+            // --- Ensure we have a small enough number of pre-images
+            if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
+                if (d.fs.canLinearlyCombine()) {
+                    // Easy case: we can linearly combine pre-images
+                    d.mX = d.fs.linearCombination(d.mX, d.mY);
+                    d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
+                } else {
+                    // Use QP approach
+                    ReducedSetWithQP<Scalar> qp_rs;
+                    qp_rs.run(this->preImageRatios.first * d.mD.rows(), d.fs, d.mX, d.mY, d.mD);
+                    
+                    // Get the decomposition
+                    d.mX = std::move(qp_rs.getFeatureMatrix());
+                    d.mY = std::move(qp_rs.getMixtureMatrix());
+                    d.mD = std::move(qp_rs.getEigenValues());
+                    
+                    // The decomposition is not orthonormal anymore
+                    d.orthonormal = false;
+                }
+                
+            }
+        }
         
     private:
         /**
@@ -374,7 +413,7 @@ namespace kqp {
     class KQP_KKTPreSolver : public cvxopt::KKTPreSolver<typename Eigen::NumTraits<Scalar>::Real> {
     public:
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
-
+        
         KQP_KKTPreSolver(const KQP_MATRIX(Scalar)& gramMatrix, const KQP_VECTOR(Real) &nu);
         
         cvxopt::KKTSolver<Real> *get(const cvxopt::ScalingMatrix<Real> &w);
@@ -382,15 +421,15 @@ namespace kqp {
         Eigen::LLT<KQP_MATRIX(Real)> lltOfK;
         KQP_MATRIX(Real) B, BBT;
         KQP_VECTOR(Real) nu;
-
+        
     };
-
+    
 #define KQP_CLEANING__QP_APPROACH_H_GEN(extern,scalar) \
-  extern template class KQP_KKTPreSolver<scalar>; \
-  extern template struct LambdaError<scalar>; \
-  extern template struct ReducedSetWithQP<scalar>; \
-  extern template class CleanerQP<scalar>;
-  
+extern template class KQP_KKTPreSolver<scalar>; \
+extern template struct LambdaError<scalar>; \
+extern template struct ReducedSetWithQP<scalar>; \
+extern template class CleanerQP<scalar>;
+    
 #define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(extern, scalar)
 #include <kqp/for_all_scalar_gen.h.inc>
 #undef KQP_SCALAR_GEN

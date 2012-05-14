@@ -246,7 +246,7 @@ namespace kqp {
         
         virtual ScalarMatrix k(const FeatureMatrixBase<Scalar> &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
                                const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
-            return mD1.asDiagonal() * mY1.transpose() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
+            return mD1.asDiagonal() * mY1.adjoint() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
         };
         
         

@@ -103,56 +103,48 @@ namespace kqp {
             
             // Get & clean
             decompositions.push_back(builder->getDecomposition());
+            Decomposition<Scalar> &d = decompositions.back();
             if (builderCleaner.get())
-                builderCleaner->cleanup(decompositions.back());
+                builderCleaner->cleanup(d);
+            assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
             
             // Resets the builder
             builder->reset();
         }
         
-        template<typename _Scalar, class enable = void> struct Merge;
-        
-        template<typename _Scalar> struct Merge<_Scalar, typename boost::enable_if<boost::is_complex<_Scalar> >::type> {
-            static void merge(KernelEVD<_Scalar>  &merger, const Decomposition<Scalar> &d) {
-                ScalarMatrix mY = d.mY * d.mD.asDiagonal();
-                merger.add(1, d.mX, d.mY.cwiseSqrt());
-            }
-        };
-        
-        template<typename _Scalar> struct Merge<_Scalar, typename boost::disable_if<boost::is_complex<_Scalar> >::type> {
-            static void merge(KernelEVD<_Scalar>  &merger, const Decomposition<Scalar> &d) {
-
-                Index posCount = 0;
-
-                for(Index j = 0; j <  d.mD.size(); j++) 
-                    if (d.mD(j,0) >= 0) posCount++;
-                Index negCount = d.mD.size() - posCount;
-                
-                // FIXME: block expression for Alt expression
-                ScalarMatrix mY = d.mY * d.mD.cwiseAbs().cwiseSqrt().asDiagonal();
-                
-                Index jPos = 0;                
-                ScalarMatrix _mYPos(mY.rows(), posCount);
-                for(Index j = 0; j <  d.mD.size(); j++) 
-                     if (d.mD(j,0) >= 0)
-                         _mYPos.col(jPos++) = mY.col(j);
-                ScalarMatrix mYPos;
-                mYPos.swap(_mYPos);
-                
-                jPos = 0;
-                ScalarMatrix _mYNeg(mY.rows(), negCount);
-                for(Index j = 0; j <  d.mD.size(); j++) 
-                    if (d.mD(j,0) < 0)
-                        _mYPos.col(jPos++) = mY.col(j);
-                ScalarAltMatrix mYNeg;
-                mYNeg.swap(_mYNeg);
-                
-                if (posCount > 0) 
-                    merger.add(1, d.mX, mYPos);
-                if (negCount > 0) 
-                    merger.add(-1, d.mX, mYNeg);
-            }
-        };
+        //! Add a decomposition to a merger
+        static void merge(KernelEVD<Scalar> &merger, const Decomposition<Scalar> &d) {
+            Index posCount = 0;
+            
+            for(Index j = 0; j <  d.mD.size(); j++) 
+                if (d.mD(j,0) >= 0) posCount++;
+            Index negCount = d.mD.size() - posCount;
+            
+            // FIXME: block expression for Alt expression
+            ScalarMatrix mY = d.mY * d.mD.cwiseAbs().cwiseSqrt().asDiagonal();
+            
+            Index jPos = 0;                
+            Index jNeg = 0;
+            
+            ScalarMatrix mYPos(mY.rows(), posCount);
+            ScalarMatrix mYNeg(mY.rows(), negCount);
+            
+            for(Index j = 0; j <  d.mD.size(); j++) 
+                if (d.mD(j,0) >= 0)
+                    mYPos.col(jPos++) = mY.col(j);
+                else
+                    mYNeg.col(jNeg++) = mY.col(j);
+            
+            assert(jPos == posCount);
+            assert(jNeg == negCount);
+            
+            Real posNorm = d.fs.k(d.mX, mYPos).norm();
+            Real negNorm = d.fs.k(d.mX, mYNeg).norm();
+            if (posCount > 0 && posNorm / negNorm > Eigen::NumTraits<Scalar>::epsilon()) 
+                merger.add(1, d.mX, mYPos);
+            if (negCount > 0 && negNorm / posNorm > Eigen::NumTraits<Scalar>::epsilon()) 
+                merger.add(-1, d.mX, mYNeg);
+        }
 
         
         /**
@@ -170,15 +162,17 @@ namespace kqp {
                 decompositions.pop_back();
 
                 merger->reset();
-                Merge<Scalar>::merge(*merger, d1);
-                Merge<Scalar>::merge(*merger, d2);
+                merge(*merger, d1);
+                merge(*merger, d2);
                 
                 // Push back new decomposition
                 decompositions.push_back(merger->getDecomposition());
                 auto &d = decompositions.back();
+                assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
                 if (mergerCleaner.get())
                     mergerCleaner->cleanup(d);
                 d.updateCount = d1.updateCount + d2.updateCount;
+                assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
 
                 KQP_HLOG_INFO_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
                                  %d1.mD.rows() %d1.mX.size() %d1.updateCount 

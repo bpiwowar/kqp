@@ -42,7 +42,7 @@ namespace kqp {
         int isApproxEqual(const std::string & name, const Density< double > &a, const Eigen::MatrixXd &b) {
             auto _a = a.matrix();
             auto m = dynamic_cast<Dense<double>&>(*_a);
-            KQP_MATRIX(double) op = m.getMatrix() * m.getMatrix().transpose();
+            KQP_MATRIX(double) op = m.getMatrix() * m.getMatrix().adjoint();
             return isApproxEqual(name, op, b);
         }
     }

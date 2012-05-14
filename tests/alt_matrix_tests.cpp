@@ -43,12 +43,12 @@ namespace {
     };    
     
     template<typename Derived>
-    auto transpose(const Eigen::MatrixBase<Derived> &m) -> decltype(m.transpose()) {
-        return m.transpose();
+    auto adjoint(const Eigen::MatrixBase<Derived> &m) -> decltype(m.adjoint()) {
+        return m.adjoint();
     }
     
     template<typename Derived>
-    const Eigen::DiagonalWrapper<Derived> & transpose(const Eigen::DiagonalWrapper<Derived> &m)  {
+    const Eigen::DiagonalWrapper<Derived> & adjoint(const Eigen::DiagonalWrapper<Derived> &m)  {
         return m;
     }
     
@@ -93,9 +93,9 @@ namespace {
         typename AltDenseDiagonal< typename B::Scalar >::type alt_b(b);
         
         
-        ScalarMatrix alt_m =  d * alt_b.transpose() * a.transpose() *  a * alt_b * d;
+        ScalarMatrix alt_m =  d * alt_b.adjoint() * a.adjoint() *  a * alt_b * d;
         
-        ScalarMatrix m = d * b.transpose() * a.transpose() *  a * b * d;
+        ScalarMatrix m = d * b.adjoint() * a.adjoint() *  a * b * d;
         typename NumTraits<typename A::Scalar>::Real error = (m - alt_m).squaredNorm();
         
         std::cerr << KQP_DEMANGLE(d) << " x T(Alt(" << KQP_DEMANGLE(b)  << ")) x T(" << KQP_DEMANGLE(a)  << ")) x " 
@@ -111,8 +111,8 @@ namespace {
         typedef Eigen::Matrix<typename A::Scalar,Dynamic,Dynamic> ScalarMatrix;
         typename AltDenseDiagonal< typename B::Scalar >::type alt_b(b);
         
-        ScalarMatrix m = d * b.transpose() * a * b * d;
-        ScalarMatrix alt_m =  d * alt_b.transpose() *  a * alt_b * d;
+        ScalarMatrix m = d * b.adjoint() * a * b * d;
+        ScalarMatrix alt_m =  d * alt_b.adjoint() *  a * alt_b * d;
         
         typename NumTraits<typename A::Scalar>::Real error = (m - alt_m).squaredNorm();
         
@@ -132,10 +132,10 @@ namespace {
         std::cerr << "T(" << KQP_DEMANGLE(mB) << ") x " << "T(Alt(" << KQP_DEMANGLE(mA) << ")) : ";
         typename AltDenseDiagonal< typename Lhs::Scalar >::type alt(mA);
         
-        ScalarMatrix t_alt_mB = transpose(mB) * alt.transpose();
+        ScalarMatrix t_alt_mB = adjoint(mB) * alt.adjoint();
         
         typename NumTraits<typename Lhs::Scalar>::Real 
-        error = (t_alt_mB -  ScalarMatrix(transpose(mB) * transpose(mA))).squaredNorm();
+        error = (t_alt_mB -  ScalarMatrix(adjoint(mB) * adjoint(mA))).squaredNorm();
         
         std::cerr << "Error: " << error << std::endl;        
         return error > EPSILON;
@@ -259,6 +259,30 @@ namespace {
         return error > EPSILON;
     }
     
+    template <typename Scalar>
+    int test_array() {
+        typedef Matrix<Scalar, Dynamic, Dynamic> ScalarMatrix;
+        ScalarMatrix mat = RANDOM_M(Scalar,5,4);
+        ScalarMatrix mat2 = RANDOM_M(Scalar,5,4);
+        ScalarMatrix mat3 = RANDOM_M(Scalar,5,4);
+        typename kqp::AltDense<Scalar>::type altMat(mat);
+        typename kqp::AltDense<Scalar>::type altMat3(mat);
+
+        
+        ScalarMatrix res1 = ((mat2.array() - mat.array())).matrix();        
+        ScalarMatrix altRes1 = ((mat2.array() - altMat.array())).matrix();
+        
+        double error1 = (res1 - altRes1).squaredNorm();
+        std::cerr << "Array error[1]: " << error1 << std::endl;
+
+        ScalarMatrix res2 = (mat3.array() * (mat2.array() - mat.array())).matrix();        
+        ScalarMatrix altRes2 = (altMat3.array() * (mat2.array() - altMat.array())).matrix();
+
+        double error2 = (res2 - altRes2).squaredNorm();
+        std::cerr << "Array error[2]: " << error2 << std::endl;
+        return error1 > EPSILON || error2 > EPSILON;
+    }
+    
 } // end <> ns
 
 
@@ -305,6 +329,10 @@ test_adjoint_post_product(x,y);
         // Sparse
         
         code |= test_sparse<double>();
+        
+        // Array
+        // FIXME: not working for the moment
+//        code |= test_array<double>();
 
         return code;
     

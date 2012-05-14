@@ -210,7 +210,7 @@ namespace kqp {
 
         //! Inner products \f$D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2\f$
         virtual ScalarMatrix k(const FMatrixBase &mX, const ScalarAltMatrix &mY, const RealAltVector &mD) const {
-            return mD.asDiagonal() * mY.transpose() * k(mX) * mY * mD.asDiagonal();
+            return mD.asDiagonal() * mY.adjoint() * k(mX) * mY * mD.asDiagonal();
         }
         
         //! Inner products \f$D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2\f$

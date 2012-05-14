@@ -87,7 +87,7 @@ namespace kqp {
         
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {
-            return mD1.asDiagonal() * mY1.transpose() 
+            return mD1.asDiagonal() * mY1.adjoint() 
                     * this->f(m_base->k(mX1, mX2), m_base->k(mX1).diagonal(), m_base->k(mX2).diagonal())
                     * mY2 * mD2.asDiagonal();
         }
@@ -107,7 +107,7 @@ namespace kqp {
         inline ScalarMatrix f(const Eigen::MatrixBase<Derived> &k, 
                                   const Eigen::MatrixBase<DerivedRow>& rowNorms, 
                                   const Eigen::MatrixBase<DerivedCol>& colNorms) const { 
-            return ((rowNorms.derived().rowwise().replicate(k.cols()) + colNorms.derived().transpose().colwise().replicate(k.rows()) - 2 * k.derived()) / (m_sigma*m_sigma)).array().exp();
+            return ((rowNorms.derived().rowwise().replicate(k.cols()) + colNorms.derived().adjoint().colwise().replicate(k.rows()) - 2 * k.derived()) / (m_sigma*m_sigma)).array().exp();
         }
       
         Real m_sigma;
@@ -128,7 +128,7 @@ namespace kqp {
 
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {
-            return mD1.asDiagonal() * mY1.transpose() * this->f(m_base->k(mX1,mX2)) * mY2 * mD2.asDiagonal();
+            return mD1.asDiagonal() * mY1.adjoint() * this->f(m_base->k(mX1,mX2)) * mY2 * mD2.asDiagonal();
         }
         
     protected:

@@ -22,7 +22,7 @@
 
 #include <kqp/alt_matrix.hpp>
 #include <kqp/kernel_evd.hpp>
-#include <kqp/kernel_evd/utils.hpp>
+#include <kqp/evd_utils.hpp>
 
 namespace kqp{
     
@@ -55,6 +55,9 @@ namespace kqp{
         
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
+            if(alpha < 0)
+                KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
+            
             FMatrix fm = this->getFSpace().linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
             fMatrix->add(*fm);
         }
@@ -71,7 +74,7 @@ namespace kqp{
             
             ScalarMatrix _mY;
             RealVector _mD;
-            kqp::thinEVD(evd, _mY, _mD);
+            kqp::ThinEVD<ScalarMatrix>::run(evd, _mY, _mD);
             
             ScalarMatrix __mY;
             __mY.noalias() = _mY * _mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
@@ -102,13 +105,15 @@ namespace kqp{
         
     protected:
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
+            if(alpha < 0)
+                KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
+
             // If there is nothing to add            
             if (mA.cols() == 0)
                 return;
             
             // Do a deep copy of mA
             combination_matrices.push_back(mA);
-            
             alphas.push_back(Eigen::internal::sqrt(alpha));
             fMatrix.add(mX);
             offsets_X.push_back(offsets_X.back() + mX.size());
@@ -145,7 +150,7 @@ namespace kqp{
                 for(size_t j = 0; j <= i; j++) {
                     const ScalarAltMatrix &mAj = combination_matrices[j];
                     getBlock(gram, offsets_A, i, j) 
-                            =  (mAi.transpose() *  ((Eigen::internal::conj(alphas[i]) * alphas[j]) * getBlock(gram_X, offsets_X, i, j))) * mAj;
+                            =  (mAi.adjoint() *  ((Eigen::internal::conj(alphas[i]) * alphas[j]) * getBlock(gram_X, offsets_X, i, j))) * mAj;
                 }
             }
             
@@ -154,12 +159,11 @@ namespace kqp{
             ScalarMatrix _mY;
             RealVector _mD;
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
-            kqp::thinEVD(evd, _mY, _mD);
+            kqp::ThinEVD<ScalarMatrix>::run(evd, _mY, _mD);
             d.mD.swap(_mD);
             
-            // Y <- A * Y * D^-1/2
-            
-            ScalarMatrix _mY2 = _mY * d.mD.cwiseSqrt().cwiseAbs().cwiseInverse().asDiagonal();
+            // Y <- A * Y * D^-1/2 (use cwiseAbs to avoid problems with small negative values)
+            ScalarMatrix _mY2 = _mY * d.mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             _mY = _mY2;
             ScalarMatrix __mY(offsets_X.back(), _mY.cols());
             

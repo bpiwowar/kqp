@@ -15,18 +15,9 @@
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-    // Add move semantics to MatrixBase
-    Matrix(Matrix &&other) : Base() {
-        Base::_check_template_params();
-        this->swap(other);
-    }
+#include <kqp/evd_utils.hpp>
 
-    Matrix &operator=(Matrix &&other) {
-        this->swap(other);
-        return *this;
-    }
-    
-    //! Debug (dump to std::cerr)
-    void print() const {
-        std::cerr << "=Matrix ("<<this->rows()<<" x "<<this->cols()<<")=\n" << *this << std::endl;
-    }
+#define KQP_SCALAR_GEN(scalar) \
+    template struct kqp::Orthonormalize<scalar>; \
+    template struct kqp::ThinEVD<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>>
+#include <kqp/for_all_scalar_gen.h.inc>

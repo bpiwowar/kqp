@@ -418,7 +418,7 @@ namespace kqp {
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix, nu);
         cvxopt::ConeQPOptions<Real> options;
         
-        KQP_LOG_DEBUG(logger,  "c:\n" << c.transpose());
+        KQP_LOG_DEBUG(logger,  "c:\n" << c.adjoint());
 
         cvxopt::coneqp<Real>(KMult<Scalar>(n,r, gramMatrix), c, result, 
                                false /* No initial value */, 

@@ -28,7 +28,9 @@
 #include <kqp/cleaning/unused.hpp>
 
 namespace kqp {
-    
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.cleaning.null_space");
+
     template <class ComparableArray, typename Index = int>
     struct IndirectSort {
         const ComparableArray &array;
@@ -105,12 +107,17 @@ namespace kqp {
                 mP.indices()(i) = j + keep_size;
                 
                 // Update the matrix
-                v = kernel.col(j) / kernel(i,j);
-                kernel.col(j) /= -kernel(i,j);
+                Scalar kij = kernel(i,j);
+                KQP_HLOG_DEBUG_F("Normalizing column %d [norm %g] with the inverse of %g", %j %kernel.col(j).norm() %kij)
+                v = kernel.col(j) / kij;
+                kernel.col(j) /= -kij;
+                
+                assert(!kqp::isNaN(kernel.col(j).squaredNorm()));
+                
                 kernel(i,j) = 0;
                 
                 kernel = ((ScalarMatrix::Identity(pre_images_count, pre_images_count) 
-                           - v * ScalarVector::Unit(pre_images_count, i).transpose()) * kernel).eval();
+                           - v * ScalarVector::Unit(pre_images_count, i).adjoint()) * kernel).eval();
             }
             
             

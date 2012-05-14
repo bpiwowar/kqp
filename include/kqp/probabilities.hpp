@@ -22,7 +22,7 @@
 #include <kqp/kqp.hpp>
 #include <kqp/alt_matrix.hpp>
 #include <kqp/kernel_evd.hpp>
-#include <kqp/kernel_evd/utils.hpp>
+#include <kqp/evd_utils.hpp>
 
 
 namespace kqp {
@@ -168,30 +168,18 @@ namespace kqp {
         void _orthonormalize() {
             // Check if we have something to do
             if (isOrthonormal()) return;
-            
-            // TODO: Eigen should only the needed part
-            ScalarMatrix m_full(m_operator.fs.k(m_operator.mX, m_operator.mY, m_operator.mD));
-                        
-            Eigen::SelfAdjointView<ScalarMatrix, Eigen::Lower> m(m_full);
 
-            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(m);
-            ScalarMatrix _mY;
-            RealVector _mS;
-            kqp::thinEVD(evd, _mY, _mS);
-            
-            _mS.array() = _mS.array().cwiseAbs().cwiseSqrt();
-            _mY = Y() * S().asDiagonal() * _mY * _mS.cwiseInverse().asDiagonal();
-            
+            // Orthonornalize (keeping in mind that our diagonal is the square root)
+            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
+            Orthonormalize<Scalar>::run(m_operator.fs, m_operator.mX, m_operator.mY, m_operator.mD);
+            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_abs2_op<Real>());
 
             // If we can linearly combine, use it to reduce the future amount of computation
             if (m_operator.fs.canLinearlyCombine()) {
-                m_operator.mX = m_operator.fs.linearCombination(m_operator.mX, _mY, 1);
+                m_operator.mX = m_operator.fs.linearCombination(m_operator.mX, m_operator.mY, 1);
                 m_operator.mY = ScalarMatrix::Identity(X().size(),X().size());
-            } else 
-                m_operator.mY.swap(_mY);
+            } 
             
-            m_operator.mD.swap(_mS);
-
             m_operator.orthonormal = true;
             
         }
@@ -389,7 +377,7 @@ namespace kqp {
             // --- Notation
             
             ScalarMatrix inners = this->m_operator.fs.k(rho.X(), tau.X());
-            noalias(inners) = rho.S().asDiagonal() * rho.Y().transpose() * inners * tau.Y(); 
+            noalias(inners) = rho.S().asDiagonal() * rho.Y().adjoint() * inners * tau.Y(); 
             
             // --- Compute tr(p log q)
             Scalar plogq = 0;

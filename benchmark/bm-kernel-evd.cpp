@@ -120,7 +120,7 @@ namespace kqp {
                     return true;
                 }
                 
-                if (options.size() == 2 && options[0] == "pre" && options[1] == "images" && args.size() >= 2) {
+                if (options.size() == 1 && options[0] == "pre_images" && args.size() >= 2) {
                     args.pop_front();
                     targetPreImageRatio = boost::lexical_cast<float>(args[0]);
                     args.pop_front();
@@ -258,7 +258,7 @@ namespace kqp {
                 ScalarMatrix sumWWT(result.mY.cols(), result.mY.cols());
                 sumWWT.setZero();
                 
-                ScalarMatrix mYTXT = result.mY.transpose() * result.mX->template as<Dense<Scalar>>()->transpose();
+                ScalarMatrix mYTXT = result.mY.adjoint() * result.mX->template as<Dense<Scalar>>()->adjoint();
                 
                 std::srand(bm.seed);
                 for(int i = 0; i < bm.updates; i++) {
@@ -268,7 +268,7 @@ namespace kqp {
                     // Project
                     ScalarMatrix mW = mYTXT * mU * mA;
                     sumWWT.template selfadjointView<Eigen::Lower>().rankUpdate(mW, alpha);
-                    orthogononal_error += Eigen::internal::abs(alpha) * (mA.transpose() * mU.transpose() * mU * mA - mW.transpose() * mW).squaredNorm();
+                    orthogononal_error += Eigen::internal::abs(alpha) * (mA.adjoint() * mU.adjoint() * mU * mA - mW.adjoint() * mW).squaredNorm();
                 }   
                 
                 std::cout << "o_error\t" << orthogononal_error << std::endl;
@@ -323,18 +323,20 @@ namespace kqp {
             }
             
             virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
-                if (options[0] == "maxrank" && args.size() >= 2) {
-                    args.pop_front();
-                    maxRank = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                    return true;
-                }
-                
-                if (args[0] == "maxpreimages" && args.size() >= 2) {
-                    args.pop_front();
-                    maxPreImageRatio = boost::lexical_cast<float>(args[0]);
-                    args.pop_front();
-                    return true;
+                if (options.size() == 1) {
+                    if (options[0] == "max_rank" && args.size() >= 2) {
+                        args.pop_front();
+                        maxRank = boost::lexical_cast<Index>(args[0]);
+                        args.pop_front();
+                        return true;
+                    }
+                    
+                    if (options[0] == "max_pre_images" && args.size() >= 2) {
+                        args.pop_front();
+                        maxPreImageRatio = boost::lexical_cast<float>(args[0]);
+                        args.pop_front();
+                        return true;
+                    }
                 }
                 
                 return BuilderConfigurator<Scalar>::processOption(options, args);            
@@ -567,8 +569,7 @@ namespace kqp {
             }
             
             
-            std::cerr << "boost uniform [0,1]" << rg(gen) << std::endl;
-            
+          
             if (args.size() > 0) 
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "There are %d unprocessed command line arguments, starting with [%s]", %args.size() %args[0]);
             

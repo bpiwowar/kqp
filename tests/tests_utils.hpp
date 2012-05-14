@@ -51,7 +51,7 @@ namespace kqp {
             diagonal(i) = Eigen::internal::random(min, max);
         
         // Returns the matrix
-        return matrix * diagonal.asDiagonal() * matrix.transpose();
+        return matrix * diagonal.asDiagonal() * matrix.adjoint();
         
     }
     

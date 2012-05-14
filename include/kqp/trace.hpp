@@ -34,7 +34,7 @@ namespace kqp {
 //                          const typename ftraits<Derived>::ScalarAltMatrix  &mY,
 //                          const typename ftraits<Derived>::RealVector &mD) {
 //        typename ftraits<Derived>::ScalarMatrix m;
-//        return (mD.asDiagonal() * mY.transpose() * mX.inner() * mY * mD.asDiagonal()).squaredNorm();
+//        return (mD.asDiagonal() * mY.adjoint() * mX.inner() * mY * mD.asDiagonal()).squaredNorm();
 //    }
 //    
 //    /**
@@ -48,7 +48,7 @@ namespace kqp {
 //                 const typename ftraits<Derived>::ScalarAltMatrix  &mY,
 //                 const Eigen::MatrixBase<OtherDerived> &mD) {
 //        typename ftraits<Derived>::ScalarMatrix m;
-//        return (mY.transpose() * mX.inner() * mY * mD.cwiseAbs2().asDiagonal()).trace();
+//        return (mY.adjoint() * mX.inner() * mY * mD.cwiseAbs2().asDiagonal()).trace();
 //    }
 //    
 //    
@@ -66,7 +66,7 @@ namespace kqp {
 //                          const typename ftraits<Derived>::ScalarAltMatrix  &mY2,
 //                          const typename ftraits<Derived>::RealVector &mD2) {
 //        
-//        typename ftraits<Derived>::ScalarMatrix m = mY1.transpose() * inner<Derived>(mX1.derived(), mX2.derived()) * mY2;
+//        typename ftraits<Derived>::ScalarMatrix m = mY1.adjoint() * inner<Derived>(mX1.derived(), mX2.derived()) * mY2;
 //        
 //        return (m.adjoint() * mD1.asDiagonal() * m * mD2.asDiagonal()).trace();
 //    }

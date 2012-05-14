@@ -34,6 +34,7 @@ namespace kqp {
     template<typename _AltMatrix> class RowWise;
     template<typename Derived> struct scalar;
     template<typename Derived> struct DiagonalBlockWrapper;
+    template<typename Derived> class AltArrayWrapper;
     
     // Returns the associated scalar
     template<typename Derived> struct scalar { typedef typename Eigen::internal::traits<Derived>::Scalar type; };
@@ -106,8 +107,14 @@ namespace kqp {
             return this->derived();
         }
         
+        AltArrayWrapper<const Derived> array() const {
+            return this->derived();
+        }
+        
     };
     
+    
+
     
     // --- As diagonal
     template<typename XprType> class AltAsDiagonal : Eigen::internal::no_assignment_operator, public AltMatrixBase<AltAsDiagonal<XprType>> {
@@ -175,10 +182,10 @@ namespace kqp {
     
     // --- Helper functions
     template<typename Derived>
-    Eigen::Transpose<const Derived> transpose(const Eigen::MatrixBase<Derived>& x) { return x.transpose(); }
+    const typename Eigen::MatrixBase<Derived>::AdjointReturnType adjoint(const Eigen::MatrixBase<Derived>& x) { return x.adjoint(); }
     
     template<typename Derived> 
-    Eigen::DiagonalWrapper<const Derived> transpose(const Eigen::DiagonalWrapper<const Derived> & x)  { return x; }
+    Eigen::DiagonalWrapper<const Derived> adjoint(const Eigen::DiagonalWrapper<const Derived> & x)  { return x; }
     
     template<typename Derived>
     auto blockSquaredNorm(const Eigen::MatrixBase<Derived>& x, Index row, Index col, Index rowSize, Index colSize) -> decltype(x.squaredNorm()) { 
@@ -201,28 +208,28 @@ namespace kqp {
     
     
     
-    //! Transpose
+    //! Adjoint
     template<typename Derived>
-    struct Transpose : public AltMatrixBase< Transpose<Derived> > {
+    struct Adjoint : public AltMatrixBase< Adjoint<Derived> > {
         typename Eigen::internal::ref_selector<Derived>::type nested;
     public:
         
-        Transpose(Derived &nested) : nested(nested) {}
+        Adjoint(Derived &nested) : nested(nested) {}
         
         Index rows() const { return nested.cols(); }
         Index cols() const { return nested.rows(); }
         
         bool isT1() const { return nested.isT1(); }
         
-        typedef decltype(kqp::transpose(nested.t1())) T1;
-        typedef decltype(kqp::transpose(nested.t2())) T2;
+        typedef decltype(kqp::adjoint(nested.t1())) T1;
+        typedef decltype(kqp::adjoint(nested.t2())) T2;
         
-        inline T1 t1() const  { return transpose(nested.t1()); }
-        inline T2 t2() const  { return transpose(nested.t2()); }
+        inline T1 t1() const  { return adjoint(nested.t1()); }
+        inline T2 t2() const  { return adjoint(nested.t2()); }
         
         
         void printExpression(std::ostream &out) const {
-            out << "Transpose(";
+            out << "Adjoint(";
             nested.printExpression(out);
             out << ")";
         }
@@ -244,7 +251,7 @@ namespace kqp {
     
     template <typename Derived>
     void printExpression(std::ostream &out, const Eigen::Transpose<Derived> &x) {
-        out << "transpose(";
+        out << "adjoint(";
         printExpression(out, static_cast<const Derived&>(x.derived()));
         out << ")";
     }
@@ -600,7 +607,7 @@ namespace kqp {
         void swap(T2 &t2) { m_isT1 = true; m_t2.swap(t2); }
         
         //! Returns the adjoint
-        Transpose<AltMatrix> transpose() const { return Transpose<AltMatrix>(const_cast<AltMatrix&>(*this)); }
+        Adjoint<AltMatrix> adjoint() const { return Adjoint<AltMatrix>(const_cast<AltMatrix&>(*this)); }
         
         Scalar operator()(Index i, Index j) const {
             return m_isT1 ? m_t1(i,j) : m_t2(i,j);
@@ -716,7 +723,7 @@ namespace kqp {
     public:
         typedef typename AltMatrix::Scalar Scalar;
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
-        
+        typedef const AltBlock<AltBlock<AltMatrix>> & Nested;
         
         AltBlock(AltMatrix &alt_matrix, Index row, Index col, Index height, Index width) :
         alt_matrix(alt_matrix), row(row), col(col), height(height), width(width),
@@ -831,20 +838,31 @@ namespace kqp {
     
     
     // ---
-    // --- Matrix multiplication
+    // --- Expressions
     // ----
     
     
     // --- Forward declarations
     
-    template<typename Lhs, typename Rhs, int ProductOrder> class AltEigenProduct;
+    template<typename Op, typename Lhs, typename Rhs, int ProductOrder> class AltMatrixOp;
+    template<typename Op, typename Lhs, typename Rhs, int ProductOrder> class AltArrayOp;
     
-    //! Defines the expression type of a product
-    template<typename Lhs, typename Rhs, int Side, bool isT1> struct ProductType;
+    //! Defines the expression type of a binary operator
+    template<typename Op, typename Lhs, typename Rhs, int Side, bool isT1> struct ExprType;
     
+    
+    //! Multiplication operator
+    struct MultOp {
+        template<typename T1, typename T2> static inline auto apply(const T1 &t1, const T2 &t2) -> decltype(t1 * t2) { return t1 * t2; }
+    };
+    //! Difference operator
+    struct MinusOp {
+        template<typename T1, typename T2> static inline auto apply(const T1 &t1, const T2 &t2) -> decltype(t1 - t2) { return t1 - t2; }
+    };
+
     
     //! Defines an expression type when the Alt matrix is on the left
-    template<typename _Lhs, typename _Rhs, bool isT1> struct ProductType<_Lhs, _Rhs, Eigen::OnTheLeft, isT1> {
+    template<typename Op, typename _Lhs, typename _Rhs, bool isT1> struct ExprType<Op, _Lhs, _Rhs, Eigen::OnTheLeft, isT1> {
         const _Lhs &_lhs;
         typedef decltype(_lhs.t1()) LhsT1;
         typedef decltype(_lhs.t2()) LhsT2;
@@ -854,11 +872,11 @@ namespace kqp {
         typedef _Rhs Rhs;        
         const Rhs &rhs;
         
-        typedef decltype(lhs * rhs) Type;
+        typedef decltype(Op::apply(lhs, rhs)) Type;
     };
     
     //! Defines an expression type when the Alt matrix is on the right
-    template<typename _Lhs, typename _Rhs, bool isT1> struct ProductType<_Lhs, _Rhs, Eigen::OnTheRight, isT1> {
+    template<typename Op, typename _Lhs, typename _Rhs, bool isT1> struct ExprType<Op, _Lhs, _Rhs, Eigen::OnTheRight, isT1> {
         typedef _Lhs Lhs;
         const Lhs &lhs;
         
@@ -868,39 +886,166 @@ namespace kqp {
         typedef typename Eigen::internal::conditional<isT1, RhsT1, RhsT2>::type Rhs;
         const Rhs &rhs;
         
-        typedef decltype(lhs * rhs) Type;
+        typedef decltype(Op::apply(lhs, rhs)) Type;
     };
     
     
     //! Defines the expression type of a multiplication
-    template<typename _Lhs, typename _Rhs, int Side, bool isT1>
-    struct MultExpression {
-        typedef ProductType<_Lhs,_Rhs,Side,isT1> Types;
+    template<typename Op, typename _Lhs, typename _Rhs, int Side, bool isT1>
+    struct AltExpression {
+        typedef ExprType<Op, _Lhs,_Rhs,Side,isT1> Types;
         
         typedef typename Types::Type Expression;
         typedef typename Types::Lhs Lhs;
         typedef typename Types::Rhs Rhs;
         
         Expression expression;
-        MultExpression (const Lhs &lhs, const Rhs &rhs) : expression(lhs * rhs) {}
+        AltExpression (const Lhs &lhs, const Rhs &rhs) : expression(Op::apply(lhs, rhs)) {}
     };
     
     
-    // --- Multiplication between an Alt matrix and anything
     
-    template<typename Lhs, typename Rhs, int Side>
-    class AltEigenProduct : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltEigenProduct<Lhs,Rhs,Side> >
+    // --- Array wrapper
+    
+    template<typename Derived>
+    class AltArrayBase {
+    public:  
+        const Derived& derived() const { return static_cast<const Derived&>(*this); }
+        typename Eigen::internal::traits<Derived>::MatrixExpr matrix() const { return derived().matrix(); }
+    };
+    
+    template<typename Derived>
+    class AltArrayWrapper: public AltArrayBase<AltArrayWrapper<Derived>> {
+        typename Eigen::internal::ref_selector<Derived>::type m_alt;
+    public:  
+        AltArrayWrapper(const Derived &alt) : m_alt(alt) {}
+        bool isT1() const { return m_alt.isT1(); } 
+        auto t1() const -> decltype(m_alt.t1().array()) { return m_alt.t1().array(); } 
+        auto t2() const -> decltype(m_alt.t2().array()) { return m_alt.t2().array(); } 
+        
+        auto matrix() const -> decltype(m_alt) { return m_alt; }
+        
+        Index rows() const { 
+            return m_alt.rows(); 
+        }
+        Index cols() const { return m_alt.cols(); }
+        
+    };
+    
+    //! Matrix expression out of an array expressio
+    template<typename Derived>
+    class AltMatrixWrapper: public AltMatrixBase<AltMatrixWrapper<Derived>> {
+        typename Eigen::internal::ref_selector<Derived>::type m_expr;
+    public:
+        AltMatrixWrapper(const Derived &expr) : m_expr(expr) {}
+        Index rows() const {
+            return m_expr.rows(); 
+        }
+        Index cols() const { 
+            return m_expr.cols(); 
+        }
+        
+        bool isT1() const { return m_expr.isT1(); } 
+        auto t1() const -> decltype(m_expr.t1().matrix()) { return m_expr.t1().matrix(); } 
+        auto t2() const -> decltype(m_expr.t2().matrix()) { return m_expr.t2().matrix(); } 
+        
+        template<typename Dest> void evalTo(Dest& dest) const {
+            if (isT1()) 
+                dest = t1();
+            else 
+                dest = t2();
+        }
+        
+    };
+    
+#define KQP_ALT_OP_LEFT(op, opname, Result, AltType, OtherType)\
+    template<typename Derived, typename OtherDerived>\
+    Result<opname, Derived, OtherDerived, Eigen::OnTheLeft>\
+    operator op(const AltType<Derived> &lhs, const OtherType<OtherDerived> &rhs) {\
+        return Result<opname, Derived, OtherDerived, Eigen::OnTheLeft>(lhs.derived(), rhs.derived());\
+    };
+#define KQP_ALT_OP_RIGHT(op, opname, Result, AltType, OtherType)\
+    template<typename Derived, typename OtherDerived>\
+    Result<opname, Derived, OtherDerived, Eigen::OnTheRight>\
+    operator op(const OtherType<Derived> &lhs, const AltType<OtherDerived> &rhs) {\
+        return Result<opname, Derived, OtherDerived, Eigen::OnTheRight>(lhs.derived(), rhs.derived());\
+    };
+    
+#define KQP_ALT_OP(op, opname, Result, AltType, OtherType)\
+    KQP_ALT_OP_LEFT(op, opname, Result, AltType, OtherType)\
+    KQP_ALT_OP_RIGHT(op, opname, Result, AltType, OtherType)\
+    KQP_ALT_OP_LEFT(op, opname, Result, AltType, AltType)
+
+KQP_ALT_OP(-, MinusOp, AltArrayOp, AltArrayBase, Eigen::ArrayBase)
+KQP_ALT_OP(*, MultOp,  AltArrayOp, AltArrayBase, Eigen::ArrayBase)
+
+    template<typename Op, typename Lhs, typename Rhs, int Side>
+    class AltArrayOp : Eigen::internal::no_assignment_operator, public AltArrayBase< AltArrayOp<Op, Lhs,Rhs,Side> >
     {
-        typedef MultExpression<Lhs, Rhs, Side, true> HolderT1;
-        typedef MultExpression<Lhs, Rhs, Side, false> HolderT2;
+        typedef AltExpression<Op, Lhs, Rhs, Side, true> HolderT1;
+        typedef AltExpression<Op, Lhs, Rhs, Side, false> HolderT2;
         
         typedef typename HolderT1::Expression ExprIfT1;
         typedef typename HolderT2::Expression  ExprIfT2;
         
-        union {
-            HolderT1 *_t1;
-            HolderT2 *_t2;
-        };
+        boost::shared_ptr<HolderT1> _t1;
+        boost::shared_ptr<HolderT2> _t2;
+        
+        bool m_isT1;
+        
+    public:
+        typedef AltArrayOp Nested;
+
+        typedef typename kqp::scalar<Lhs>::type Scalar;
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        
+        // Initialisation when the Alt is on the left
+        friend void initAltArrayOp(AltArrayOp<Op, Lhs, Rhs, Eigen::OnTheLeft> &op, const Lhs &lhs, const Rhs &rhs) {
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheLeft, true> HolderT1;
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheLeft, false> HolderT2;
+            if ((op.m_isT1 = lhs.isT1()))  op._t1.reset(new HolderT1(lhs.t1(), rhs));
+            else                           op._t2.reset(new HolderT2(lhs.t2(), rhs)); 
+        }
+        
+        // Initialisation when the Alt is on the right
+        friend void initAltArrayOp(AltArrayOp<Op, Lhs, Rhs, Eigen::OnTheRight> &op, const Lhs &lhs, const Rhs &rhs) {
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheRight, true> HolderT1;
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheRight, false> HolderT2;
+            if ((op.m_isT1 = rhs.isT1()))  op._t1.reset(new HolderT1(lhs, rhs.t1()));
+            else                           op._t2.reset(new HolderT2(lhs, rhs.t2())); 
+        }
+        
+        
+        AltArrayOp(const Lhs& lhs, const Rhs& rhs) {
+            initAltArrayOp(*this, lhs, rhs);
+        }
+        
+        bool isT1() const { return m_isT1; }
+        
+        inline const ExprIfT1 & t1() const { return _t1->expression; }
+        inline const ExprIfT2 & t2() const { return _t2->expression; }
+        
+        AltMatrixWrapper<AltArrayOp> matrix() const { return AltMatrixWrapper<AltArrayOp>(*this); }
+        
+        Index rows() const { 
+            return m_isT1 ? _t1->expression.rows() : _t2->expression.rows(); 
+        }
+        Index cols() const {return m_isT1 ? _t1->expression.cols() : _t2->expression.cols();  }
+    };
+    
+    // --- Multiplication between an Alt matrix and anything
+    
+    template<typename Op, typename Lhs, typename Rhs, int Side>
+    class AltMatrixOp : Eigen::internal::no_assignment_operator, public AltMatrixBase< AltMatrixOp<Op, Lhs,Rhs,Side> >
+    {
+        typedef AltExpression<Op, Lhs, Rhs, Side, true> HolderT1;
+        typedef AltExpression<Op, Lhs, Rhs, Side, false> HolderT2;
+        
+        typedef typename HolderT1::Expression ExprIfT1;
+        typedef typename HolderT2::Expression  ExprIfT2;
+        
+        boost::shared_ptr<HolderT1> _t1;
+        boost::shared_ptr<HolderT2> _t2;
         
         bool m_isT1;
         
@@ -909,32 +1054,29 @@ namespace kqp {
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         
         // Initialisation when the Alt is on the left
-        friend void initAltEigenProduct(AltEigenProduct<Lhs, Rhs, Eigen::OnTheLeft> &product, const Lhs &lhs, const Rhs &rhs) {
-            typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, true> HolderT1;
-            typedef MultExpression<Lhs, Rhs, Eigen::OnTheLeft, false> HolderT2;
-            if ((product.m_isT1 = lhs.isT1()))  product._t1 = new HolderT1(lhs.t1(), rhs);
-            else                                product._t2 = new HolderT2(lhs.t2(), rhs); 
+        friend void initAltMatrixOp(AltMatrixOp<Op, Lhs, Rhs, Eigen::OnTheLeft> &op, const Lhs &lhs, const Rhs &rhs) {
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheLeft, true> HolderT1;
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheLeft, false> HolderT2;
+            if ((op.m_isT1 = lhs.isT1()))  op._t1.reset(new HolderT1(lhs.t1(), rhs));
+            else                           op._t2.reset(new HolderT2(lhs.t2(), rhs)); 
         }
         
         // Initialisation when the Alt is on the right
-        friend void initAltEigenProduct(AltEigenProduct<Lhs, Rhs, Eigen::OnTheRight> &product, const Lhs &lhs, const Rhs &rhs) {
-            typedef MultExpression<Lhs, Rhs, Eigen::OnTheRight, true> HolderT1;
-            typedef MultExpression<Lhs, Rhs, Eigen::OnTheRight, false> HolderT2;
-            if ((product.m_isT1 = rhs.isT1()))  product._t1 = new HolderT1(lhs, rhs.t1());
-            else                                product._t2 = new HolderT2(lhs, rhs.t2()); 
+        friend void initAltMatrixOp(AltMatrixOp<Op, Lhs, Rhs, Eigen::OnTheRight> &op, const Lhs &lhs, const Rhs &rhs) {
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheRight, true> HolderT1;
+            typedef AltExpression<Op, Lhs, Rhs, Eigen::OnTheRight, false> HolderT2;
+            if ((op.m_isT1 = rhs.isT1()))  op._t1.reset(new HolderT1(lhs, rhs.t1()));
+            else                           op._t2.reset(new HolderT2(lhs, rhs.t2())); 
         }
         
         
-        AltEigenProduct(const Lhs& lhs, const Rhs& rhs) {
-            initAltEigenProduct(*this, lhs, rhs);
+        AltMatrixOp(const Lhs& lhs, const Rhs& rhs) {
+            initAltMatrixOp(*this, lhs, rhs);
         }
         
-        AltEigenProduct() {
-            if (m_isT1) delete _t1; else delete _t2;
-        }
-        
+       
         Index rows() const { return m_isT1 ? _t1->expression.rows() : _t2->expression.rows(); }
-        Index cols() const {return m_isT1 ? _t1->expression.rows() : _t2->expression.rows();  }
+        Index cols() const {return m_isT1 ? _t1->expression.cols() : _t2->expression.cols();  }
         
         Real squaredNorm() const { return m_isT1 ? _t1->expression.squaredNorm() : _t2->expression.squaredNorm();  }
         Scalar trace() const { return m_isT1 ? _t1->expression.trace() : _t2->expression.trace();  }
@@ -974,33 +1116,13 @@ namespace kqp {
     
     
     
-    // --- Alt * Eigen
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
-    operator*(const kqp::AltMatrixBase<Derived> &a, const Eigen::EigenBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>(a.derived(), b.derived());
-    }
-    
-    // --- Eigen * Alt
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>
-    operator*(const Eigen::EigenBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived,Eigen::OnTheRight>(a.derived(), b.derived());
-    }
-        
-    
-    // --- Alt * Alt
-    template<class Derived,class OtherDerived>
-    inline const AltEigenProduct<Derived,OtherDerived,Eigen::OnTheLeft>
-    operator*(const kqp::AltMatrixBase<Derived> &a, const kqp::AltMatrixBase<OtherDerived> &b) {
-        return AltEigenProduct<Derived,OtherDerived, Eigen::OnTheLeft>(a.derived(), b.derived());
-    }
+    KQP_ALT_OP(*, MultOp, kqp::AltMatrixOp, kqp::AltMatrixBase, Eigen::EigenBase);
     
     // --- Scalar * AltMatrix
     template<class Derived>
-    inline AltEigenProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>
+    inline AltMatrixOp<MultOp,typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>
     operator*(typename Eigen::internal::traits<Derived>::Scalar alpha, const kqp::AltMatrixBase<Derived> &a) {
-        return AltEigenProduct<typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>(alpha, a.derived());
+        return AltMatrixOp<MultOp,typename Eigen::internal::traits<Derived>::Scalar, Derived, Eigen::OnTheRight>(alpha, a.derived());
     }  
     
     
@@ -1149,9 +1271,9 @@ namespace Eigen {
             };
         };
         
-        // Transpose of AltMatrix
+        // Adjoint of AltMatrix
         template<typename Derived>
-        struct traits< kqp::Transpose< kqp::AltMatrixBase<Derived> > > {
+        struct traits< kqp::Adjoint< kqp::AltMatrixBase<Derived> > > {
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename MatrixXd::Index Index;
             typedef typename traits<Derived>::Scalar Scalar;
@@ -1163,7 +1285,7 @@ namespace Eigen {
         };
         
         template<typename BaseT1, typename BaseT2>
-        struct traits< kqp::Transpose< kqp::AltMatrix<BaseT1, BaseT2> > > {
+        struct traits< kqp::Adjoint< kqp::AltMatrix<BaseT1, BaseT2> > > {
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename MatrixXd::Index Index;
             typedef typename traits< kqp::AltMatrix<BaseT1, BaseT2> >::Scalar Scalar;
@@ -1209,6 +1331,35 @@ namespace Eigen {
             };
         };
         
+        template<typename Derived>
+        struct traits<kqp::AltArrayWrapper<Derived>> {
+            typedef typename traits<Derived>::Scalar Scalar;
+            typedef Derived MatrixExpr;
+        };
+
+        template<typename Op, typename Lhs, typename Rhs, int Side>
+        struct traits<kqp::AltArrayOp<Op, Lhs, Rhs, Side>> {
+            typedef typename scalar_product_traits<typename kqp::scalar<Lhs>::type, typename kqp::scalar<Rhs>::type>::ReturnType Scalar;
+            typedef MatrixWrapper<kqp::AltArrayOp<Op, Lhs, Rhs, Side>> MatrixExpr;
+            
+            typedef kqp::Index Index;
+            typedef kqp::AltMatrixStorage StorageKind;
+
+            enum {
+                Flags = 0,
+            };
+
+        };
+        
+        
+        template<typename Derived>
+           struct traits<kqp::AltMatrixWrapper<Derived>> {
+               typedef typename traits<Derived>::Scalar Scalar;
+               typedef kqp::AltMatrixStorage StorageKind;
+               typedef typename traits<Derived>::Index Index;
+           };
+        
+                
         template<typename Lhs, typename Rhs, int Side>
         struct traits<kqp::DiagonalBlockWrapperDenseMult<Lhs,Rhs,Side>> {
             typedef Dense StorageKind;
@@ -1227,8 +1378,8 @@ namespace Eigen {
         
         
         // Alt * Eigen
-        template<typename Lhs, typename Rhs, int Side>
-        struct traits< kqp::AltEigenProduct<Lhs, Rhs, Side> > {
+        template<typename Op, typename Lhs, typename Rhs, int Side>
+        struct traits< kqp::AltMatrixOp<Op,Lhs, Rhs, Side> > {
             typedef kqp::AltMatrixStorage StorageKind;
             typedef typename MatrixXd::Index Index;
             

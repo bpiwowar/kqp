@@ -300,7 +300,7 @@ namespace kqp { namespace cvxopt {
         KQP_VECTOR(Scalar) Pux, Gtuz;
         P.mult(ux, Pux);
         G.mult(uz, Gtuz);
-        vx -= Pux - A.transpose() * uy - Gtuz;
+        vx -= Pux - A.adjoint() * uy - Gtuz;
         
         
         // vy := vy - A*ux
@@ -1236,7 +1236,7 @@ namespace kqp { namespace cvxopt {
             P.mult(x, rx);
             Scalar pcost = 0.5 * (x.dot(rx) + x.dot(q));
             
-            rx += A.transpose() * y;
+            rx += A.adjoint() * y;
             
             //Scalar dres = rx.norm() / resx0;
             

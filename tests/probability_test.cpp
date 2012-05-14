@@ -22,7 +22,7 @@
 #include <kqp/feature_matrix/dense.hpp>
 #include "tests_utils.hpp"
 
-DEFINE_LOGGER(logger, "kqp.test.divergence");
+DEFINE_LOGGER(logger, "kqp.test.probabilities");
 
 namespace kqp {
     int test_orthonormalization(std::deque<std::string> &/*args*/) {

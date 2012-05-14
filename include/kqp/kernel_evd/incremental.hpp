@@ -25,7 +25,7 @@
 #include <kqp/evd_update.hpp>
 #include <kqp/kernel_evd.hpp>
 #include <kqp/alt_matrix.hpp>
-#include <kqp/kernel_evd/utils.hpp>
+#include <kqp/evd_utils.hpp>
 
 #include <kqp/cleaning/unused.hpp>
 #include <kqp/cleaning/null_space.hpp>
@@ -96,7 +96,7 @@ namespace kqp {
             ScalarMatrix mQ;
             ScalarMatrix mQ0;
             RealVector mDQ;
-            kqp::thinEVD(evd, mQ, mDQ, &mQ0);
+            kqp::ThinEVD<ScalarMatrix>::run(evd, mQ, mDQ, &mQ0);
 
             Index rank_Q = mQ.cols();             
             mDQ = mDQ.cwiseAbs().cwiseSqrt();
@@ -172,7 +172,7 @@ namespace kqp {
             CleanerUnused<Scalar>::run(mX, mY);
             
             // --- Ensure we have a small enough number of pre-images
-            Index maxRank = this->preImageRatios.second * (float)mD.rows();
+            float maxRank = this->preImageRatios.second * (float)mD.rows();
             if (mX.size() > maxRank) {
                 
                 // Get rid of Z
