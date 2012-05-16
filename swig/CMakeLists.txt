@@ -19,6 +19,8 @@ if (JAVA_KQP OR JAVA_PYTHON)
   FIND_PACKAGE(SWIG REQUIRED)
   SET(KQP_SWIG_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/generated")
   
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized")
+  
   INCLUDE(${SWIG_USE_FILE})
   
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${KQP_SWIG_GENERATED})
