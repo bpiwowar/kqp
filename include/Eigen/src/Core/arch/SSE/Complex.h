@@ -100,7 +100,7 @@ template<> EIGEN_STRONG_INLINE Packet2cf ploadu<Packet2cf>(const std::complex<fl
 template<> EIGEN_STRONG_INLINE Packet2cf pset1<Packet2cf>(const std::complex<float>&  from)
 {
   Packet2cf res;
-  #if EIGEN_GNUC_AT_MOST(4,2)
+  #if EIGEN_GNUC_AT_MOST(4,2) || EIGEN_GNUC_AT_LEAST(4,7)
   // workaround annoying "may be used uninitialized in this function" warning with gcc 4.2
   res.v = _mm_loadl_pi(_mm_set1_ps(0.0f), reinterpret_cast<const __m64*>(&from));
   #else
