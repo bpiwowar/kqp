@@ -1,16 +1,19 @@
 
-// Decomposition
+// --- Decomposition
 
 %include "kqp/decomposition.hpp"
 %template(Decomposition@SNAME@) kqp::Decomposition< @STYPE@ >;
 
-// Decomposition cleaner
+// --- Decomposition cleaner
 
+%include "kqp/cleanup.hpp"
 %shared_ptr(kqp::Cleaner< @STYPE@ >);
-%shared_ptr(kqp::StandardCleaner< @STYPE@ >);
+%shared_ptr(kqp::CleanerList< @STYPE@ >);
+%shared_ptr(kqp::CleanerRank< @STYPE@ >);
 
 %template(Cleaner@SNAME@) kqp::Cleaner< @STYPE@ >;
-%template(StandardCleaner@SNAME@) kqp::StandardCleaner< @STYPE@ >;
+%template(CleanerList@SNAME@) kqp::CleanerList< @STYPE@ >;
+%template(CleanerRank@SNAME@) kqp::CleanerRank< @STYPE@ >;
 
 // ---- Kernel EVD
 
