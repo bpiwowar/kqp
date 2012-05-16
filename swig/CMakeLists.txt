@@ -21,7 +21,7 @@ if (JAVA_KQP OR JAVA_PYTHON)
   
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized")
   
-  INCLUDE(${SWIG_USE_FILE})
+  INCLUDE(UseSWIG)
   
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${KQP_SWIG_GENERATED})
   SET_SOURCE_FILES_PROPERTIES(kqp.i PROPERTIES CPLUSPLUS ON)
@@ -43,8 +43,8 @@ if (JAVA_KQP OR JAVA_PYTHON)
       SET(JAVA_KQP_PACKAGE net.bpiwowar.kqp)
       STRING(REGEX REPLACE "\\." / JAVA_KQP_PACKAGE_PATH "${JAVA_KQP_PACKAGE}")
       
-      SET(JAVA_KQP_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/src/main/java/${JAVA_KQP_PACKAGE_PATH})
-      SET(JAVA_KQP_TESTDIR ${CMAKE_CURRENT_BINARY_DIR}/test/main/java/${JAVA_KQP_PACKAGE_PATH})
+      SET(JAVA_KQP_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/src/main/java/${JAVA_KQP_PACKAGE_PATH}")
+      SET(JAVA_KQP_TESTDIR "${CMAKE_CURRENT_BINARY_DIR}/src/test/java/${JAVA_KQP_PACKAGE_PATH}")
 
       # Detect the architecture
       if(${CMAKE_SIZEOF_VOID_P} EQUAL 4)
@@ -92,15 +92,22 @@ if (JAVA_KQP OR JAVA_PYTHON)
         MESSAGE(STATUS "Found maven: ${MAVEN_PATH}")
       
         CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/pom.xml.in ${CMAKE_CURRENT_BINARY_DIR}/pom.xml)
-        FILE(GLOB JAVA_EXAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/../examples/*.java)
-        execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${JAVA_EXAMPLES} "${JAVA_KQP_TESTDIR}")
         GET_TARGET_PROPERTY(KQP_JNI_LOCATION kqp_jni LOCATION)
-      
-        ADD_CUSTOM_TARGET(kqp_jni_maven 
+
+        FILE(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../examples/example_1.java" DESTINATION "${JAVA_KQP_TESTDIR}")
+        ADD_CUSTOM_TARGET(kqp_jni_maven_package
             COMMAND ${CMAKE_COMMAND} -E copy ${KQP_JNI_LOCATION} "${JAVA_KQP_NARDIR}"
-            COMMAND ${MAVEN_PATH} -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package install
+            COMMAND ${MAVEN_PATH} -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package
             DEPENDS kqp_jni)
 
+        # Test examples (compilation only)
+        ADD_DEPENDENCIES(run-tests DEPENDS kqp_jni_maven_package)
+        ADD_TEST(kqp_jni_maven_test ${MAVEN_PATH} -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml package test)
+
+      
+        ADD_CUSTOM_TARGET(kqp_jni_maven 
+            COMMAND ${MAVEN_PATH} -f ${CMAKE_CURRENT_BINARY_DIR}/pom.xml install
+            DEPENDS kqp_jni_maven_package)
       endif()
       
           
@@ -110,13 +117,26 @@ if (JAVA_KQP OR JAVA_PYTHON)
   # --- Python support
   
   if (JAVA_PYTHON)
-      INCLUDE_DIRECTORIES()
       FIND_PACKAGE(PythonLibs REQUIRED)
+      FIND_PACKAGE(PythonInterp)
+
+      INCLUDE_DIRECTORIES()
+      
       INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
-      SET(CMAKE_SWIG_FLAGS "")
-      set(CMAKE_SWIG_OUTDIR ".")
+      SET(CMAKE_SWIG_FLAGS -c++)
+      set(CMAKE_SWIG_OUTDIR "python")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
       SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
+      
+      # Set output name and path
+      SET_TARGET_PROPERTIES(_kqp_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SWIG_OUTDIR}" LIBRARY_OUTPUT_NAME _kqp)
+           
+       # Test examples (compilation only)
+       ADD_DEPENDENCIES(run-tests DEPENDS _kqp_python)
+
+       ADD_TEST(python_example_1 ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../examples/example_1.py")
+       set_tests_properties(python_example_1 PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_SWIG_OUTDIR}")
+
       SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_DEPS} pre_swig)
   endif()
   

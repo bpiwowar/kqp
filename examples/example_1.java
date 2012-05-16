@@ -1,4 +1,4 @@
-package net.bpiwowar.qia.tasks; 
+package net.bpiwowar.kqp; 
 /**
  * @author B. Piwowarski <benjamin@bpiwowar.net>
  * @date 19/4/12
@@ -15,14 +15,18 @@ import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
 
-public class TestKQP {
+public class example_1 {
   
    static public void main(String [] args) {
+        // Dimension of the problem
         int dim = 10;
 
+        // Feature space
+        SpaceDouble fs = DenseSpaceDouble.create(dim);
+        
         // Creating an incremental builder
         System.err.format("Creating a KEVD builder%n");
-        KEVDAccumulatorDenseDouble kevd = new KEVDAccumulatorDenseDouble();
+        KEVDAccumulatorDouble kevd = new KEVDAccumulatorDouble(fs);
 
         // Add 10 vectors with $\alpha_i=1$
         System.err.format("Adding 10 vectors%n");
@@ -30,24 +34,24 @@ public class TestKQP {
             // Adds a random $\varphi_i$
             EigenMatrixDouble m = new EigenMatrixDouble(dim,1);
             m.randomize();
-            kevd.add(new DenseDouble(m));
+            kevd.add(DenseDouble.create(m));
         }
 
         // Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
         System.err.println("Getting the result");
-        DecompositionDenseDouble d = kevd.getDecomposition();
+        DecompositionDouble d = kevd.getDecomposition();
 
         // --- Compute a kEVD for a subspace
 
         System.err.format("Creating a KEVD builder (event)%n");
 
-        KEVDAccumulatorDenseDouble kevd_event = new KEVDAccumulatorDenseDouble();
+        KEVDAccumulatorDouble kevd_event = new KEVDAccumulatorDouble(fs);
 
         for(int i = 0; i < 3; i++) {
             // Adds a random $\varphi_i$
             EigenMatrixDouble m = new EigenMatrixDouble(dim,1);
             m.randomize();
-            kevd_event.add(new DenseDouble(m));
+            kevd_event.add(DenseDouble.create(m));
         }
 
 
@@ -57,20 +61,20 @@ public class TestKQP {
         // Setup densities and events
         d = kevd.getDecomposition();
         System.err.println("Creating the density rho and event E");
-        DensityDenseDouble rho = new DensityDenseDouble(kevd);
+        DensityDouble rho = new DensityDouble(kevd);
         rho.normalize();
-        EventDenseDouble event = new EventDenseDouble(kevd_event);
+        EventDouble event = new EventDouble(kevd_event);
         System.err.println("Computing some probabilities");
 
         // Compute the probability
         System.out.format("Probability = %g%n", rho.probability(event));
 
         // Conditional probability
-        DensityDenseDouble rho_cond = event.project(rho).normalize();
+        DensityDouble rho_cond = event.project(rho).normalize();
         System.out.format("Entropy of rho/E = %g%n", rho_cond.entropy());
 
         // Conditional probability (orthogonal event)
-        DensityDenseDouble rho_cond_orth = event.project(rho, true).normalize();
+        DensityDouble rho_cond_orth = event.project(rho, true).normalize();
         System.out.format("Entropy of rho/not E = %g%n", rho_cond.entropy());
 
     }
