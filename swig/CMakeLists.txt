@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with KQP.  If not, see <http://www.gnu.org/licenses/>.
 
-if (JAVA_KQP OR JAVA_PYTHON) 
+if (JAVA_KQP OR PYTHON_KQP) 
+  INCLUDE(UseSWIG)
 
   # --- Set important variables
   FIND_PACKAGE(SWIG REQUIRED)
@@ -21,9 +22,7 @@ if (JAVA_KQP OR JAVA_PYTHON)
   
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized")
   
-  INCLUDE(UseSWIG)
-  
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${KQP_SWIG_GENERATED})
+  INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}" ${Boost_INCLUDE_DIRS} "${KQP_SWIG_GENERATED}")
   SET_SOURCE_FILES_PROPERTIES(kqp.i PROPERTIES CPLUSPLUS ON)
   
   FILE(GLOB KQP_SWIG_DEPS */*.i *.i)
@@ -116,17 +115,17 @@ if (JAVA_KQP OR JAVA_PYTHON)
   
   # --- Python support
   
-  if (JAVA_PYTHON)
+  if (PYTHON_KQP)
       FIND_PACKAGE(PythonLibs REQUIRED)
       FIND_PACKAGE(PythonInterp)
 
-      INCLUDE_DIRECTORIES()
-      
+  
       INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
       SET(CMAKE_SWIG_FLAGS -c++)
       set(CMAKE_SWIG_OUTDIR "python")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
       SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
+      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i)
       
       # Set output name and path
       SET_TARGET_PROPERTIES(_kqp_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SWIG_OUTDIR}" LIBRARY_OUTPUT_NAME _kqp)

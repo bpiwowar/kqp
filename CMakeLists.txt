@@ -27,7 +27,7 @@ SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 OPTION(CMAKE_BUILD_TYPE         "Type of building"             "Release")
 OPTION(JAVA_KQP                 "Build Java wrapper"            ON)
-OPTION(JAVA_PYTHON              "Build Python wrapper"          ON)
+OPTION(PYTHON_KQP               "Build Python wrapper"          ON)
 OPTION(OPEN_MP                  "Use Open MP (ON/OFF/AUTO)"     AUTO)
 
 # --- Get version number from libkqp_VERSION
