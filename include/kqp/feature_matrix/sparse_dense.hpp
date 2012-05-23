@@ -50,8 +50,25 @@ namespace kqp {
         SparseDense(Index dimension) :  m_dimension(dimension) {}
         SparseDense(const Self &other) :  m_dimension(other.m_dimension), m_map(other.m_map), m_matrix(other.m_matrix), m_gramMatrix(other.m_gramMatrix) {}
 
+        //! Creates from a matrix
+        static FMatrix create(const ScalarMatrix &m) {
+            return FMatrix(new Self(m));
+        }
+        
+        //! Creates from a matrix (from a column major sparse matrix)
+        static FMatrix create(const Eigen::SparseMatrix<Scalar, Eigen::ColMajor> &m, double threshold = EPSILON) {
+            return FMatrix(new Self(m, threshold));
+        }
+
+        //! Creates from a matrix (from a row major sparse matrix)
+        static FMatrix create(const Eigen::SparseMatrix<Scalar, Eigen::RowMajor> &m, double threshold = EPSILON) {
+            return FMatrix(new Self(m, threshold));
+        }
+        
+        
 #ifndef SWIG
-        SparseDense(RowMap &&map, ScalarMatrix &&matrix) : m_dimension(matrix.rows()), m_map(std::move(map)), m_matrix(std::move(matrix)) {
+        SparseDense(Index dimension, RowMap &&map, ScalarMatrix &&matrix)
+            : m_dimension(dimension), m_map(std::move(map)), m_matrix(std::move(matrix)) {
             
         }
 #endif
@@ -334,7 +351,7 @@ namespace kqp {
         FMatrixBasePtr linearCombination(const ScalarAltMatrix &mA, Scalar alpha, const Self *mY, const ScalarAltMatrix *mB, Scalar beta) const {
             // Simple case: we don't have to add another matrix
             if (!mY) 
-                return FMatrixBasePtr(new Self(RowMap(m_map), alpha * m_matrix * mA));
+                return FMatrixBasePtr(new Self(m_dimension, RowMap(m_map), alpha * m_matrix * mA));
             
             // Add the keys
             RowMap newMap;
@@ -354,7 +371,7 @@ namespace kqp {
                 mat.row(newMap[i->first]) += beta * mY->m_matrix.row(i->second) * *mB;
             
             // Move and cleanup before returning
-            FMatrixBasePtr sdMat(new Self(std::move(newMap), std::move(mat)));
+            FMatrixBasePtr sdMat(new Self(m_dimension, std::move(newMap), std::move(mat)));
             dynamic_cast<Self&>(*sdMat).cleanup(EPSILON);
             return sdMat;
         }
