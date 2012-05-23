@@ -79,6 +79,7 @@ namespace kqp {
             
             // Computing the column norms
             RealVector norms(mat.cols());
+            norms.setZero();
             for (Index k=0; k<mat.cols(); ++k)  { // Loop on cols
                 // FIXME: use norm() when Eigen fixed
                 // norms[k] = mat.innerVector(k).norm();
@@ -103,14 +104,17 @@ namespace kqp {
             }
             
             // --- Copying
+            assert(rows == (Index)m_map.size());
             m_matrix.resize(rows, mat.cols());
             m_matrix.setZero();
             
-            for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
-                for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
-                    m_matrix(m_map[it.row()], it.col()) = it.value();
+            if (rows > 0)
+                for (int k=0; k<mat.outerSize(); ++k) { // Loop on cols
+                    for (typename Eigen::SparseMatrix<Scalar, Eigen::ColMajor>::InnerIterator it(mat,k); it; ++it) { // Loop on rows
+                        if (std::abs(it.value()) / norms[it.col()] > threshold) 
+                            m_matrix(m_map[it.row()], it.col()) = it.value();
+                    }
                 }
-            }
             
         }
 
