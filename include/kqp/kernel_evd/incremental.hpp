@@ -57,7 +57,9 @@ namespace kqp {
             }
         };
         
-        IncrementalKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), mX(fs.newMatrix()) {}
+        IncrementalKernelEVD(const FSpace &fs) 
+            : KernelEVD<Scalar>(fs), mX(fs.newMatrix()), 
+              preImageRatios(std::numeric_limits<Scalar>::infinity(), std::numeric_limits<Scalar>::infinity()) {}
         virtual ~IncrementalKernelEVD() {}
         
         void reset() {
