@@ -34,7 +34,13 @@ namespace kqp {
         virtual FMatrixBasePtr newMatrix(const FeatureMatrixBase<Scalar> &other) const override { return m_base->newMatrix(other); }        
 
         virtual const ScalarMatrix &k(const FMatrixBase &mX) const override {            
-            ScalarMatrix &gram = m_gramCache[static_cast<const void*>(&mX)];
+            // FIXME: Big memory leak here (the feature space should be notified when a feature matrix is deleted) !!!
+            // So we suppose we are not multithreaded... and compute it each time.
+            // ScalarMatrix &gram = m_gramCache[static_cast<const void*>(&mX)];
+            
+            static ScalarMatrix gram;
+            
+            gram.resize(0,0);
             
             if (mX.size() == gram.rows()) return gram;
             
@@ -96,9 +102,8 @@ namespace kqp {
     protected:
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const override {
             // Compute the remaining inner products
-            auto norms = gram.diagonal();
-            
-            gram.rightCols(tofill) = this->f(m_base->k(mX).rightCols(tofill), norms, norms.tail(tofill));            
+            const ScalarMatrix &baseGram = m_base->k(mX);
+            gram.rightCols(tofill) = this->f(baseGram.rightCols(tofill), baseGram.diagonal(), baseGram.diagonal().tail(tofill));            
         }
         
 
@@ -108,7 +113,7 @@ namespace kqp {
         inline ScalarMatrix f(const Eigen::MatrixBase<Derived> &k, 
                                   const Eigen::MatrixBase<DerivedRow>& rowNorms, 
                                   const Eigen::MatrixBase<DerivedCol>& colNorms) const { 
-            return ((rowNorms.derived().rowwise().replicate(k.cols()) + colNorms.derived().adjoint().colwise().replicate(k.rows()) - 2 * k.derived()) / (m_sigma*m_sigma)).array().exp();
+            return (-(rowNorms.derived().rowwise().replicate(k.cols()) + colNorms.derived().adjoint().colwise().replicate(k.rows()) - 2 * k.derived().real()) / (2. * m_sigma*m_sigma)).array().exp();
         }
       
         Real m_sigma;
@@ -118,9 +123,10 @@ namespace kqp {
     template<typename Scalar> class PolynomialSpace  : public UnaryKernelSpace<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
+#ifndef SWIG
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
-
+#endif
         virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
 
         PolynomialSpace(Real bias, int degree, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
