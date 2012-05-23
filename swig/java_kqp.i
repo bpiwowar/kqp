@@ -5,6 +5,13 @@
 %ignore operator=;
 %rename(get) operator();
 
+// Pointers to primitive types
+%include "cpointer.i"
+
+// Type maps
+%include "typemaps.i" 
+
+
 // Use enums
 %include "enums.swg"
 

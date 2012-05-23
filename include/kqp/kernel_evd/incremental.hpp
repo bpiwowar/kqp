@@ -48,6 +48,7 @@ namespace kqp {
         
         using KernelEVD<Scalar>::getFSpace;
         
+#ifndef SWIG        
         // Indirect comparator (decreasing order)
         struct Comparator {
             const RealVector &v;
@@ -56,6 +57,7 @@ namespace kqp {
                 return this->v(i) > this->v(j);
             }
         };
+#endif
         
         IncrementalKernelEVD(const FSpace &fs) 
             : KernelEVD<Scalar>(fs), mX(fs.newMatrix()), 

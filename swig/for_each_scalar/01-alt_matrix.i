@@ -15,6 +15,9 @@
         return self->isT1() ? kqp::_AltMatrix::DENSE : kqp::_AltMatrix::IDENTITY;
     }
     
+    Index rows() const { return $self->rows(); }
+    Index cols() const { return $self->cols(); }
+    
 }
 
 #ifndef REAL_ALTVECTOR_@RNAME@
@@ -32,6 +35,9 @@
         return REAL_ALTVECTOR_@RNAME@(other);
     }
     
+    Index size() const { return $self->size(); }
+    Index rows() const { return $self->rows(); }
+    Index cols() const { return $self->cols(); }
     
     kqp::_AltVector::AltVectorType getType() {
         return self->isT1() ? kqp::_AltVector::DENSE : kqp::_AltVector::CONSTANT;

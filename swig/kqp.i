@@ -36,6 +36,15 @@
     namespace kqp {
         namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
         namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
+        
+        template<typename Scalar>
+        struct PrimitiveRef {
+          Scalar &value;  
+          PrimitiveRef(Scalar &value) : value(value) {}
+              
+          Scalar get() { return value; }
+          void set(Scalar newValue) { value = newValue; }
+        };
     }
     
     using Eigen::Dynamic;
@@ -81,7 +90,17 @@
 
 // ---- Some basic declarations
 
+
 namespace kqp {
+    
+    template<typename Scalar>
+    struct PrimitiveRef {
+        Scalar get();
+        void set(Scalar);
+    private:
+        PrimitiveRef();
+    };
+    
     namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
     namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
     
@@ -118,6 +137,7 @@ namespace Eigen {
     class SparseMatrix {
     public:
         SparseMatrix(Index rows, Index cols);
+        class InnerIterator;
     };
     
     

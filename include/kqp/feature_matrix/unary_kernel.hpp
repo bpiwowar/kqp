@@ -75,9 +75,10 @@ namespace kqp {
     template<typename Scalar> class GaussianSpace : public UnaryKernelSpace<Scalar> {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
+#ifndef SWIG
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
-
+#endif
         GaussianSpace(Real sigma, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
         virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
 
