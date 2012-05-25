@@ -195,6 +195,11 @@ namespace kqp {
             return *this = dynamic_cast<const Self&>(other);
         }
 
+        //! Get the dense matrix
+        const Storage &getMatrix() const {
+            return m_matrix;
+        }
+
 
     private:
         

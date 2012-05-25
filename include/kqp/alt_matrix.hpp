@@ -596,6 +596,9 @@ namespace kqp {
         inline typename storage<T1>::ReturnType t1() { return m_t1.get(); }
         inline typename storage<T2>::ReturnType t2() { return m_t2.get(); }
         
+        const storage<T1> &getStorage1() const { return m_t1; }
+        const storage<T2> &getStorage2() const { return m_t2; }
+        
         
         void swap(AltMatrix &other) {
             m_t1.swap(other.m_t1);

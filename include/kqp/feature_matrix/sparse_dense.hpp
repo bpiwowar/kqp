@@ -408,6 +408,16 @@ namespace kqp {
         virtual FMatrixBase &operator=(const FMatrixBase &_other) override {
           return *this = dynamic_cast<const Self&>(_other);
         }
+        
+        //! Get the sparse to dense map
+        const std::map<Index, Index> &map() const {
+            return m_map;
+        }
+        
+        //! Get the dense matrix
+        const ScalarMatrix &getMatrix() const {
+            return m_matrix;
+        }
 
     private:
         //! Dimension of the space

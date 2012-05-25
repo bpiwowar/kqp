@@ -19,6 +19,7 @@
 
 
 %{
+    #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
@@ -64,6 +65,9 @@
 
 %include "boost_shared_ptr.i"
 %include "std_vector.i"
+%include "std_map.i"
+%include "std_pair.i"
+%include "exception.i"
 
 #if SWIGJAVA
 %include "java_kqp.i"
@@ -100,7 +104,7 @@ namespace kqp {
     private:
         PrimitiveRef();
     };
-    
+
     namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
     namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
     
@@ -124,6 +128,8 @@ namespace kqp {
     };
 }
 
+
+
 namespace Eigen {
     template<typename Scalar> struct NumTraits;
     
@@ -142,6 +148,33 @@ namespace Eigen {
     
     
 }
+
+// Map (from )
+// For the iterator part, see http://stackoverflow.com/questions/9465856/no-iterator-for-java-when-using-swig-with-cs-stdmap
+%template(LongLongMap) std::map<Index,Index>;
+
+// Exception handling
+%exception {
+    try {
+        $action
+    } 
+    
+    catch(const kqp::exception &e) {
+        SWIG_exception(SWIG_RuntimeError, boost::diagnostic_information(e).c_str());
+    }  
+       
+    catch(const boost::exception &e) {
+        std::cerr << "Caught a boost exception" << std::endl;
+        std::cerr << boost::diagnostic_information(e) << std::endl;
+        throw;
+    }
+    
+    catch(...) {
+        std::cerr << "Caught an unknown exception!" << std::endl;
+        throw;
+    }
+}
+
 
 
 %include "kqp_all.i"

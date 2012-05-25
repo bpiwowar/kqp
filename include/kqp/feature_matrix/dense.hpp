@@ -110,9 +110,11 @@ namespace kqp {
             return this->m_matrix;
         }
 
+#ifndef SWIG
         inline static const Self &cast(const FMatrixBase &m) {
             return dynamic_cast<const Self&>(m);
         }
+#endif
         
         void add(const FMatrixBase &other, const std::vector<bool> *which = NULL) override {
            this->add(cast(other).getMatrix(), which);

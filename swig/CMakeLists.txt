@@ -25,6 +25,7 @@ if (JAVA_KQP OR PYTHON_KQP)
   INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}" ${Boost_INCLUDE_DIRS} "${KQP_SWIG_GENERATED}")
   SET_SOURCE_FILES_PROPERTIES(kqp.i PROPERTIES CPLUSPLUS ON)
   
+  FILE(GLOB KQP_HEADERS kqp/include/*.hpp kqp/include/*/*.hpp)
   FILE(GLOB KQP_SWIG_DEPS */*.i *.i)
   
   # --- Command that generates the kqp_all.i (that depends on all the *.i files within the swig directory)
@@ -76,8 +77,10 @@ if (JAVA_KQP OR PYTHON_KQP)
       SET(CMAKE_SWIG_FLAGS -c++ -package ${JAVA_KQP_PACKAGE})  
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
-      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i)
+      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i ${KQP_SWIG_DEPS} ${KQP_HEADERS})
+      
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
+      ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)
       
       
@@ -125,18 +128,18 @@ if (JAVA_KQP OR PYTHON_KQP)
       set(CMAKE_SWIG_OUTDIR "python")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
       SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
-      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i)
+      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i ${KQP_SWIG_DEPS} ${KQP_HEADERS})
       
       # Set output name and path
       SET_TARGET_PROPERTIES(_kqp_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SWIG_OUTDIR}" LIBRARY_OUTPUT_NAME _kqp)
-           
+      ADD_DEPENDENCIES(_kqp_python DEPENDS pre_swig)
+      
        # Test examples (compilation only)
        ADD_DEPENDENCIES(run-tests DEPENDS _kqp_python)
 
        ADD_TEST(python_example_1 ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../examples/example_1.py")
        set_tests_properties(python_example_1 PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_SWIG_OUTDIR}")
 
-      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_DEPS} pre_swig)
   endif()
   
 endif()

@@ -145,3 +145,61 @@
 
 
 %}
+
+
+// Map iterator, source
+// http://stackoverflow.com/questions/9465856/no-iterator-for-java-when-using-swig-with-cs-stdmap
+
+
+%typemap(javainterfaces) kqp::MapIterator<Index,Index> "java.util.Iterator<LongLongPair>"
+%typemap(javacode) kqp::MapIterator<Index,Index> %{
+  public void remove() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
+
+  public LongLongPair next() throws java.util.NoSuchElementException {
+    if (!hasNext()) {
+      throw new java.util.NoSuchElementException();
+    }
+
+    return nextImpl();
+  }
+%}
+
+%javamethodmodifiers LongLongMapIterator::nextImpl "private";
+%inline %{
+    namespace kqp {
+        template<typename Key, typename Value>
+  struct MapIterator {
+    typedef std::map<Index, Index> map_t;
+    
+    MapIterator(const map_t& m) : it(m.begin()), map(m) {}
+    bool hasNext() const {
+      return it != map.end();
+    }
+
+    const std::pair<Index, Index>  nextImpl() {
+      return *it++;
+    }
+  private:
+    map_t::const_iterator it;
+    const map_t& map;    
+  };
+  }
+%}
+
+%template(LongLongMapIterator) kqp::MapIterator<Index,Index>;
+%template(LongLongPair) std::pair<Index,Index>;
+
+// Say that the object implement the interface
+%typemap(javainterfaces) std::map<Index,Index> "Iterable<LongLongPair>"
+
+// Extend std::map
+%newobject std::map<Index,Index>::iterator() const;
+%extend std::map<Index,Index> {
+  kqp::MapIterator<Index,Index> *iterator() const {
+    return new kqp::MapIterator<Index,Index>(*$self);
+  }
+}
+
+

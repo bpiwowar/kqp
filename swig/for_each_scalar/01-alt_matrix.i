@@ -1,8 +1,11 @@
 #define SCALAR_ALTMATRIX_@SNAME@ kqp::AltMatrix< typename kqp::AltDense<@STYPE@>::DenseType, typename kqp::AltDense<@STYPE@>::IdentityType >
+
+#define SCALARMATRIX Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic>
+
 %template(AltMatrix@SNAME@) SCALAR_ALTMATRIX_@SNAME@;
 %extend SCALAR_ALTMATRIX_@SNAME@ {
     static SCALAR_ALTMATRIX_@SNAME@ createIdentity(Index rows, Index cols) {
-        return Eigen::Matrix<@STYPE@,Eigen::Dynamic,Eigen::Dynamic>::Identity(rows, cols);
+        return SCALARMATRIX::Identity(rows, cols);
     }
     static SCALAR_ALTMATRIX_@SNAME@ adopt(Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic > &other) {
         return SCALAR_ALTMATRIX_@SNAME@(std::move(other));
@@ -18,6 +21,12 @@
     Index rows() const { return $self->rows(); }
     Index cols() const { return $self->cols(); }
     
+    SCALARMATRIX getDense() { return $self->t1(); }
+    
+    // Multiply with another matrix
+    SCALARMATRIX multBy(const SCALARMATRIX &other) {
+         return SCALARMATRIX((*$self) * other); 
+    }
 }
 
 #ifndef REAL_ALTVECTOR_@RNAME@
@@ -43,5 +52,15 @@
         return self->isT1() ? kqp::_AltVector::DENSE : kqp::_AltVector::CONSTANT;
     }
     
+    @STYPE@ get(Index i) { return $self->operator()(i, 0); }
+    SCALARMATRIX getDense() { return $self->t1(); }
+    @STYPE@ getConstant() { return $self->getStorage2().m_value; }
+    
+    SCALARMATRIX asDiagPostMultBy(const SCALARMATRIX &other) {
+         return SCALARMATRIX(other * $self->asDiagonal()); 
+    }    
 }
+
 #endif
+
+#undef SCALARMATRIX

@@ -384,6 +384,8 @@ namespace kqp {
         const FSpaceBase & operator*() const { return *m_fSpace.get(); }
         FSpaceBase & operator*() { return *m_fSpace.get(); }
 #endif
+
+        const FSpaceBase * get() const { return m_fSpace.get();  }        
         
     private:
         FSpaceBasePtr m_fSpace;

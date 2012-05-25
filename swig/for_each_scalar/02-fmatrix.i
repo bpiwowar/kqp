@@ -6,16 +6,28 @@
 
 // --- Features matrices
 
+%define SpaceCommonDefs(NAME, TYPE)
+%shared_ptr(TYPE)
+%template(NAME) TYPE;
+%extend TYPE {
+    static const TYPE *cast(const kqp::SpaceBase< @STYPE@ > *base) {
+        return dynamic_cast<const TYPE *>(base);
+    }
+}
+
+%enddef
+
 %define FMatrixCommonDefs(NAME, TYPE)
 %shared_ptr(TYPE)
 %ignore TYPE::subset;
 %template(NAME) TYPE;
+%extend TYPE {
+    static const TYPE *cast(const kqp::FeatureMatrixBase< @STYPE@ > *base) {
+        return dynamic_cast<const TYPE * >(base);
+    }
+}
 %enddef
 
-%shared_ptr(kqp::SpaceBase< @STYPE@ >)
-%shared_ptr(kqp::DenseSpace< @STYPE@ >)
-%shared_ptr(kqp::SparseDenseSpace< @STYPE@ >)
-%shared_ptr( kqp::SparseSpace< @STYPE@ >)
 
 %shared_ptr(kqp::FeatureMatrixBase< @STYPE@ >)
 
@@ -31,14 +43,22 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 FMatrixCommonDefs(FeatureMatrixBase@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
 %ignore kqp::FeatureMatrix< @STYPE@ >::subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const;
 %template(FeatureMatrix@SNAME@) kqp::FeatureMatrix< @STYPE@ >;
-%template(Space@SNAME@) kqp::Space< @STYPE@ >;
+%extend kqp::FeatureMatrix< @STYPE@ > {
+    const kqp::FeatureMatrixBase< @STYPE@ > * get() { return $self->operator->(); }
+}
+
+%shared_ptr(kqp::SpaceBase< @STYPE@ >)
 %template(SpaceBase@SNAME@) kqp::SpaceBase< @STYPE@ >;
+
+%template(Space@SNAME@) kqp::Space< @STYPE@ >;
+%extend kqp::Space< @STYPE@ > {
+    const kqp::SpaceBase< @STYPE@ > * get() { return $self->operator->(); }
+}
 
 
 // Dense
 %include <kqp/feature_matrix/dense.hpp>
-%template(DenseSpace@SNAME@) kqp::DenseSpace< @STYPE@ >;
-
+SpaceCommonDefs(DenseSpace@SNAME@,kqp::DenseSpace< @STYPE@ >);
 FMatrixCommonDefs(Dense@SNAME@, kqp::Dense< @STYPE@ >)
 %extend kqp::Dense< @STYPE@ > {
   Index dataSize() const {
@@ -48,12 +68,12 @@ FMatrixCommonDefs(Dense@SNAME@, kqp::Dense< @STYPE@ >)
 
 // Sparse dense
 %include <kqp/feature_matrix/sparse_dense.hpp>
-%template(SparseDenseSpace@SNAME@) kqp::SparseDenseSpace< @STYPE@ >;
+SpaceCommonDefs(SparseDenseSpace@SNAME@, kqp::SparseDenseSpace< @STYPE@ >)
 FMatrixCommonDefs(SparseDense@SNAME@, kqp::SparseDense< @STYPE@ >)
 
-// Sparse dense
+// Sparse 
 %include <kqp/feature_matrix/sparse.hpp>
-%template(SparseSpace@SNAME@) kqp::SparseSpace< @STYPE@ >;
+SpaceCommonDefs(SparseSpace@SNAME@, kqp::SparseSpace< @STYPE@ >)
 FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 
 // ---- Kernel spaces
@@ -69,11 +89,13 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 
 // ---- Rank selection
 
+
 %include "kqp/rank_selector.hpp"
 %shared_ptr(kqp::Selector< @STYPE@ >);
 %shared_ptr(kqp::RankSelector< @STYPE@, true >);
 %shared_ptr(kqp::RankSelector< @STYPE@, false >);
 %shared_ptr(kqp::MinimumSelector< @STYPE@ >);
+%template(EigenList@SNAME@) kqp::EigenList< @STYPE@ >;
 
 
 %ignore kqp::Selector< @STYPE@ >::selection;

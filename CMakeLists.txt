@@ -100,7 +100,7 @@ IF(OPEN_MP MATCHES "AUTO")
   try_compile(COMPILES_OPENMP "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/openmp/dummy.cpp" 
     CMAKE_FLAGS "-fopenmp" OUTPUT_VARIABLE comp)
   IF(NOT(COMPILES_OPENMP))
-    MESSAGE(STATUS "No OpenMP support: disabling")
+    MESSAGE(STATUS "No OpenMP support detected")
     # MESSAGE(STATUS "${comp}")
 	  SET(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS}")
   ELSE()
@@ -112,6 +112,10 @@ IF(OPEN_MP MATCHES "ON")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 	MESSAGE(STATUS "Using OpenMP")
+ELSEIF(OPEN_MP MATCHES "OFF")
+	MESSAGE(STATUS "Not using OpenMP")
+ELSE()
+    
 ENDIF()
 
 # --- Build kqp library

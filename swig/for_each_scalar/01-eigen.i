@@ -31,7 +31,7 @@ template<> struct NumTraits< @STYPE@ > {
 
 %template(EigenMatrix@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic >;
 %extend Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic> {
-    Index row() const { return self->rows(); }; 
+    Index rows() const { return self->rows(); }; 
     Index cols() const { return self->cols(); };
     void randomize() {
          *self = Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic>::Random(self->rows(), self->cols()); 
