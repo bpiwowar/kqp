@@ -350,6 +350,14 @@ namespace kqp {
         Real probability(const Event<Scalar>& event) const {
             return this->m_operator.k(event.m_operator).squaredNorm();
         }
+
+        /**
+         * Computes the probabilities associated with each eigen vector 
+         */
+        RealVector eigenProbabilities(const Event<Scalar>& event) const {
+            this->orthonormalize();
+            return this->m_operator.k(event.m_operator).rowwise().squaredNorm();
+        }
         
         
         //! Computes the entropy
