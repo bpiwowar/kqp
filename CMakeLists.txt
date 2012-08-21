@@ -25,10 +25,9 @@ SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # --- Main options
 
-OPTION(CMAKE_BUILD_TYPE         "Type of building"             "Release")
 OPTION(JAVA_KQP                 "Build Java wrapper"            ON)
 OPTION(PYTHON_KQP               "Build Python wrapper"          ON)
-OPTION(OPEN_MP                  "Use Open MP (ON/OFF/AUTO)"     AUTO)
+OPTION(OPEN_MP                  "Use Open MP"                   ON)
 
 # --- Get version number from libkqp_VERSION
 
@@ -94,7 +93,8 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Check for openmp
 
-IF(OPEN_MP MATCHES "AUTO")
+IF(OPEN_MP MATCHES "ON")
+  MESSAGE(STATUS "Testing OPEN MP support")
   SET(OLD_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
   try_compile(COMPILES_OPENMP "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/openmp/dummy.cpp" 

@@ -51,7 +51,7 @@ template<> struct NumTraits< @STYPE@ > {
 // Vector (Eigen)
 %template(EigenVector@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, 1 >;
 %extend Eigen::Matrix<@STYPE@, Eigen::Dynamic, 1> {
-    Index row() const { return self->rows(); }; 
+    Index rows() const { return self->rows(); }; 
     Index cols() const { return self->cols(); };
     void randomize() {
          *self = Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic>::Random(self->rows(), self->cols()); 

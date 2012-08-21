@@ -63,8 +63,12 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) {
-            _add(alpha, mU, mA);
+        virtual void add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
+            // Check consistency
+            if (mX.size() != mA.rows())
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot combine %d pre-images with a %d rows matrix", %mX.size() %mA.rows());
+
+            _add(alpha, mX, mA);
             nbUpdates += mA.cols();
         }
 
