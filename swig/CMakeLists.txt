@@ -34,7 +34,7 @@ if (JAVA_KQP OR PYTHON_KQP)
     OUTPUT ${KQP_SWIG_GENERATED}/kqp_all.i
     COMMAND ${CMAKE_COMMAND} -D KQP_SWIG_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" -D KQP_SWIG_GENERATED="${KQP_SWIG_GENERATED}" -P "${PRE_SWIG_SCRIPT}" SOURCES ${KQP_SWIG_DEPS} 
     DEPENDS ${KQP_SWIG_DEPS} ${PRE_SWIG_SCRIPT})
-  
+  ADD_CUSTOM_TARGET(pre_swig DEPENDS ${KQP_SWIG_GENERATED}/kqp_all.i)
 
   # --- Java JNI module  
   if (JAVA_KQP)
@@ -77,8 +77,7 @@ if (JAVA_KQP OR PYTHON_KQP)
       SET(CMAKE_SWIG_FLAGS -c++ -package ${JAVA_KQP_PACKAGE})  
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
-      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i ${KQP_SWIG_DEPS} ${KQP_HEADERS})
-      
+     
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)
@@ -128,7 +127,6 @@ if (JAVA_KQP OR PYTHON_KQP)
       set(CMAKE_SWIG_OUTDIR "python")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
       SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
-      SET(SWIG_MODULE_kqp_python_EXTRA_DEPS ${KQP_SWIG_GENERATED}/kqp_all.i ${KQP_SWIG_DEPS} ${KQP_HEADERS})
       
       # Set output name and path
       SET_TARGET_PROPERTIES(_kqp_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SWIG_OUTDIR}" LIBRARY_OUTPUT_NAME _kqp)

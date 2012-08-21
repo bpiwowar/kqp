@@ -17,6 +17,12 @@
 
 %module kqp
 
+#ifndef SWIGPYTHON
+#define DENSE_MATRIX DENSE
+#define DENSE_VECTOR DENSE
+#define CONSTANT_VECTOR CONSTANT
+#define IDENTITY_MATRIX IDENTITY
+#endif
 
 %{
     #include <boost/exception/diagnostic_information.hpp> 
@@ -35,8 +41,9 @@
     #include <kqp/probabilities.hpp>
 
     namespace kqp {
-        namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
-        namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
+
+        namespace _AltMatrix { enum AltMatrixType { DENSE_MATRIX, IDENTITY_MATRIX }; }
+        namespace _AltVector { enum AltVectorType { DENSE_VECTOR, CONSTANT_VECTOR }; }
         
         template<typename Scalar>
         struct PrimitiveRef {
@@ -105,8 +112,8 @@ namespace kqp {
         PrimitiveRef();
     };
 
-    namespace _AltMatrix { enum AltMatrixType { DENSE, IDENTITY }; }
-    namespace _AltVector { enum AltVectorType { DENSE, CONSTANT }; }
+    namespace _AltMatrix { enum AltMatrixType { DENSE_MATRIX, IDENTITY_MATRIX }; }
+    namespace _AltVector { enum AltVectorType { DENSE_VECTOR, CONSTANT_VECTOR }; }
     
     template<typename Scalar> struct ScalarDefinitions;
         

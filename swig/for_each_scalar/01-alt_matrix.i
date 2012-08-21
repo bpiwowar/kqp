@@ -15,7 +15,7 @@
     }
     
     kqp::_AltMatrix::AltMatrixType getType() {
-        return self->isT1() ? kqp::_AltMatrix::DENSE : kqp::_AltMatrix::IDENTITY;
+        return self->isT1() ? kqp::_AltMatrix::DENSE_MATRIX : kqp::_AltMatrix::IDENTITY_MATRIX;
     }
     
     Index rows() const { return $self->rows(); }
@@ -49,7 +49,7 @@
     Index cols() const { return $self->cols(); }
     
     kqp::_AltVector::AltVectorType getType() {
-        return self->isT1() ? kqp::_AltVector::DENSE : kqp::_AltVector::CONSTANT;
+        return self->isT1() ? kqp::_AltVector::DENSE_VECTOR : kqp::_AltVector::CONSTANT_VECTOR;
     }
     
     @STYPE@ get(Index i) { return $self->operator()(i, 0); }
