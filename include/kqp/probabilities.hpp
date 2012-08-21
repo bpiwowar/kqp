@@ -74,12 +74,21 @@ namespace kqp {
         
         
         /**
-         * Trim the eigenvalue decomposition to a lower rank
+         * Trim the eigenvalue decomposition to a lower rank. If the rank 
+         * is already lower, don't do anything.
          * 
          * @param newRank
          *            The new rank of the subspace
          */
-        // void trim(size_t newRank);        
+        void trim(Index newRank) {
+            this->orthonormalize();
+
+            // Don't do anything
+            if (newRank <= getRank()) return;
+
+            m_operator.mY.conservativeResize(m_operator.mY.rows(), newRank);
+            m_operator.mD.conservativeResize(newRank, 1);
+        }
         
         /**
          * Get the rank of the operator
