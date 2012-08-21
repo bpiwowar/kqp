@@ -353,10 +353,21 @@ namespace kqp {
 
         /**
          * Computes the probabilities associated with each eigen vector 
+         * @param event The event for which probabilities should be computed
+         * @param noEigenValues Do not multiply by the eigen values
          */
-        RealVector eigenProbabilities(const Event<Scalar>& event) const {
+        RealVector eigenProbabilities(const Event<Scalar>& event, bool noEigenValues) const {
             this->orthonormalize();
-            return this->m_operator.k(event.m_operator).rowwise().squaredNorm();
+
+            auto &other = event.m_operator;
+            
+            if (noEigenValues)
+                return this->m_operator.fs.k(
+                            this->X(), this->Y(), RealVector::Ones(this->Y().cols()), 
+                            other.mX, other.mY, other.mD)
+                        .rowwise().squaredNorm();
+
+            return this->m_operator.k(other).rowwise().squaredNorm();
         }
         
         

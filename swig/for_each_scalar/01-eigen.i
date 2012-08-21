@@ -37,7 +37,7 @@ template<> struct NumTraits< @STYPE@ > {
          *self = Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic>::Random(self->rows(), self->cols()); 
     } 
     
-    @STYPE@ operator()(Index i, Index j) const { 
+    @STYPE@ get(Index i, Index j) const { 
         return (*self)(i,j);
     }
     
@@ -57,13 +57,13 @@ template<> struct NumTraits< @STYPE@ > {
          *self = Eigen::Matrix<@STYPE@, Eigen::Dynamic, Eigen::Dynamic>::Random(self->rows(), self->cols()); 
     } 
     
-    @STYPE@ operator()(Index i, Index j) const { 
-        return (*self)(i,j);
+    @STYPE@ get(Index i) const { 
+        return (*self)(i);
     }
     
     
-    void set(Index i, Index j, @STYPE@ value) {  
-        (*self)(i,j) = value; 
+    void set(Index i, @STYPE@ value) {  
+        (*self)(i) = value; 
     } 
     
     DEFINE_COMMON_EIGEN_MATRIX_OPERATIONS();

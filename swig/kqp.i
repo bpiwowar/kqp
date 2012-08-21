@@ -93,6 +93,8 @@
 
 %rename operator++ next;
 %rename operator!= notEqual;
+%rename operator()(Index) get;
+%rename operator()(Index, Index) get;
 
 %ignore kqp::Intervals;
 %ignore kqp::IntervalsIterator;
