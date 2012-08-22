@@ -108,6 +108,8 @@ h3. Working with Python
 
 @make _kqp_python@
 
+Note that when configuring the build with @cmake@, in order to force the use of a given Python version, you might need to to set the variables: @PYTHON_EXECUTABLE@, @PYTHON_INCLUDE_DIR@ and @PYTHON_LIBRARY@.
+
 h2. Developping KQP
 
 If you want to contribute to the development of the library, you should follow these steps:
