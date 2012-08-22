@@ -28,6 +28,9 @@
 #include <kqp/evd_utils.hpp>
 
 namespace kqp {
+
+
+
     /**
      * @brief Direct computation of the density (i.e. matrix representation) for dense vectors.
      * 
@@ -50,8 +53,10 @@ namespace kqp {
         }
 
     protected:
+
+
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
-            matrix.template selfadjointView<Eigen::Lower>().rankUpdate(ScalarMatrix(dynamic_cast<const FDense &>(*mX).getMatrix() * mA), alpha);
+            rankUpdate(matrix.template selfadjointView<Eigen::Lower>(), dynamic_cast<const FDense &>(*mX).getMatrix() * mA, (Scalar)alpha);
         }
         
         virtual Decomposition<Scalar> _getDecomposition() const override {

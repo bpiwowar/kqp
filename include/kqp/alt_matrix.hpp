@@ -111,10 +111,28 @@ namespace kqp {
             return this->derived();
         }
         
-    };
+      };
     
     
+    /** Rank update with an Eigen matrix expression (used for recursion termination) */
+    template<typename MatrixType, unsigned int UpLo, typename Derived>
+    void rankUpdate(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const Eigen::MatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
+        matrix.rankUpdate(mA, alpha);
+    }
 
+    /** 
+    * Rank update with an AltMatrix 
+    * @param matrix The matrix to be updated
+    * @param mA The matrix used for update
+    * @param alpha The update coefficient
+    */
+    template<typename MatrixType, unsigned int UpLo, typename Derived> 
+    void rankUpdate(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const AltMatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
+        if (mA.derived().isT1())
+            rankUpdate(std::move(matrix), mA.derived().t1(), alpha);
+        else 
+            rankUpdate(std::move(matrix), mA.derived().t2(), alpha);
+    }
     
     // --- As diagonal
     template<typename XprType> class AltAsDiagonal : Eigen::internal::no_assignment_operator, public AltMatrixBase<AltAsDiagonal<XprType>> {
