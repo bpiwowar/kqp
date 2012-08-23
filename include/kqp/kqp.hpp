@@ -23,31 +23,6 @@
 #define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.h.inc>
 #define EIGEN_SPARSEMATRIX_PLUGIN <kqp/eigen_sparse_matrix_plugin.h.inc>
 
-#include "Eigen/Core"
-
-#include <boost/exception/errinfo_at_line.hpp>
-#include <boost/exception/info.hpp>
-#include <boost/exception/exception.hpp>
-#include <boost/format.hpp>
-#include <string>
-#include <complex>
-#include "cxxabi.h"
-
-
-
-#ifndef NOLOGGING
-#include "log4cxx/logger.h"
-#endif
-
-// GCC specifics
-#if defined(__GNUC__)
-#define KQP_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-#if KQP_GCC_VERSION < 407000
-#define override
-#endif // GCC < 4.7
-#endif // GCC
-
-
 // Define move operators if needed:
 // * clang with libstdc++
 #if (defined(__clang__) && defined(__GLIBCXX__))
@@ -81,6 +56,37 @@ namespace std {
     }
 }
 #endif
+
+namespace Eigen {
+    template<typename Scalar> class Identity;
+}
+
+
+#include "Eigen/Core"
+
+#include <boost/exception/errinfo_at_line.hpp>
+#include <boost/exception/info.hpp>
+#include <boost/exception/exception.hpp>
+#include <boost/format.hpp>
+#include <string>
+#include <complex>
+#include "cxxabi.h"
+
+
+
+#ifndef NOLOGGING
+#include "log4cxx/logger.h"
+#endif
+
+// GCC specifics
+#if defined(__GNUC__)
+#define KQP_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#if KQP_GCC_VERSION < 407000
+#define override
+#endif // GCC < 4.7
+#endif // GCC
+
+
 
 namespace kqp {
 
@@ -238,7 +244,7 @@ namespace kqp {
 #     define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { prepareLogger(); LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
 
 #     //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
-#     define KQP_THROW_EXCEPTION(type, message) { prepareLogger(); KQP_LOG_ERROR(main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
+#     define KQP_THROW_EXCEPTION(type, message) { kqp::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
 
 #    else // No DEBUG
     
@@ -254,9 +260,9 @@ namespace kqp {
 #endif // ELSE
     
     
-#define KQP_LOG_INFO(name,message) { prepareLogger(); LOG4CXX_INFO(name, message); }
-#define KQP_LOG_WARN(name,message) { prepareLogger(); LOG4CXX_WARN(name, message); }
-#define KQP_LOG_ERROR(name,message) { prepareLogger(); LOG4CXX_ERROR(name, message); }
+#define KQP_LOG_INFO(name,message) { kqp::prepareLogger(); LOG4CXX_INFO(name, message); }
+#define KQP_LOG_WARN(name,message) { kqp::prepareLogger(); LOG4CXX_WARN(name, message); }
+#define KQP_LOG_ERROR(name,message) { kqp::prepareLogger(); LOG4CXX_ERROR(name, message); }
 
 
 #endif // ndef(NOLOGGING)

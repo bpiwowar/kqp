@@ -145,7 +145,7 @@ namespace kqp {
                 
                 auto kevd = builder.getDecomposition();
                 
-                ScalarAltMatrix mUY = ScalarMatrix::Identity(mL.rows(), mL.rows());
+                ScalarAltMatrix mUY = Eigen::Identity<Scalar>(mL.rows(), mL.rows());
                 
                 KQP_LOG_DEBUG(logger, "=== Decomposition ===");
 //                KQP_LOG_DEBUG(logger, "X = " << kevd.mX);

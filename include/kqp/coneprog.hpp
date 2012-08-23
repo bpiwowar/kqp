@@ -141,6 +141,7 @@ namespace kqp {
         template<typename Scalar>
         class KKTSolver {
         public:
+            virtual ~KKTSolver() {}
             virtual void solve(KQP_VECTOR(Scalar) &x, KQP_VECTOR(Scalar) &y, KQP_VECTOR(Scalar) & z) const = 0;  
         };
         

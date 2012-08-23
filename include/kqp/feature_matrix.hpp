@@ -68,6 +68,8 @@ namespace kqp {
     class FeatureMatrixBase {
     public:       
         KQP_SCALAR_TYPEDEFS(Scalar);
+        
+        virtual ~FeatureMatrixBase() {}
 
         /** Number of pre-image vectors */
         virtual Index size() const = 0;
@@ -225,8 +227,8 @@ namespace kqp {
 
         //! Inner products \f$X_1^\dagger X_2\f$
         inline ScalarMatrix k(const FMatrixBase &mX1, const FMatrixBase &mX2) const {
-            return k(mX1, ScalarMatrix::Identity(mX1.size(), mX1.size()), RealVector::Ones(mX1.size()), 
-                     mX2, ScalarMatrix::Identity(mX2.size(), mX2.size()), RealVector::Ones(mX2.size()));
+            return k(mX1, Eigen::Identity<Scalar>(mX1.size(), mX1.size()), RealVector::Ones(mX1.size()),
+                     mX2, Eigen::Identity<Scalar>(mX2.size(), mX2.size()), RealVector::Ones(mX2.size()));
         }
 
         

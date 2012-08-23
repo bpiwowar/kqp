@@ -25,6 +25,13 @@
         this->swap(other);
         return *this;
     }
+
+    
+    template<typename OtherScalar>
+    Matrix &operator=(const Eigen::Identity<OtherScalar> &other) {
+        *this = Matrix::Identity(other.rows(), other.cols());
+        return *this;
+    }
     
     //! Debug (dump to std::cerr)
     void print() const {

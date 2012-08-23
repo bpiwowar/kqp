@@ -116,7 +116,7 @@ namespace kqp {
                 
                 kernel(i,j) = 0;
                 
-                kernel = ((ScalarMatrix::Identity(pre_images_count, pre_images_count) 
+                kernel = ((Eigen::Identity<Scalar>(pre_images_count, pre_images_count) 
                            - v * ScalarVector::Unit(pre_images_count, i).adjoint()) * kernel).eval();
             }
             

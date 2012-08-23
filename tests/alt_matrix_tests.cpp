@@ -29,6 +29,7 @@ using namespace Eigen;
 #define RANDOM_V(scalar, size) Eigen::Matrix<scalar,Dynamic,1>::Random(size).eval()
 #define RANDOM_D(scalar, size) RANDOM_V(scalar,size).asDiagonal()
 
+
 namespace {
     
     using Eigen::Matrix;
@@ -50,6 +51,28 @@ namespace {
     template<typename Derived>
     const Eigen::DiagonalWrapper<Derived> & adjoint(const Eigen::DiagonalWrapper<Derived> &m)  {
         return m;
+    }
+
+
+    int test_alt_dense_matrix() {
+        int code = 0;
+        double error;
+        typedef Eigen::Matrix<double,Dynamic,Dynamic> ScalarMatrix;
+
+        Eigen::MatrixXd mA = Eigen::MatrixXd::Random(3,5);
+
+        AltDense<double>::type mC = Eigen::Identity<double>(5,5);
+        error  = (ScalarMatrix(mA * mC) - mA).squaredNorm();
+        std::cerr << "Error: " << error << std::endl;        
+        code |= error > EPSILON;
+   
+        Eigen::MatrixXd mB = Eigen::MatrixXd::Random(5,4);
+        mC = mB;
+        error  = (ScalarMatrix(mA * mC) - mA * mB).squaredNorm();
+        std::cerr << "Error: " << error << std::endl;        
+        code |= error > EPSILON;
+
+        return code;
     }
     
     
@@ -181,7 +204,7 @@ namespace {
         std::cerr << "AltDense block * Dense [Dense] error: " << error << std::endl;
         
         
-        alt_m = Eigen::MatrixXd::Identity(7,7);
+        alt_m = Identity<double>(7,7);
         Eigen::MatrixXd id7 = Eigen::MatrixXd::Identity(7,7);
         double error2 = (id7.block(2,1,5,4) * m2 - Eigen::MatrixXd(alt_m.block(2,1,5,4) * m2)).squaredNorm();
         std::cerr << "AltDense block * Dense [Identity] error: " << error2 << std::endl;
@@ -203,7 +226,7 @@ namespace {
         std::cerr << "Dense * AltDense block [Dense] error: " << error << std::endl;
         
         
-        alt_m = Eigen::MatrixXd::Identity(7,7);
+        alt_m = Identity<double>(7,7);
         Eigen::MatrixXd id7 = Eigen::MatrixXd::Identity(7,7);
         double error2 = (m2 * id7.block(2,1,4,5) - Eigen::MatrixXd(m2 * alt_m.block(2,1,4,5))).squaredNorm();
         std::cerr << "Dense * AltDense block [Identity] error: " << error2 << std::endl;
@@ -297,6 +320,10 @@ test_adjoint_post_product(x,y);
     int main (int, const char **) {
         
         int code = 0;
+
+        // Identity test
+
+        code |= test_alt_dense_matrix();
         
         // Multiplication test
         

@@ -186,7 +186,7 @@ namespace kqp {
             // If we can linearly combine, use it to reduce the future amount of computation
             if (m_operator.fs.canLinearlyCombine()) {
                 m_operator.mX = m_operator.fs.linearCombination(m_operator.mX, m_operator.mY, 1);
-                m_operator.mY = ScalarMatrix::Identity(X().size(),X().size());
+                m_operator.mY = Eigen::Identity<Scalar>(X().size(),X().size());
             } 
             
             m_operator.orthonormal = true;
@@ -230,7 +230,7 @@ namespace kqp {
         }
         
         /** Construct an event from a basis */
-        Event(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, ScalarMatrix::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        Event(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
         /** Construct an event from a basis */
@@ -252,7 +252,7 @@ namespace kqp {
             noalias(lc) = event.Y() * event.m_operator.k(density.m_operator);
             
             FMatrix mX = event.m_operator.fs.linearCombination(event.X(), lc);
-            ScalarAltMatrix mY = ScalarMatrix::Identity(mX.size(),mX.size());
+            ScalarAltMatrix mY = Eigen::Identity<Scalar>(mX.size(),mX.size());
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<Scalar>(event.m_operator.fs, mX, mY, mS, false);
         }
@@ -270,7 +270,7 @@ namespace kqp {
             
             FMatrix mX = density.m_operator.fs.linearCombination(density.X(), density.Y(), 1., event.X(), e_mY, -1.);
             
-            return Density<Scalar>(event.m_operator.fs, mX, ScalarMatrix::Identity(mX.size(),mX.size()), density.S(), false);
+            return Density<Scalar>(event.m_operator.fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), density.S(), false);
         }
         
         
@@ -340,7 +340,7 @@ namespace kqp {
         Density(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, mD, orthonormal) {
         }
         
-        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, ScalarMatrix::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
         //! Normalise the density

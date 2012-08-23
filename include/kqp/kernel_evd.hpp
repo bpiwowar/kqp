@@ -77,7 +77,7 @@ namespace kqp {
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
         inline void add(const FeatureMatrix<Scalar> &mU) {
-            add(1., mU, ScalarMatrix::Identity(mU.size(),mU.size()));
+            add(1., mU, Eigen::Identity<Scalar>(mU.size(),mU.size()));
             nbUpdates += mU.size();
         }
 

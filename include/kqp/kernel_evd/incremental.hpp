@@ -195,7 +195,7 @@ namespace kqp {
                     if (getFSpace().canLinearlyCombine()) {
                         // Easy case: we can linearly combine pre-images
                         mX = getFSpace().linearCombination(mX, mY);
-                        mY = ScalarMatrix::Identity(mX.size(), mX.size());
+                        mY = Eigen::Identity<Scalar>(mX.size(), mX.size());
                     } else {
                         // Use QP approach
                         ReducedSetWithQP<Scalar> qp_rs;
@@ -214,7 +214,7 @@ namespace kqp {
             }
             
             if (identityZ) 
-                mZ = ScalarMatrix::Identity(mY.cols(), mY.cols());
+                mZ = Eigen::Identity<Scalar>(mY.cols(), mY.cols());
             
         }
         
@@ -225,7 +225,7 @@ namespace kqp {
             d.mX = this->mX;
             
             const_cast<ScalarMatrix&>(this->mY) = this->mY * this->mZ;
-            const_cast<ScalarMatrix&>(this->mZ) = ScalarMatrix::Identity(mY.rows(), mY.rows());
+            const_cast<ScalarMatrix&>(this->mZ) = Eigen::Identity<Scalar>(mY.rows(), mY.rows());
             
             d.mY = ScalarAltMatrix(this->mY);
             

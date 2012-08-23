@@ -46,7 +46,7 @@ namespace kqp {
         Orthonormalize<Scalar>::run(d.fs, d.mX, d.mY, d.mD);
         ScalarMatrix inners = fs.k(d.mX, d.mY);
         
-        Real error = (inners - ScalarMatrix::Identity(inners.rows(),inners.rows())).squaredNorm();
+        Real error = (inners - Eigen::Identity<Scalar>(inners.rows(),inners.rows())).squaredNorm();
         std::cerr << "Orthonormalization [1] orthonormality error is " << error << std::endl;
         
         

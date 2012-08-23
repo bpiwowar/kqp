@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include <kqp/kqp.hpp>
+#include <kqp/eigen_identity.hpp>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
@@ -66,7 +67,7 @@ namespace kqp {
     //! Dense or Identity matrix
     template<typename Scalar> struct AltDense {
         typedef Eigen::Matrix<Scalar,Dynamic,Dynamic> DenseType;
-        typedef typename Eigen::MatrixBase<Eigen::Matrix<Scalar,Dynamic,Dynamic>>::IdentityReturnType IdentityType;
+        typedef Eigen::Identity<Scalar> IdentityType;
         typedef AltMatrix<DenseType, IdentityType> type;
         
         static  inline type Identity(Index n) { 
@@ -204,7 +205,10 @@ namespace kqp {
     
     template<typename Derived> 
     Eigen::DiagonalWrapper<const Derived> adjoint(const Eigen::DiagonalWrapper<const Derived> & x)  { return x; }
-    
+
+    template<typename Scalar>
+    Eigen::Identity<Scalar> adjoint(const Eigen::Identity<Scalar> & x)  { return x; }
+
     template<typename Derived>
     auto blockSquaredNorm(const Eigen::MatrixBase<Derived>& x, Index row, Index col, Index rowSize, Index colSize) -> decltype(x.squaredNorm()) { 
         return x.block(row,col,rowSize,colSize).squaredNorm(); 
@@ -215,6 +219,10 @@ namespace kqp {
         return x.diagonal().segment(std::max(row,col), std::min(row+rowSize, col+colSize)).squaredNorm(); 
     }
     
+    template<typename Scalar>
+    Scalar blockSquaredNorm(const Eigen::Identity<Scalar> &, Index row, Index col, Index rowSize, Index colSize)   {
+        return std::max(row,col) - std::min(row+rowSize, col+colSize);
+    }
     
     template<typename Derived>
     auto squaredNorm(const Eigen::MatrixBase<Derived>& x) -> decltype(x.derived().squaredNorm()) { return x.derived().squaredNorm(); }
@@ -266,7 +274,12 @@ namespace kqp {
     void printExpression(std::ostream &out, const Eigen::EigenBase<Derived> &x) {
         out << KQP_DEMANGLE(x) << "[" << x.rows() << " x " << x.cols() << "]";
     }
-    
+
+    template <typename Scalar>
+    void printExpression(std::ostream &out, const Eigen::Identity<Scalar> &x) {
+        out << "Id[" << KQP_DEMANGLE(Scalar) << "; " << x.rows() << " x " << x.cols() << "]";
+    }
+
     template <typename Derived>
     void printExpression(std::ostream &out, const Eigen::Transpose<Derived> &x) {
         out << "adjoint(";
@@ -340,6 +353,16 @@ namespace kqp {
             KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot change the number of rows in a fixed row-sized matrix (%d to %d)", %matrix.rows() %rows);
         if (conservative) matrix.derived().conservativeResize(cols); else matrix.derived().resize(cols);
     }
+
+    //! Default resize
+    template<typename Scalar>
+    void resize(Eigen::Identity<Scalar> &matrix, bool conservative, Index rows, Index cols) {
+        if (conservative)
+            matrix.conservativeResize(rows, cols);
+        else
+            matrix.resize(rows, cols);
+    }
+
 
     
     // --- AltMatrix inner storage of Eigen matrices
@@ -509,8 +532,9 @@ namespace kqp {
         }
 
     };
-    
-    //! Storage for the identity
+
+
+    //! Storage for the identity (with cwise)
     template<typename Scalar>
     struct storage< Eigen::CwiseNullaryOp<Eigen::internal::scalar_identity_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,Dynamic> >  > {
         Index m_rows, m_cols; 
@@ -780,9 +804,19 @@ namespace kqp {
             KQP_THROW_EXCEPTION_F(not_implemented_exception, "Cannot assign a constant matrix to [%s]", % KQP_DEMANGLE(OtherDerived));
         }
         
+        template<typename Scalar, typename OtherDerived>
+        void assign(const Eigen::Identity<Scalar> &, const OtherDerived &, Index, Index) {
+            KQP_THROW_EXCEPTION_F(not_implemented_exception, "Cannot assign an Id matrix to [%s]", % KQP_DEMANGLE(OtherDerived));
+        }
+        
         template<typename Derived, int Rows, int Cols, typename OtherDerived>
         void assign(Eigen::Matrix<Derived, Rows, Cols> &mTo, const Eigen::MatrixBase<OtherDerived> &mFrom, Index fromRow, Index fromCol) {
             mTo.block(row,col,height,width) = mFrom.derived().block(fromRow, fromCol, height, width);
+        }
+        
+        template<typename Scalar, int Rows, int Cols, typename Derived>
+        void assign(Eigen::Matrix<Derived, Rows, Cols> &, const Eigen::Identity<Scalar> &, Index , Index ) {
+            KQP_THROW_EXCEPTION(not_implemented_exception, "Not implemented Matrix = Identity");
         }
         
         template<typename T> friend class AltBlock;
@@ -1421,7 +1455,7 @@ namespace Eigen {
 namespace kqp {
 
 # define KQP_SCALAR_GEN(type)  \
-    extern template class AltMatrix<AltDense<type>::DenseType, AltDense<type>::IdentityType>; \
+    extern template class AltMatrix<AltDense<type>::DenseType, Eigen::Identity<type>>; \
     extern template class AltMatrix<AltVector<type>::VectorType, AltVector<type>::ConstantVectorType>;
 # include <kqp/for_all_scalar_gen.h.inc>
     

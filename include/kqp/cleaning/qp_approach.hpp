@@ -378,7 +378,7 @@ namespace kqp {
                 if (d.fs.canLinearlyCombine()) {
                     // Easy case: we can linearly combine pre-images
                     d.mX = d.fs.linearCombination(d.mX, d.mY);
-                    d.mY = ScalarMatrix::Identity(d.mX.size(), d.mX.size());
+                    d.mY = Eigen::Identity<Scalar>(d.mX.size(), d.mX.size());
                 } else {
                     // Use QP approach
                     ReducedSetWithQP<Scalar> qp_rs;
