@@ -30,8 +30,8 @@ function dispTest(name, description, U1, S1, U2, S2, epsilon)
   dispDiag("S1", S1);
   dispDiag("S2", S2);
   printf("\ndouble epsilon = %.30g;\n\n", epsilon);
-  printf("Density< double > rho(fs, Dense<double>::create(mU1), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU1.cols(),mU1.cols()), mS1, true);\n");
-  printf("Density< double > tau(fs, Dense<double>::create(mU2), Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>::Identity(mU2.cols(),mU2.cols()), mS2, true);\n");
+  printf("Density< double > rho(fs, Dense<double>::create(mU1), Eigen::Identity<double>(mU1.cols(),mU1.cols()), mS1, true);\n");
+  printf("Density< double > tau(fs, Dense<double>::create(mU2), Eigen::Identity<double>(mU2.cols(),mU2.cols()), mS2, true);\n");
 
   eid = eye(rows(U1)) / min(columns(S1) + columns(S2), rows(U1));
   

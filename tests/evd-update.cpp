@@ -3,10 +3,10 @@
 
 #include <boost/format.hpp>
 
-#include <Eigen/Eigenvalues>
 
 #include <kqp/kqp.hpp>
 #include <kqp/evd_update.hpp>
+#include <Eigen/Eigenvalues>
 
 DEFINE_LOGGER(logger, "kqp.test.evd-update")
 

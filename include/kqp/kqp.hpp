@@ -18,8 +18,16 @@
 #define __KQP_H__
 
 
+#ifdef EIGEN_CORE_H
+ #error "kqp.hpp should be included before any Eigen source"
+#endif
+
 #include <iostream>
 
+namespace Eigen {
+    template<typename Scalar> class Identity;
+}
+#define EIGEN_MATRIXBASE_PLUGIN <kqp/eigen_matrixbase_plugin.h.inc>
 #define EIGEN_MATRIX_PLUGIN <kqp/eigen_matrix_plugin.h.inc>
 #define EIGEN_SPARSEMATRIX_PLUGIN <kqp/eigen_sparse_matrix_plugin.h.inc>
 

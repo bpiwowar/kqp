@@ -230,7 +230,8 @@ namespace kqp {
         }
         
         /** Construct an event from a basis */
-        Event(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        Event(const FSpace &fs, const FMatrix &mX, bool orthonormal)
+        : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
         /** Construct an event from a basis */
@@ -295,7 +296,8 @@ namespace kqp {
             Index n = s.rows();
             
             _mY.topRows(density.X().size()) = density.Y();
-            _mY.bottomRows(event.X().size()) = ((Scalar)-1) * event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * event.m_operator.fs.k(event.X(), event.Y(), density.X(), density.Y());
+            _mY.bottomRows(event.X().size()) = ((Scalar)-1)
+                * (event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * event.m_operator.fs.k(event.X(), event.Y(), density.X(), density.Y()));
             
             ScalarAltMatrix mY; 
             mY.swap(_mY);
@@ -340,7 +342,7 @@ namespace kqp {
         Density(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, mD, orthonormal) {
         }
         
-        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
         }
         
         //! Normalise the density

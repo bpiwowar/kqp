@@ -27,6 +27,10 @@ template<> struct NumTraits< @STYPE@ > {
 
 %template() Eigen::NumTraits< @STYPE@ >;
 
+// Identity (Eigen)
+
+%template(EigenIdentity@SNAME@) Eigen::Identity< @STYPE@ >;
+
 // Matrix (Eigen)
 
 %template(EigenMatrix@SNAME@) Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic >;

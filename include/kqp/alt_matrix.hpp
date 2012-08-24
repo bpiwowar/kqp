@@ -739,6 +739,12 @@ namespace kqp {
         return x.diagonal().rowwise();
     }
     
+    template <typename Scalar> auto rowwise(const Eigen::Identity<Scalar> &x) -> decltype(Eigen::Matrix<Scalar, 1, Dynamic>::Ones(0).rowwise()) {
+        eigen_assert(x.rows() == x.cols()); // otherwise, it is a bit more complex! We need a constant expression
+        return Eigen::Matrix<Scalar, 1, Dynamic>::Ones(x.rows()).rowwise();
+    }
+
+    
     //! Row wise view of an Alt matrix
     template<typename AltMatrix> class RowWise {
         AltMatrix &alt_matrix;

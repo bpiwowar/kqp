@@ -708,12 +708,11 @@ public:
 # if (__cplusplus >=  201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__) || (defined(_MSC_VER) && (_MSC_VER >= 1600))
 #  if !(defined(__clang__) && defined(__GLIBCXX__)) 
 #    define EIGEN_HAS_MOVE
+#  else
 #  endif
 # endif
 
-
-    // Support for c++11
-#if (EIGEN_HAS_MOVE)
+#ifdef EIGEN_HAS_MOVE
     template<typename... Args>
     void  construct(pointer p, Args&&... args)
     {

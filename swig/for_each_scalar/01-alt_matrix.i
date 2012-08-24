@@ -2,10 +2,11 @@
 
 #define SCALARMATRIX Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic>
 
+// Either a dense matrix or the identity
 %template(AltMatrix@SNAME@) SCALAR_ALTMATRIX_@SNAME@;
 %extend SCALAR_ALTMATRIX_@SNAME@ {
     static SCALAR_ALTMATRIX_@SNAME@ createIdentity(Index rows, Index cols) {
-        return SCALARMATRIX::Identity(rows, cols);
+        return Eigen::Identity< @STYPE@ >(rows, cols);
     }
     static SCALAR_ALTMATRIX_@SNAME@ adopt(Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic > &other) {
         return SCALAR_ALTMATRIX_@SNAME@(std::move(other));
@@ -32,6 +33,7 @@
 #ifndef REAL_ALTVECTOR_@RNAME@
 #define REAL_ALTVECTOR_@RNAME@ kqp::AltMatrix< typename kqp::AltVector<@RTYPE@>::VectorType,  typename kqp::AltVector<@RTYPE@>::ConstantVectorType >
 
+// Either a vector or a constant vector
 %template(AltVector@RNAME@) REAL_ALTVECTOR_@RNAME@;
 %extend REAL_ALTVECTOR_@RNAME@ {
     static REAL_ALTVECTOR_@RNAME@ createConstant(Index size, @RTYPE@ x) {

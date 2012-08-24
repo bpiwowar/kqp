@@ -12,11 +12,12 @@
 #include <algorithm>
 #include <numeric>
 
-#include "Eigen/Core"
 
 
 #include <kqp/kqp.hpp>
 #include <kqp/coneprog.hpp>
+
+#include "Eigen/Core"
 
 DEFINE_LOGGER(logger, "kqp.coneqp")
 

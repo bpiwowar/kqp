@@ -1,6 +1,6 @@
-#include <Eigen/Dense>
 
 #include <kqp/kqp.hpp>
+#include <Eigen/Dense>
 #include "kernel-evd-tests.hpp"
 
 DEFINE_LOGGER(logger, "kqp.test.kernel_evd")

@@ -17,12 +17,14 @@
 
 %module kqp
 
+
 #ifndef SWIGPYTHON
 #define DENSE_MATRIX DENSE
 #define DENSE_VECTOR DENSE
 #define CONSTANT_VECTOR CONSTANT
 #define IDENTITY_MATRIX IDENTITY
 #endif
+
 
 %{
     #include <boost/exception/diagnostic_information.hpp> 
@@ -138,7 +140,6 @@ namespace kqp {
 }
 
 
-
 namespace Eigen {
     template<typename Scalar> struct NumTraits;
     
@@ -184,6 +185,7 @@ namespace Eigen {
     }
 }
 
+%include <kqp/eigen_identity.hpp>
 
 
 %include "kqp_all.i"

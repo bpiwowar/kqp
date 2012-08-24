@@ -1,8 +1,9 @@
-#include <Eigen/Cholesky> 
-
 #include <kqp/coneprog.hpp>
 
 #include <kqp/cleaning/qp_approach.hpp>
+
+#include <Eigen/Cholesky> 
+
 
 DEFINE_LOGGER(logger, "kqp.qp-approach");
 
