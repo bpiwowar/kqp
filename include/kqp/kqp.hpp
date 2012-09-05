@@ -244,6 +244,9 @@ namespace kqp {
 #    // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
 #    ifndef NDEBUG
     
+#     //! Useful to remove unuseful statements when debugging (or not)
+#     define KQP_M_NDEBUG(x)
+#     define KQP_M_DEBUG(x) x
 
 #      /** Debug */
 #      define KQP_LOG_DEBUG(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
@@ -255,6 +258,9 @@ namespace kqp {
 #     define KQP_THROW_EXCEPTION(type, message) { kqp::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
 
 #    else // No DEBUG
+
+#     define KQP_M_NDEBUG(x) x
+#     define KQP_M_DEBUG(x)
     
 #     //! Throw an exception with a message
 #     define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))

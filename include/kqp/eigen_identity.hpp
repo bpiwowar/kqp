@@ -80,7 +80,8 @@ namespace Eigen {
 
         template<typename CwiseUnaryOp>
         Identity unaryExpr(const CwiseUnaryOp &) {
-            KQP_THROW_EXCEPTION(kqp::illegal_argument_exception, "Cannot apply a unary expression on the Identity matrix");
+            throw kqp::illegal_argument_exception();
+            //KQP_THROW_EXCEPTION(kqp::illegal_argument_exception, "Cannot apply a unary expression on the Identity matrix");
         }
         
         auto getVectorIdentity() const -> decltype(Eigen::Matrix<Scalar,Dynamic,1>::Ones(0).asDiagonal()) {
@@ -100,8 +101,7 @@ namespace Eigen {
     
 #ifndef SWIG
     template <typename Derived, typename Scalar> \
-	const DiagonalWrapper<Derived>  operator* (const Identity<Scalar> &lhs, const DiagonalWrapper<Derived> &rhs) { \
-        eigen_assert(lhs.cols() == lhs.rows()); \
+	const DiagonalWrapper<Derived>  operator* (const Identity<Scalar> &KQP_M_DEBUG(lhs), const DiagonalWrapper<Derived> &rhs) { \
         eigen_assert(lhs.cols() == rhs.rows() \
                      && "invalid matrix product" \
                      && "if you wanted a coeff-wise or a dot product use the respective explicit functions"); \
@@ -109,8 +109,7 @@ namespace Eigen {
 	}
     
     template <typename Derived, typename Scalar> \
-	const DiagonalWrapper<Derived> operator* (const DiagonalWrapper<Derived> &lhs, const Identity<Scalar> &rhs) { \
-        eigen_assert(rhs.cols() == rhs.rows()); \
+	const DiagonalWrapper<Derived> operator* (const DiagonalWrapper<Derived> &lhs, const Identity<Scalar> &KQP_M_DEBUG(rhs)) { \
         eigen_assert(lhs.cols() == rhs.rows() \
                      && "invalid matrix product" \
                      && "if you wanted a coeff-wise or a dot product use the respective explicit functions"); \
@@ -122,7 +121,7 @@ namespace Eigen {
     /** Pre-Multiplication by identity */
 #   define KQP_IDENTITY_PRE_MULT(matrixtype) \
 	template <typename Derived, typename Scalar> \
-	const typename Eigen::internal::ref_selector<Derived>::type operator* (const Identity<Scalar> &lhs, const matrixtype &rhs) { \
+	const typename Eigen::internal::ref_selector<Derived>::type operator* (const Identity<Scalar> &KQP_M_DEBUG(lhs), const matrixtype &rhs) { \
         eigen_assert(lhs.cols() == rhs.rows() \
                      && "invalid matrix product" \
                      && "if you wanted a coeff-wise or a dot product use the respective explicit functions"); \
@@ -132,7 +131,7 @@ namespace Eigen {
 	/** Post-Multiplication by identity */
 #   define KQP_IDENTITY_POST_MULT(matrixtype) \
 	template <typename Derived, typename Scalar> \
-	const typename Eigen::internal::ref_selector<Derived>::type operator* (const matrixtype &lhs, const Identity<Scalar> &rhs) { \
+	const typename Eigen::internal::ref_selector<Derived>::type operator* (const matrixtype &lhs, const Identity<Scalar> &KQP_M_DEBUG(rhs)) { \
         eigen_assert(lhs.cols() == rhs.rows() \
                      && "invalid matrix product" \
                      && "if you wanted a coeff-wise or a dot product use the respective explicit functions"); \
@@ -152,14 +151,14 @@ namespace Eigen {
 #   define KQP_IDENTITY_ADD(op, matrixtype) \
     template <typename Derived, typename Scalar> \
     auto operator op (const Identity<Scalar> &lhs, const matrixtype &rhs) -> decltype(lhs.getIdentityMatrix() op rhs.derived()) { \
-        eigen_assert(lhs.rows() == rhs.rows()); \
         eigen_assert(lhs.cols() == rhs.cols()); \
+        eigen_assert(lhs.rows() == rhs.rows()); \
         return lhs.getIdentityMatrix() op rhs.derived(); \
     } \
     template <typename Derived, typename Scalar> \
     auto operator op (const matrixtype &lhs, const Identity<Scalar> &rhs) -> decltype(lhs.derived() op rhs.getIdentityMatrix()) { \
-        eigen_assert(rhs.cols() == rhs.rows()); \
-        eigen_assert(lhs.cols() == rhs.rows()); \
+        eigen_assert(lhs.cols() == rhs.cols()); \
+        eigen_assert(lhs.rows() == rhs.rows()); \
     return lhs.derived() op rhs.getIdentityMatrix();\
     }
 

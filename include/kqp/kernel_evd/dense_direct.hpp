@@ -33,29 +33,6 @@
 
 namespace kqp {
 
-#ifndef SWIG
-    /** Rank update with an Eigen matrix expression (used for recursion termination) */
-    template<typename MatrixType, unsigned int UpLo, typename Derived>
-    void rankUpdate2(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const Eigen::MatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
-        Eigen::Matrix<typename MatrixType::Scalar, Eigen::Dynamic, Eigen::Dynamic> mB = mA;
-        matrix.rankUpdate(mB, alpha);
-    }
-
-    /** 
-    * Rank update with an AltMatrix 
-    * @param matrix The matrix to be updated
-    * @param mA The matrix used for update
-    * @param alpha The update coefficient
-    */
-    template<typename MatrixType, unsigned int UpLo, typename Derived> 
-    void rankUpdate2(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const AltMatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
-        if (mA.derived().isT1())
-            rankUpdate2(std::move(matrix), mA.derived().t1(), alpha);
-        else 
-            rankUpdate2(std::move(matrix), mA.derived().t2(), alpha);
-    }
-#endif
-
     /**
      * @brief Direct computation of the density (i.e. matrix representation) for dense vectors.
      * 
@@ -81,7 +58,6 @@ namespace kqp {
 
 
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
-            const auto &_mX = dynamic_cast<const FDense &>(*mX).getMatrix();
             rankUpdate2(matrix.template selfadjointView<Eigen::Lower>(), dynamic_cast<const FDense &>(*mX).getMatrix() * mA, (Scalar)alpha);
         }
         

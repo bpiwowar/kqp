@@ -128,12 +128,13 @@ namespace kqp {
     * @param alpha The update coefficient
     */
     template<typename MatrixType, unsigned int UpLo, typename Derived> 
-    void rankUpdate(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const AltMatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
+    void rankUpdate2(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const AltMatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
         if (mA.derived().isT1())
             rankUpdate(std::move(matrix), mA.derived().t1(), alpha);
         else 
             rankUpdate(std::move(matrix), mA.derived().t2(), alpha);
     }
+
     
     // --- As diagonal
     template<typename XprType> class AltAsDiagonal : Eigen::internal::no_assignment_operator, public AltMatrixBase<AltAsDiagonal<XprType>> {

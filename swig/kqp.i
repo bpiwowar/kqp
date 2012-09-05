@@ -66,6 +66,7 @@
 #define Index long
 #define override 
 #define DEFINE_KQP_HLOGGER(x)
+#define KQP_M_DEBUG(x) x
 
 // Preserve the arguments
 #define %kqparg(X...) X
