@@ -37,13 +37,7 @@ namespace kqp {
     /** Rank update with an Eigen matrix expression (used for recursion termination) */
     template<typename MatrixType, unsigned int UpLo, typename Derived>
     void rankUpdate2(Eigen::SelfAdjointView<MatrixType, UpLo> &&matrix, const Eigen::MatrixBase<Derived> &mA, const typename MatrixType::Scalar alpha) {
-        std::cerr << "Updating matrix " << matrix.rows() << " x " << matrix.cols() << std::endl;
-
-        std::cerr << " original type " << KQP_DEMANGLE(mA) << std::endl;
-
         Eigen::Matrix<typename MatrixType::Scalar, Eigen::Dynamic, Eigen::Dynamic> mB = mA;
-        std::cerr << " with " << mB.rows() << " x " << mB.cols() << ", alpha=" << alpha << std::endl;
-        std::cerr << " of type " << KQP_DEMANGLE(mB) << std::endl;
         matrix.rankUpdate(mB, alpha);
     }
 
@@ -60,7 +54,6 @@ namespace kqp {
             rankUpdate2(std::move(matrix), mA.derived().t1(), alpha);
         else 
             rankUpdate2(std::move(matrix), mA.derived().t2(), alpha);
-        
     }
 #endif
 

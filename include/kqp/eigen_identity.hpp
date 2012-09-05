@@ -14,9 +14,12 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #ifndef _KQP_EIGEN_IDENTITY_H_
 #define _KQP_EIGEN_IDENTITY_H_
 
+#include <kqp/kqp.hpp>
+ 
 namespace kqp {
     template<typename Derived> struct DiagonalBlockWrapper;
     template<typename Derived> class AltMatrixBase;
