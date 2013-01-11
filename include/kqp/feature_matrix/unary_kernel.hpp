@@ -269,7 +269,7 @@ namespace kqp {
         }
 
         virtual int numberOfParameters() const {
-            return 1;
+            return 1 + m_base->numberOfParameters();
         }
 
         virtual void getParameters(std::vector<Real> & parameters, int offset) const {
