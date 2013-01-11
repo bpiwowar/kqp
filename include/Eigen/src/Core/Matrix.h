@@ -123,7 +123,6 @@ struct traits<Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> >
 };
 }
 
-
 template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 class Matrix
   : public PlainObjectBase<Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> >
@@ -335,7 +334,6 @@ class Matrix
     template<typename OtherDerived>
     Matrix& operator=(const eigen2_RotationBase<OtherDerived,ColsAtCompileTime>& r);
     #endif
-
 
     // allow to extend Matrix outside Eigen
     #ifdef EIGEN_MATRIX_PLUGIN
