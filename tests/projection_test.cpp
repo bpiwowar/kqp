@@ -69,7 +69,7 @@ namespace kqp {
         
         Event<double> subspace(kevd);
         
-        FeatureMatrix<double> v(Dense<double>::create(Eigen::VectorXd::Random(dimension)));
+        FMatrixPtr v(Dense<double>::create(Eigen::VectorXd::Random(dimension)));
         
         Density<double> v1 = subspace.project(Density<double>(fs, v, true), false);
         Density<double> v2 = subspace.project(Density<double>(fs, v, true), true);

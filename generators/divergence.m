@@ -23,7 +23,7 @@ function dispTest(name, description, U1, S1, U2, S2, epsilon)
   printf("// Test: %s\n", description);
   printf("namespace kqp {\n\n")
   printf("int divergence_%sTest(std::deque<std::string> &/*args*/) {\n", name);
-  printf("Space<double> fs(DenseSpace<double>::create(%d));\n", rows(U1))
+  printf("boost::shared_ptr<SpaceBase<double>> fs(DenseSpace<double>::create(%d));\n", rows(U1))
 
   dispMatrix("U1", U1);
   dispMatrix("U2", U2);

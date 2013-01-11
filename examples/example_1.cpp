@@ -29,7 +29,7 @@ int main(int, const char**) {
     int dim = 10;
     
     // Feature space
-    DenseSpace<double> space(DenseSpace<double>::create(dim));
+    DenseSpace<double>::SelfPtr space(new DenseSpace<double>(dim));
     
     // Creating an incremental builder
     IncrementalKernelEVD<double> kevd(space);

@@ -37,13 +37,13 @@ namespace kqp {
          * \f$ tr( X_1 Y_1 D_1 Y_1^\dagger X1^\dagger  X_2 Y_2 D_2 Y_2^\dagger X_2^\dagger) \f$
          *
          */
-        static Scalar traceProduct(const Space<Scalar> &fs,
+        static Scalar traceProduct(const FSpaceCPtr &fs,
                                    
-                                   const FeatureMatrix<Scalar> &mX1, 
+                                   const FMatrixCPtr &mX1, 
                                    const ScalarAltMatrix  &mY1,
                                    const RealVector &mD1,
                                    
-                                   const FeatureMatrix<Scalar> &mX2, 
+                                   const FMatrixCPtr &mX2, 
                                    const ScalarAltMatrix  &mY2,
                                    const RealVector &mD2) {
             
@@ -55,13 +55,13 @@ namespace kqp {
         /**
          * Computes the difference between two operators using trace functions
          */
-        static Scalar difference(const Space<Scalar> &fs,
+        static Scalar difference(const FSpaceCPtr &fs,
                                  
-                                 const FeatureMatrix<Scalar> &mX1, 
+                                 const FMatrixCPtr &mX1, 
                                  const ScalarAltMatrix  &mY1,
                                  const RealVector &mD1,
                                  
-                                 const FeatureMatrix<Scalar> &mX2, 
+                                 const FMatrixCPtr &mX2, 
                                  const ScalarAltMatrix  &mY2,
                                  const RealVector &mD2) {
             
@@ -123,7 +123,7 @@ namespace kqp {
                     matrix.template selfadjointView<Eigen::Lower>().rankUpdate(m * mA, alpha);
                     
                     
-                    builder.add(alpha, Dense<Scalar>::SelfPtr(new Dense<Scalar>(m)), mA);
+                    builder.add(alpha, FMatrixPtr(new Dense<Scalar>(m)), mA);
                 }
                 
                 // Computing via EVD
@@ -133,7 +133,7 @@ namespace kqp {
                 LDLT ldlt = matrix.template selfadjointView<Eigen::Lower>().ldlt();
                 ScalarMatrix mL = ldlt.matrixL();
                 mL = ldlt.transpositionsP().transpose() * mL;
-                FeatureMatrix<Scalar>  mU(Dense<Scalar>::create(mL));
+                FMatrixPtr  mU(Dense<Scalar>::create(mL));
                 Eigen::Matrix<Scalar,Dynamic,1> mU_d = ldlt.vectorD();
                 
                 

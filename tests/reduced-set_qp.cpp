@@ -23,7 +23,7 @@ namespace kqp {
         Index r_target = 9; // trivial test (just have to remove one)
         Index n = 3;
         
-        Space<Scalar> fs(DenseSpace<Scalar>::create(dim));
+        FSpacePtr fs(DenseSpace<Scalar>::create(dim));
         
         // Gets a rank-n matrix and a full rank matrix
         Eigen::MatrixXd _mF = generateMatrix<Scalar>(dim, dim);        
@@ -97,7 +97,7 @@ namespace kqp {
         Index r_target = nbPreImages - to_remove; // One pre-image to remove
         double alpha = 1e-1;
         
-        Space<Scalar> fs(DenseSpace<Scalar>::create(dim));
+        FSpacePtr fs(DenseSpace<Scalar>::create(dim));
 
         // --- Build the operator
         

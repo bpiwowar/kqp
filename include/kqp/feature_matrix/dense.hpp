@@ -64,6 +64,11 @@ namespace kqp {
 
         //! Construction by copying a dense matrix
         Dense(ScalarMatrix &&m) : m_matrix(m) {}
+
+        //! Creates from a matrix
+        static FMatrix create(const ScalarMatrix &m) {
+            return FMatrix(new Self(m));
+        }
         
         //! Creates from a matrix
         static FMatrix create(const ScalarMatrix &&m) {
