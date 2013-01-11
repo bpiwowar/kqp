@@ -18,6 +18,8 @@
 #define __KQP_DENSE_FEATURE_MATRIX_H__
 
 #include <numeric>
+#include <boost/lexical_cast.hpp>
+
 #include <kqp/feature_matrix.hpp>
 #include <kqp/subset.hpp>
 #include <kqp/intervals.hpp>
@@ -38,11 +40,10 @@ namespace kqp {
     template <typename Scalar> 
     class Dense : public FeatureMatrixBase<Scalar> {
     public:       
-        KQP_SCALAR_TYPEDEFS(Scalar);
         typedef Dense<Scalar> Self;
-   
-   
-        ~Dense() {}
+        KQP_MATRIX_TYPEDEFS(Scalar);
+
+        virtual ~Dense() {}
         
         //! Null constructor: will set the dimension with the first feature vector
         Dense() {}
@@ -57,12 +58,10 @@ namespace kqp {
         //! Copy constructor
         Dense(const Self &other) : m_gramMatrix(other.m_gramMatrix),  m_matrix(other.m_matrix) {}
         
-        //! Creates from a matrix
-        static FMatrix create(const ScalarMatrix &m) {
-            return FMatrix(new Self(m));
-        }
         
 #ifndef SWIG
+        inline static SelfPtr create(Index dimension) { return SelfPtr(new Self(dimension)); }
+
         //! Construction by copying a dense matrix
         Dense(ScalarMatrix &&m) : m_matrix(m) {}
         
@@ -193,7 +192,9 @@ namespace kqp {
         const ScalarMatrix & operator*() const {
             return m_matrix;
         }
+
     private:        
+
         //! Cache of the gram m_matrix
         mutable ScalarMatrix m_gramMatrix;
         
@@ -201,6 +202,7 @@ namespace kqp {
         ScalarMatrix m_matrix;
 
         friend class DenseSpace<Scalar>;
+
     };
     
     
@@ -217,19 +219,20 @@ namespace kqp {
     template<typename Scalar>
     class DenseSpace : public SpaceBase<Scalar> {
     public:  
-        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef SpaceBase<Scalar> Self;
+        KQP_SPACE_TYPEDEFS("dense", Scalar);
 #ifndef SWIG
         using SpaceBase<Scalar>::k;
 #endif        
         static FSpace create(Index dimension) { return FSpace(new DenseSpace(dimension)); }
         
         DenseSpace(Index dimension) : m_dimension(dimension) {}
+        DenseSpace() : m_dimension(0) {}
         
-        FSpaceBasePtr copy() const override {
-            return FSpaceBasePtr(new DenseSpace(*this));
+        FSpacePtr copy() const override {
+            return FSpacePtr(new DenseSpace(*this));
         }
         
-        inline static const Dense<Scalar>& cast(const FeatureMatrix<Scalar> &mX) { return dynamic_cast<const Dense<Scalar> &>(*mX); }
         inline static const Dense<Scalar>& cast(const FMatrixBase &mX) { return dynamic_cast<const Dense<Scalar> &>(mX); }
 
         FMatrixBasePtr newMatrix(const ScalarMatrix &mX) const {
@@ -249,7 +252,7 @@ namespace kqp {
             return FMatrixBasePtr(new Dense<Scalar>(cast(mX)));            
         }
 
-        virtual bool canLinearlyCombine() const override {
+        virtual bool _canLinearlyCombine() const override {
             return true;
         }
 
@@ -265,6 +268,15 @@ namespace kqp {
         virtual FMatrixBasePtr linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                              const FMatrixBase *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
             return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, dynamic_cast<const Dense<Scalar> *>(mY), mB, beta));
+        }
+
+        virtual void load(const pugi::xml_node &node) override {
+            m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
+        }
+
+        virtual void save(pugi::xml_node &node) const override {
+            pugi::xml_node self = node.append_child(name().c_str());
+            self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
         }
 
     private:

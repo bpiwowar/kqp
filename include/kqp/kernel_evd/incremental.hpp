@@ -60,7 +60,7 @@ namespace kqp {
 #endif
         
         IncrementalKernelEVD(const FSpace &fs) 
-            : KernelEVD<Scalar>(fs), mX(fs.newMatrix()), 
+            : KernelEVD<Scalar>(fs), mX(fs->newMatrix()), 
               preImageRatios(std::numeric_limits<Scalar>::infinity(), std::numeric_limits<Scalar>::infinity()) {}
         virtual ~IncrementalKernelEVD() {}
         
@@ -82,16 +82,16 @@ namespace kqp {
             // --- Info
             
 //            KQP_LOG_DEBUG_F(KQP_HLOGGER, "Dimensions: X [%d], Y [%dx%d], Z [%dx%d], D [%d], U [%d], A [%dx%d]", 
-//                           %mX.size() %mY.rows() %mY.cols() %mZ.rows() %mZ.cols() %mD.rows() %mU.size() %mA.rows() %mA.cols());
+//                           %mX->size() %mY.rows() %mY.cols() %mZ.rows() %mZ.cols() %mD.rows() %mU.size() %mA.rows() %mA.cols());
             
             // --- Pre-computations
             
             // Compute W = Y^T X^T
             
-            ScalarMatrix mW =  getFSpace().k(mX, mY, mU, mA);
+            ScalarMatrix mW =  getFSpace()->k(mX, mY, mU, mA);
             
             // Compute V^T V
-            ScalarMatrix vtv = getFSpace().k(mU, mA);
+            ScalarMatrix vtv = getFSpace()->k(mU, mA);
             vtv -= mW.adjoint() * mW;
             
             
@@ -139,7 +139,7 @@ namespace kqp {
             // Update X and Y if the rank has changed
             if (rank_Q > 0) {
                 // Add the pre-images from U
-                mX.add(mU);
+                mX->add(mU);
                 
                 // Update mY
                 Index old_Y_rows = mY.rows();
@@ -177,7 +177,7 @@ namespace kqp {
             
             // --- Ensure we have a small enough number of pre-images
             float maxRank = this->preImageRatios.second * (float)mD.rows();
-            if (mX.size() > maxRank) {
+            if (mX->size() > maxRank) {
                 
                 // Get rid of Z
                 if (!identityZ) mY = mY * mZ;
@@ -191,11 +191,11 @@ namespace kqp {
                 ReducedSetNullSpace<Scalar>::run(getFSpace(), mX, mY);
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
 
-                if (mX.size() > maxRank) {
-                    if (getFSpace().canLinearlyCombine()) {
+                if (mX->size() > maxRank) {
+                    if (getFSpace()->canLinearlyCombine()) {
                         // Easy case: we can linearly combine pre-images
-                        mX = getFSpace().linearCombination(mX, mY);
-                        mY = Eigen::Identity<Scalar>(mX.size(), mX.size());
+                        mX = getFSpace()->linearCombination(mX, mY);
+                        mY = Eigen::Identity<Scalar>(mX->size(), mX->size());
                     } else {
                         // Use QP approach
                         ReducedSetWithQP<Scalar> qp_rs;
@@ -263,7 +263,7 @@ namespace kqp {
     };
 
 #ifndef SWIG    
-#define KQP_SCALAR_GEN(type) extern template class kqp::IncrementalKernelEVD<type>;
+#define KQP_SCALAR_GEN(type)  extern template class kqp::IncrementalKernelEVD<type>;
 #include <kqp/for_all_scalar_gen.h.inc>
 #endif
 

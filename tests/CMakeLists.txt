@@ -4,17 +4,17 @@ FILE(GLOB kqp.basefiles ../src/kqp.cpp ../src/logging.cpp)
 # Orthonormalization
 FILE(GLOB kqp.test.evd-utils test_evd-utils.cpp ../src/subset.cpp ${kqp.basefiles})
 ADD_EXECUTABLE(test_evd-utils ${kqp.test.evd-utils})
-TARGET_LINK_LIBRARIES(test_evd-utils ${LIBLOG4CXX_LIBRARY})
+TARGET_LINK_LIBRARIES(test_evd-utils ${LIBKQP_LIBRARIES})
 
 # Alt matrix
 FILE(GLOB kqp.test.alt-matrix alt_matrix_tests.cpp ${kqp.basefiles})
 ADD_EXECUTABLE(test_alt-matrix ${kqp.test.alt-matrix})
-TARGET_LINK_LIBRARIES(test_alt-matrix ${LIBLOG4CXX_LIBRARY})
+TARGET_LINK_LIBRARIES(test_alt-matrix ${LIBKQP_LIBRARIES})
 
 # Feature matrix
 FILE(GLOB kqp.test.fmatrix feature_matrix.cpp ../src/subset.cpp ${kqp.basefiles})
 ADD_EXECUTABLE(test_fmatrix ${kqp.test.fmatrix})
-TARGET_LINK_LIBRARIES(test_fmatrix ${LIBLOG4CXX_LIBRARY})
+TARGET_LINK_LIBRARIES(test_fmatrix ${LIBKQP_LIBRARIES})
 
 # Rank-1 EVD update
 FILE(GLOB kqp.test.evd-update evd-update.cpp)

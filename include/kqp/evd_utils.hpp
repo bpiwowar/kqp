@@ -145,7 +145,7 @@ namespace kqp {
             }
             
             // Perform the EVD
-            ScalarMatrix m = fs.k(mX, mY, RealAltVector(mD.cwiseAbs().cwiseSqrt()));
+            ScalarMatrix m = fs->k(mX, mY, RealAltVector(mD.cwiseAbs().cwiseSqrt()));
             
             Eigen::SelfAdjointEigenSolver<decltype(m)> evd(m.template selfadjointView<Eigen::Lower>());
             
@@ -160,7 +160,7 @@ namespace kqp {
             // Handles negative eigenvalues
             if (n > 0) {
                 m = mD.template cast<Scalar>().asDiagonal();
-                m.template selfadjointView<Eigen::Lower>().rankUpdate(mY.adjoint() * fs.k(mX) * _mY * _mD.cwiseAbs().cwiseSqrt().asDiagonal() , -2);
+                m.template selfadjointView<Eigen::Lower>().rankUpdate(mY.adjoint() * fs->k(mX) * _mY * _mD.cwiseAbs().cwiseSqrt().asDiagonal() , -2);
                 ScalarMatrix mU;
                 ThinEVD<ScalarMatrix>::run(Eigen::SelfAdjointEigenSolver<ScalarMatrix>(m.template selfadjointView<Eigen::Lower>()), mU, mD);
                 mY *= mU;

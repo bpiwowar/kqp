@@ -38,7 +38,7 @@ namespace kqp {
         
         Density<double> d(fs, Dense<double>::create(mX), mY, mD, false);
         d.orthonormalize();
-        Eigen::MatrixXd inners = fs.k(d.X(), d.Y());
+        Eigen::MatrixXd inners = fs->k(d.X(), d.Y());
         
         double error = (inners - Eigen::MatrixXd::Identity(inners.rows(),inners.rows())).squaredNorm();
         std::cerr << "Orthonormalization [1] error is " << error << std::endl;

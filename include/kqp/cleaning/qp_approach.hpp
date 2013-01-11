@@ -169,13 +169,13 @@ namespace kqp {
          * @param mY the 
          */
         void run(Index target, const FSpace &fs, const FMatrix &_mF, const ScalarAltMatrix &_mY, const RealVector &mD) {            
-            KQP_LOG_ASSERT_F(main_logger, _mY.rows() == _mF.size(), "Incompatible dimensions (%d vs %d)", %_mY.rows() %_mF.size());
+            KQP_LOG_ASSERT_F(main_logger, _mY.rows() == _mF->size(), "Incompatible dimensions (%d vs %d)", %_mY.rows() %_mF->size());
             
             // Diagonal won't change
             new_mD = mD;
             
             // Early stop
-            if (target >= _mF.size()) {
+            if (target >= _mF->size()) {
                 new_mY = _mY;
                 new_mF = _mF;
                 return;
@@ -197,24 +197,24 @@ namespace kqp {
                 ScalarMatrix eigenvectors;
                 RealVector eigenvalues;
                 boost::shared_ptr<ScalarMatrix> kernel(new ScalarMatrix());
-                Real threshold = fs.k(_mF).squaredNorm() * std::sqrt(Eigen::NumTraits<Real>::epsilon());
-                kqp::ThinEVD<ScalarMatrix>::run(Eigen::SelfAdjointEigenSolver<ScalarMatrix>(fs.k(_mF).template selfadjointView<Eigen::Lower>()),
+                Real threshold = fs->k(_mF).squaredNorm() * std::sqrt(Eigen::NumTraits<Real>::epsilon());
+                kqp::ThinEVD<ScalarMatrix>::run(Eigen::SelfAdjointEigenSolver<ScalarMatrix>(fs->k(_mF).template selfadjointView<Eigen::Lower>()),
                                                 eigenvectors, eigenvalues, kernel.get(), threshold);
                 
                 
                 if (kernel->cols() > 0) {
                     Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-                    RealVector weights = _mY.rowwise().squaredNorm().array() * fs.k(_mF).diagonal().array().abs();
+                    RealVector weights = _mY.rowwise().squaredNorm().array() * fs->k(_mF).diagonal().array().abs();
                     
                     // kernel will contain a matrix such that *kernel * mP * mY
                     new_mF = ReducedSetNullSpace<Scalar>::remove(_mF, *kernel, mP, weights);
                     
                     // Y <- (Id A) P Y
                     ScalarMatrix mY2(_mY); // FIXME: .topRows() should be defined in AltMatrix expressions
-                    ScalarMatrix mY3 = (mP * mY2).topRows(new_mF.size()) + *kernel * (mP * mY2).bottomRows(_mY.rows() - new_mF.size());
+                    ScalarMatrix mY3 = (mP * mY2).topRows(new_mF->size()) + *kernel * (mP * mY2).bottomRows(_mY.rows() - new_mF->size());
                     
-                    KQP_HLOG_INFO_F("Reduced rank to %d [target %d] with null space (kernel size: %d)", %new_mF.size() %target %kernel->cols())
-                    if (target >= new_mF.size()) {
+                    KQP_HLOG_INFO_F("Reduced rank to %d [target %d] with null space (kernel size: %d)", %new_mF->size() %target %kernel->cols())
+                    if (target >= new_mF->size()) {
                         new_mY = std::move(mY3);
                         return;
                     }
@@ -228,7 +228,7 @@ namespace kqp {
             }
             const FMatrix &mF = useNew ? new_mF : _mF;
             const ScalarAltMatrix &mY = useNew ? new_alt_mY : _mY;
-            const ScalarMatrix &gram = fs.k(mF);
+            const ScalarMatrix &gram = fs->k(mF);
             
             // Dimension of the basis
             Index r = mY.cols();
@@ -271,9 +271,9 @@ namespace kqp {
                 }
                 new_mD = mD;
                 CleanerUnused<Scalar>::run(new_mF, new_mY);
-                if (target >= new_mF.size()) 
+                if (target >= new_mF->size()) 
                     return;
-                KQP_THROW_EXCEPTION_F(arithmetic_exception, "Trivial solutions were not found (target %d, size %d)", %target %new_mF.size());
+                KQP_THROW_EXCEPTION_F(arithmetic_exception, "Trivial solutions were not found (target %d, size %d)", %target %new_mF->size());
             }
             
             // Now, we compute a more accurate lambda
@@ -341,7 +341,7 @@ namespace kqp {
             for(Index i = n-target; i < n; i++) {
                 to_keep[indices[i]] = true;
             }
-            FMatrix _new_mF = mF.subset(to_keep.begin(), to_keep.end());
+            FMatrix _new_mF = mF->subset(to_keep.begin(), to_keep.end());
             
             
             //
@@ -350,14 +350,14 @@ namespace kqp {
             
             // Compute new_mY so that new_mF Y is orthonormal, ie new_mY' new_mF' new_mF new_mY is the identity
             
-            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs.k(_new_mF).template selfadjointView<Eigen::Lower>());
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs->k(_new_mF).template selfadjointView<Eigen::Lower>());
             
             new_mY.swap(evd.eigenvectors());
             new_mY *= evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             
             // Project onto new_mF new_mY
             
-            new_mY *= fs.k(_new_mF, new_mY, mF, mY);
+            new_mY *= fs->k(_new_mF, new_mY, mF, mY);
             new_mF = std::move(_new_mF);
         }
     };
@@ -374,11 +374,11 @@ namespace kqp {
         
         virtual void cleanup(Decomposition<Scalar> &d) const override {
             // --- Ensure we have a small enough number of pre-images
-            if (d.mX.size() > (this->preImageRatios.second * d.mD.rows())) {
-                if (d.fs.canLinearlyCombine()) {
+            if (d.mX->size() > (this->preImageRatios.second * d.mD.rows())) {
+                if (d.fs->canLinearlyCombine()) {
                     // Easy case: we can linearly combine pre-images
-                    d.mX = d.fs.linearCombination(d.mX, d.mY);
-                    d.mY = Eigen::Identity<Scalar>(d.mX.size(), d.mX.size());
+                    d.mX = d.fs->linearCombination(d.mX, d.mY);
+                    d.mY = Eigen::Identity<Scalar>(d.mX->size(), d.mX->size());
                 } else {
                     // Use QP approach
                     ReducedSetWithQP<Scalar> qp_rs;

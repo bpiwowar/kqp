@@ -30,7 +30,7 @@ for i in range(10):
     # Adds a random $\varphi_i$
     m = EigenMatrixDouble(dim,1)
     m.randomize()
-    kevd.add(DenseDouble.create(m))
+    kevd.add(DenseDouble(m))
 
 # Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
 print "Getting the result"
@@ -46,7 +46,7 @@ for i in range(3):
     # Adds a random $\varphi_i$
     m = EigenMatrixDouble(dim,1)
     m.randomize()
-    kevd_event.add(DenseDouble.create(m))
+    kevd_event.add(DenseDouble(m))
 
 # --- Compute some probabilities
 
@@ -63,10 +63,15 @@ print "Computing some probabilities"
 print "Probability = %g\n" % rho.probability(event)
 
 # Conditional probability
-rho_cond = event.project(rho).normalize()
+rho_cond = event.project(rho)
+print rho_cond
+print "Entropy of rho/E = %g\n" % rho_cond.entropy()
+rho_cond = rho_cond.normalize()
+print rho_cond
 print "Entropy of rho/E = %g\n" % rho_cond.entropy()
 
 # Conditional probability (orthogonal event)
-rho_cond_orth = event.project(rho, true).normalize()
+rho_cond_orth = event.project(rho, true)
+rho_cond_orth= rho_cond_orth.normalize()
 print "Entropy of rho/not E = %g\n" % rho_cond.entropy()
 

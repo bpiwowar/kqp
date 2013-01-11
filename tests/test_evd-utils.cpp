@@ -42,9 +42,9 @@ namespace kqp {
         
         auto fs = DenseSpace<Scalar>::create(dim);
         
-        Decomposition<Scalar> d(fs, Dense<Scalar>::create(mX), mY, mD, false);
+        Decomposition<Scalar> d(fs, typename Dense<Scalar>::SelfPtr(new Dense<Scalar>(mX)), mY, mD, false);
         Orthonormalize<Scalar>::run(d.fs, d.mX, d.mY, d.mD);
-        ScalarMatrix inners = fs.k(d.mX, d.mY);
+        ScalarMatrix inners = fs->k(d.mX, d.mY);
         
         Real error = (inners - Eigen::Identity<Scalar>(inners.rows(),inners.rows())).squaredNorm();
         std::cerr << "Orthonormalization [1] orthonormality error is " << error << std::endl;

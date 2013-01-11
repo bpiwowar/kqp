@@ -17,7 +17,6 @@
 
 #ifndef KQP_NO_EXTERN_TEMPLATE 
 KQP_SCALAR_GEN(double);
-KQP_SCALAR_GEN(float);
 #endif
 
 #undef  KQP_SCALAR_GEN

@@ -17,8 +17,10 @@
 #ifndef __KQP_UNARY_KERNEL_SPACE_H__
 #define __KQP_UNARY_KERNEL_SPACE_H__
 
+#include <boost/lexical_cast.hpp>
 #include <boost/unordered_map.hpp>
 #include <kqp/feature_matrix.hpp>
+#include <kqp/space_factory.hpp>
 
 namespace kqp {
     template<typename Scalar> 
@@ -31,7 +33,8 @@ namespace kqp {
         ~UnaryKernelSpace() {}
         
         virtual FMatrixBasePtr newMatrix() const override { return m_base->newMatrix(); }
-        virtual FMatrixBasePtr newMatrix(const FeatureMatrixBase<Scalar> &other) const override { return m_base->newMatrix(other); }        
+        // REMOVE
+        // virtual FMatrixBasePtr newMatrix(const FeatureMatrixBase<Scalar> &other) const override { return m_base->newMatrix(other); }        
 
         virtual const ScalarMatrix &k(const FMatrixBase &mX) const override {            
             // FIXME: Big memory leak here (the feature space should be notified when a feature matrix is deleted) !!!
@@ -58,6 +61,23 @@ namespace kqp {
             return gram;
         }
         
+        virtual void load(const pugi::xml_node &node) {
+            pugi::xml_node selected;
+            for(auto child: node) {
+                if (child.type() == pugi::xml_node_type::node_element) {
+                    if (selected.empty()) {
+                        selected = child;
+                    } else { 
+                        KQP_THROW_EXCEPTION(exception, "A unary kernel element should have no more than one child"); 
+                    }
+                }
+            }
+
+            if (selected.empty())
+                KQP_THROW_EXCEPTION(exception, "A unary kernel element should have one child");
+            m_base = boost::dynamic_pointer_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
+
+        }
 
     protected:
         /**
@@ -86,7 +106,9 @@ namespace kqp {
         using UnaryKernelSpace<Scalar>::k;
 #endif
         GaussianSpace(Real sigma, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
+        GaussianSpace() :  UnaryKernelSpace<Scalar>(FSpace()), m_sigma(1) {}
+
+        virtual FSpacePtr copy() const override { return FSpacePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
 
         virtual Index dimension() const override { return -1; }
         virtual bool canLinearlyCombine() const override { return false; }
@@ -99,6 +121,35 @@ namespace kqp {
                     * mY2 * mD2.asDiagonal();
         }
         
+        virtual void updatePartials(Real alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
+            partials[offset] += -2. * alpha / m_sigma * m_base->k(mX, mY)(0,0);
+        }
+
+        virtual int numberOfParameters() const {
+            return 1;
+        }
+
+        virtual void getParameters(std::vector<Real> & parameters, int offset) const {
+            parameters[offset] = m_sigma;
+        }
+
+        virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+            m_sigma = parameters[offset];
+        }
+
+        static const std::string &name() { static std::string NAME("gaussian"); return NAME; }
+
+        virtual void load(const pugi::xml_node &node) override {
+            m_sigma = boost::lexical_cast<decltype(m_sigma)>(node.attribute("sigma").value());
+            UnaryKernelSpace<Scalar>::load(node);
+        }
+
+        virtual void save(pugi::xml_node &node) const override {
+            pugi::xml_node self = node.append_child(name().c_str());
+            self.append_attribute("sigma") = boost::lexical_cast<std::string>(m_sigma).c_str();
+            if (m_base)
+                m_base->save(self);
+        }
     protected:
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const override {
             // Compute the remaining inner products
@@ -108,7 +159,8 @@ namespace kqp {
         
 
     private:
-        
+
+
         template<typename Derived, typename DerivedRow, typename DerivedCol>
         inline ScalarMatrix f(const Eigen::MatrixBase<Derived> &k, 
                                   const Eigen::MatrixBase<DerivedRow>& rowNorms, 
@@ -127,9 +179,11 @@ namespace kqp {
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
 #endif
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
+        virtual FSpacePtr copy() const override { return FSpacePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
 
         PolynomialSpace(Real bias, int degree, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
+        PolynomialSpace() : UnaryKernelSpace<Scalar>(FSpace()), m_bias(0), m_degree(1) {}
+
         virtual Index dimension() const override { return -1; }
         virtual bool canLinearlyCombine() const override { return false; }
 
@@ -137,7 +191,41 @@ namespace kqp {
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {
             return mD1.asDiagonal() * mY1.adjoint() * this->f(m_base->k(mX1,mX2)) * mY2 * mD2.asDiagonal();
         }
+
+        virtual void updatePartials(Real alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
+            Scalar k = m_base->k(mX,mY)(0,0);
+            partials[offset] += alpha * (Scalar)m_degree * k * pow(k + m_bias, m_degree - 1);
+        }
+
+        virtual int numberOfParameters() const {
+            return 1;
+        }
+
+        virtual void getParameters(std::vector<Real> & parameters, int offset) const {
+            parameters[offset] = m_bias;
+        }
+
+        virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+            m_bias = parameters[offset];
+        }
+
+
+        static const std::string &name() { static std::string NAME("polynomial"); return NAME; }
         
+        virtual void load(const pugi::xml_node &node) {
+            m_bias = boost::lexical_cast<decltype(m_bias)>(node.attribute("bias").value());
+            m_degree = boost::lexical_cast<decltype(m_degree)>(node.attribute("degree").value());
+            UnaryKernelSpace<Scalar>::load(node);
+        }
+
+        virtual void save(pugi::xml_node &node) const override {
+            pugi::xml_node self = node.append_child(name().c_str());
+            self.append_attribute("degree") = boost::lexical_cast<std::string>(m_degree).c_str();
+            self.append_attribute("bias") = boost::lexical_cast<std::string>(m_bias).c_str();
+            if (m_base)
+                m_base->save(self);
+        }
+
     protected:
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const override {           
             gram.rightCols(tofill) = this->f(m_base->k(mX).rightCols(tofill));

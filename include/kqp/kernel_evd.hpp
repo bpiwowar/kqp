@@ -65,8 +65,8 @@ namespace kqp {
          */
         virtual void add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
             // Check consistency
-            if (mX.size() != mA.rows())
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot combine %d pre-images with a %d rows matrix", %mX.size() %mA.rows());
+            if (mX->size() != mA.rows())
+                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot combine %d pre-images with a %d rows matrix", %mX->size() %mA.rows());
 
             _add(alpha, mX, mA);
             nbUpdates += mA.cols();
@@ -76,9 +76,9 @@ namespace kqp {
          * 
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
-        inline void add(const FeatureMatrix<Scalar> &mU) {
-            add(1., mU, Eigen::Identity<Scalar>(mU.size(),mU.size()));
-            nbUpdates += mU.size();
+        inline void add(const FMatrix &mU) {
+            add(1., mU, Eigen::Identity<Scalar>(mU->size(),mU->size()));
+            nbUpdates += mU->size();
         }
 
         /**
@@ -114,7 +114,7 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void _add(Real alpha, const FeatureMatrix<Scalar> &mU, const ScalarAltMatrix &mA) = 0;
+        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
 
         /** Get the decomposition */
         virtual Decomposition<Scalar> _getDecomposition() const = 0;

@@ -106,7 +106,7 @@ namespace kqp {
             Decomposition<Scalar> &d = decompositions.back();
             if (builderCleaner.get())
                 builderCleaner->cleanup(d);
-            assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
+            assert(!kqp::isNaN(d.fs->k(d.mX, d.mY, d.mD).squaredNorm()));
             
             // Resets the builder
             builder->reset();
@@ -138,8 +138,8 @@ namespace kqp {
             assert(jPos == posCount);
             assert(jNeg == negCount);
             
-            Real posNorm = d.fs.k(d.mX, mYPos).norm();
-            Real negNorm = d.fs.k(d.mX, mYNeg).norm();
+            Real posNorm = d.fs->k(d.mX, mYPos).norm();
+            Real negNorm = d.fs->k(d.mX, mYNeg).norm();
             if (posCount > 0 && posNorm / negNorm > Eigen::NumTraits<Scalar>::epsilon()) 
                 merger.add(1, d.mX, mYPos);
             if (negCount > 0 && negNorm / posNorm > Eigen::NumTraits<Scalar>::epsilon()) 
@@ -168,16 +168,16 @@ namespace kqp {
                 // Push back new decomposition
                 decompositions.push_back(merger->getDecomposition());
                 auto &d = decompositions.back();
-                assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
+                assert(!kqp::isNaN(d.fs->k(d.mX, d.mY, d.mD).squaredNorm()));
                 if (mergerCleaner.get())
                     mergerCleaner->cleanup(d);
                 d.updateCount = d1.updateCount + d2.updateCount;
-                assert(!kqp::isNaN(d.fs.k(d.mX, d.mY, d.mD).squaredNorm()));
+                assert(!kqp::isNaN(d.fs->k(d.mX, d.mY, d.mD).squaredNorm()));
 
                 KQP_HLOG_INFO_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
-                                 %d1.mD.rows() %d1.mX.size() %d1.updateCount 
-                                 %d2.mD.rows() %d2.mX.size() %d2.updateCount 
-                                 %d.mD.rows()  %d.mX.size()  %d.updateCount);
+                                 %d1.mD.rows() %d1.mX->size() %d1.updateCount 
+                                 %d2.mD.rows() %d2.mX->size() %d2.updateCount 
+                                 %d.mD.rows()  %d.mX->size()  %d.updateCount);
             }
         }
         

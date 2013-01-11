@@ -69,7 +69,7 @@ namespace kqp {
             kqp::ThinEVD<ScalarMatrix>::run(evd, _mX, d.mD);              
             
             d.mX = FMatrix(new Dense<Scalar>(std::move(ScalarMatrix(_mX))));
-            d.mY = Eigen::Identity<Scalar>(d.mX.size(), d.mX.size());
+            d.mY = Eigen::Identity<Scalar>(d.mX->size(), d.mX->size());
             return d;
         }
         

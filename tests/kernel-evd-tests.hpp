@@ -47,7 +47,7 @@ namespace kqp {
                                    const ScalarAltMatrix  &mY2,
                                    const RealVector &mD2) {
             
-            ScalarMatrix m = fs.k(mX1, mY1, mX2, mY2);
+            ScalarMatrix m = fs->k(mX1, mY1, mX2, mY2);
             
             return (m.adjoint() * mD1.asDiagonal() * m * mD2.asDiagonal()).trace();
         }
@@ -123,7 +123,7 @@ namespace kqp {
                     matrix.template selfadjointView<Eigen::Lower>().rankUpdate(m * mA, alpha);
                     
                     
-                    builder.add(alpha, Dense<Scalar>::create(m), mA);
+                    builder.add(alpha, Dense<Scalar>::SelfPtr(new Dense<Scalar>(m)), mA);
                 }
                 
                 // Computing via EVD

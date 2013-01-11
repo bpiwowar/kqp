@@ -72,13 +72,13 @@ namespace kqp {
             // Sort        
             const Index pre_images_count = kernel.rows();
             const std::size_t remove_size = kernel.cols();
-            const Index keep_size = mF.size() - remove_size;
+            const Index keep_size = mF->size() - remove_size;
             
-            mP = Permutation(mF.size());
+            mP = Permutation(mF->size());
             mP.setIdentity();
             
             std::sort(to_remove.begin(), to_remove.end(), IndirectSort<RealVector>(weights));
-            std::vector<bool> selection(mF.size(), true);
+            std::vector<bool> selection(mF->size(), true);
             std::vector<bool> used(remove_size, false);
             
             ScalarVector v;
@@ -134,7 +134,7 @@ namespace kqp {
                     mP.indices()(index) = count++;
                 }
             
-            return mF.subset(selection.begin(), selection.end());
+            return mF->subset(selection.begin(), selection.end());
         }
         
         /**
@@ -144,17 +144,17 @@ namespace kqp {
          * 2. Computes a \f$LDL^\dagger\f$ decomposition of the Gram matrix to find redundant pre-images
          * 3. Removes newly unused pre-images
          */
-        static void run(const FSpace &fs, FMatrix &mF, ScalarAltMatrix &mY) {
+        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarAltMatrix &mY) {
             
             // Removes unused pre-images
             CleanerUnused<Scalar>::run(mF, mY);
             
             // Dimension of the problem
             Index N = mY.rows();
-            assert(N == mF.size());
+            assert(N == mF->size());
             
             // LDL decomposition (stores the L^T matrix)
-            Eigen::FullPivLU<ScalarMatrix> lu_decomposition(fs.k(mF));
+            Eigen::FullPivLU<ScalarMatrix> lu_decomposition(fs->k(mF));
             
             // Stop if full rank
             if (lu_decomposition.rank() == N) 
@@ -162,20 +162,20 @@ namespace kqp {
             
             // Remove pre-images using the kernel
             ScalarMatrix kernel = lu_decomposition.kernel();
-            RealVector weights = mY.rowwise().squaredNorm().array() * fs.k(mF).diagonal().array().abs();
+            RealVector weights = mY.rowwise().squaredNorm().array() * fs->k(mF).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            mF = remove(mF, kernel, mP, weights);
+            const_cast<FMatrixPtr&>(mF) = remove(mF, kernel, mP, weights);
             
             // Y <- (Id A) P Y
             ScalarMatrix mY2(mY);
-            mY2= (mP * mY2).topRows(mF.size()) + kernel * (mP * mY2).bottomRows(mY.rows() - mF.size());
+            mY2= (mP * mY2).topRows(mF->size()) + kernel * (mP * mY2).bottomRows(mY.rows() - mF->size());
             mY.swap(mY2);
             
             // Removes unused pre-images
             CleanerUnused<Scalar>::run(mF, mY);
         }
         
-        static void run(const FSpace &fs, FMatrix &mF, ScalarMatrix &mY) {
+        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarMatrix &mY) {
             ScalarAltMatrix _mY;
             _mY.swap(mY);
             run(fs, mF, _mY);

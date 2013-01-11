@@ -2,6 +2,8 @@
 
 #define SCALARMATRIX Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic>
 
+%template(@SNAME@List) std::vector< @STYPE@ >;
+
 // Either a dense matrix or the identity
 %template(AltMatrix@SNAME@) SCALAR_ALTMATRIX_@SNAME@;
 %extend SCALAR_ALTMATRIX_@SNAME@ {

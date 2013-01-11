@@ -17,6 +17,7 @@
 #ifndef __KQP_SPARSE_DENSE_FEATURE_MATRIX_H__
 #define __KQP_SPARSE_DENSE_FEATURE_MATRIX_H__
 
+#include <boost/lexical_cast.hpp>
 #include <boost/function_output_iterator.hpp>
 
 #include <kqp/subset.hpp>
@@ -247,6 +248,10 @@ namespace kqp {
         Index dimension() const {
             return m_dimension;
         }
+
+        void dimension(Index dimension) {
+            m_dimension = dimension;
+        }
         
 #ifndef SWIG
         struct Insert {
@@ -445,13 +450,14 @@ namespace kqp {
         static FSpace create(Index dimension) { return FSpace(new SparseDenseSpace(dimension)); }
         
         SparseDenseSpace(Index dimension) : m_dimension(dimension) {}
+        SparseDenseSpace() : m_dimension(0) {}
         
         inline static const SparseDense<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseDense<Scalar> &>(mX); }
         
         
         Index dimension() const override { return m_dimension; }
         
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseDenseSpace(m_dimension));  }
+        virtual FSpacePtr copy() const override { return FSpacePtr(new SparseDenseSpace(m_dimension));  }
 
         virtual FMatrixBasePtr newMatrix() const override {
             return FMatrixBasePtr(new SparseDense<Scalar>(m_dimension));
@@ -480,6 +486,17 @@ namespace kqp {
             return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);
         }
         
+        static const std::string &name() { static std::string NAME("sparse-dense"); return NAME; }
+
+        virtual void load(const pugi::xml_node &node) override {
+            m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
+        }
+
+        virtual void save(pugi::xml_node &node) const override {
+            pugi::xml_node self = node.append_child(name().c_str());
+            self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
+        }
+
     private:
         Index m_dimension;
         

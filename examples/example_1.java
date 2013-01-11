@@ -22,7 +22,7 @@ public class example_1 {
         int dim = 10;
 
         // Feature space
-        SpaceDouble fs = DenseSpaceDouble.create(dim);
+        DenseSpaceDouble fs = new DenseSpaceDouble(dim);
         
         // Creating an incremental builder
         System.err.format("Creating a KEVD builder%n");
@@ -34,7 +34,7 @@ public class example_1 {
             // Adds a random $\varphi_i$
             EigenMatrixDouble m = new EigenMatrixDouble(dim,1);
             m.randomize();
-            kevd.add(DenseDouble.create(m));
+            kevd.add(new DenseDouble(m));
         }
 
         // Get the result $\rho \approx X Y D Y^\dagger X^\dagger$
@@ -51,7 +51,7 @@ public class example_1 {
             // Adds a random $\varphi_i$
             EigenMatrixDouble m = new EigenMatrixDouble(dim,1);
             m.randomize();
-            kevd_event.add(DenseDouble.create(m));
+            kevd_event.add(new DenseDouble(m));
         }
 
 

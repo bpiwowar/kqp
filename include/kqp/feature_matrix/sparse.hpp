@@ -1,3 +1,4 @@
+
 /*
  This file is part of the Kernel Quantum Probability library (KQP).
  
@@ -17,6 +18,7 @@
 #ifndef __KQP_SPARSE_FEATURE_MATRIX_H__
 #define __KQP_SPARSE_FEATURE_MATRIX_H__
 
+#include <boost/lexical_cast.hpp>
 #include <kqp/subset.hpp>
 #include <kqp/feature_matrix.hpp>
 #include <Eigen/Sparse>
@@ -229,13 +231,14 @@ namespace kqp {
 #endif        
         static FSpace create(Index dimension) { return FSpace(new SparseSpace(dimension)); }
         
+        SparseSpace() {}
         SparseSpace(Index dimension) : m_dimension(dimension) {}
         
         inline static const Sparse<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const Sparse<Scalar> &>(mX); }
         
         Index dimension() const override { return m_dimension; }
         
-        virtual FSpaceBasePtr copy() const override { return FSpaceBasePtr(new SparseSpace(m_dimension)); }
+        virtual FSpacePtr copy() const override { return FSpacePtr(new SparseSpace(m_dimension)); }
         
         virtual FMatrixBasePtr newMatrix() const override {
             return FMatrixBasePtr(new Sparse<Scalar>(m_dimension));
@@ -254,10 +257,19 @@ namespace kqp {
             return mD1.asDiagonal() * mY1.adjoint() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
         };
         
+        static const std::string &name() { static std::string NAME("sparse"); return NAME; }
         
+        virtual void load(const pugi::xml_node &node) override {
+            m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
+        }
+
+        virtual void save(pugi::xml_node &node) const override {
+            pugi::xml_node self = node.append_child(name().c_str());
+            self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
+        }
+
     private:
-        Index m_dimension;
-    
+        Index m_dimension;     
     };
     
 

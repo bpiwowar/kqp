@@ -34,10 +34,10 @@ namespace kqp {
         /**
          * @brief Removes unused pre-images
          */
-        static void run(FMatrix &mF, ScalarMatrix &mY) {
+        static void run(const FMatrixPtr &mF, ScalarMatrix &mY) {
             // Dimension of the problem
             Index N = mY.rows();
-            assert(N == mF.size());
+            assert(N == mF->size());
             
             std::vector<bool> to_keep(N, true);
             
@@ -47,13 +47,13 @@ namespace kqp {
                     to_keep[i] = false;
             
             select_rows(to_keep, mY, mY);
-            mF = mF.subset(to_keep);
+            const_cast<FMatrixPtr &>(mF) = mF->subset(to_keep);
         }
         
-        static void run(FMatrix &mF, ScalarAltMatrix &mY) {
+        static void run(const FMatrixPtr &mF, ScalarAltMatrix &mY) {
             // Dimension of the problem
             Index N = mY.rows();
-            assert(N == mF.size());
+            assert(N == mF->size());
             
             
             // Removes unused pre-images
@@ -71,7 +71,7 @@ namespace kqp {
             
             select_rows(to_keep, mY, mY);
             
-            mF = mF.subset(to_keep);
+            const_cast<FMatrixPtr &>(mF) = mF->subset(to_keep);
         }
     };
     

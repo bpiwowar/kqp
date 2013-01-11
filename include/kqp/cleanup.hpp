@@ -79,7 +79,7 @@ namespace kqp {
             
             // Case where mY is the identity matrix
             if (d.mY.getTypeId() == typeid(typename AltDense<Scalar>::IdentityType)) {
-                d.mX = d.mX.subset(list.getSelected());
+                d.mX = d.mX->subset(list.getSelected());
                 d.mY.conservativeResize(list.getRank(), list.getRank());
             } else {
                 select_columns(list.getSelected(), d.mY, d.mY);

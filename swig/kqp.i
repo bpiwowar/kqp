@@ -18,19 +18,23 @@
 %module kqp
 
 
-#ifndef SWIGPYTHON
-#define DENSE_MATRIX DENSE
-#define DENSE_VECTOR DENSE
-#define CONSTANT_VECTOR CONSTANT
-#define IDENTITY_MATRIX IDENTITY
-#endif
 
 
 %{
+    
+    #ifndef SWIGPYTHON
+    #define DENSE_MATRIX DENSE
+    #define DENSE_VECTOR DENSE
+    #define CONSTANT_VECTOR CONSTANT
+    #define IDENTITY_MATRIX IDENTITY
+    #endif
+
     #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
+    #include <kqp/space_factory.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
+    #include <kqp/feature_matrix/tensor.hpp>
     #include <kqp/feature_matrix/sparse.hpp>
     #include <kqp/feature_matrix/sparse_dense.hpp>
     #include <kqp/feature_matrix/unary_kernel.hpp>
@@ -73,6 +77,7 @@
 
 // --- Language dependent includes
 
+%include "std_string.i"
 %include "boost_shared_ptr.i"
 %include "std_vector.i"
 %include "std_map.i"
@@ -89,8 +94,12 @@
 
 // --- STL related types
 
-%template(BoolArrayList) std::vector<bool>;
-%template(IndexArrayList) std::vector<Index>;
+%template(BoolList) std::vector<bool>;
+%template(IndexList) std::vector<Index>;
+%template(StringList) std::vector<std::string>;
+
+// --- Shared pointers
+%shared_ptr(kqp::AbstractSpace)
 
 // ---- Command renaming
 

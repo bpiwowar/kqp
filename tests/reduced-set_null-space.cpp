@@ -20,11 +20,11 @@ namespace kqp {
         Eigen::MatrixXd _mF = generateMatrix<double>(dim, n);        
         Eigen::MatrixXd _mY = generateMatrix<double>(dim, dim);                        
         
-        Space<double> fs(DenseSpace<double>::create(2));
+        DenseSpace<double>::SelfPtr fs(new DenseSpace<double>(2));
         
         // Copy
         Eigen::MatrixXd mY = _mY;
-        FeatureMatrix<double> mF(Dense<double>::create(_mF));
+        Dense<double>::SelfPtr mF(new Dense<double>(_mF));
         
         ReducedSetNullSpace<double>::run(fs, mF, mY);
         
@@ -36,6 +36,6 @@ namespace kqp {
         double threshold = (1e-10 * delta);
         KQP_LOG_INFO_F(logger, "Error is %g [threshold=%g] and row difference is %d", %error %threshold %delta);
 
-        return mF.size() == n && (error < threshold) ? 0 : 1;
+        return mF->size() == n && (error < threshold) ? 0 : 1;
     }
 }

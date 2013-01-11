@@ -6,14 +6,22 @@
 
 // --- Features matrices
 
-%define SpaceCommonDefs(NAME, TYPE)
+
+%define AbstractSpaceCommonDefs(NAME, TYPE)
 %shared_ptr(TYPE)
 %template(NAME) TYPE;
+%enddef
+
+%define SpaceCommonDefs(NAME, TYPE)
+AbstractSpaceCommonDefs(NAME, TYPE)
 %extend TYPE {
     static const TYPE *cast(const kqp::SpaceBase< @STYPE@ > *base) {
         return dynamic_cast<const TYPE *>(base);
     }
 }
+%{
+  kqp::SpaceFactory::Register< @STYPE@, TYPE > REGISTER_ ## NAME; 
+%}
 
 %enddef
 
@@ -28,7 +36,6 @@
 }
 %enddef
 
-
 %shared_ptr(kqp::FeatureMatrixBase< @STYPE@ >)
 
 namespace kqp {
@@ -40,20 +47,11 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 %template() kqp::ScalarDefinitions< @STYPE@ >;
 
 %include <kqp/feature_matrix.hpp>
-FMatrixCommonDefs(FeatureMatrixBase@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
-%ignore kqp::FeatureMatrix< @STYPE@ >::subset(const std::vector<bool>::const_iterator &begin, const std::vector<bool>::const_iterator &end) const;
-%template(FeatureMatrix@SNAME@) kqp::FeatureMatrix< @STYPE@ >;
-%extend kqp::FeatureMatrix< @STYPE@ > {
-    const kqp::FeatureMatrixBase< @STYPE@ > * get() { return $self->operator->(); }
-}
+%include <kqp/space_factory.hpp>
+FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
 
 %shared_ptr(kqp::SpaceBase< @STYPE@ >)
-%template(SpaceBase@SNAME@) kqp::SpaceBase< @STYPE@ >;
-
-%template(Space@SNAME@) kqp::Space< @STYPE@ >;
-%extend kqp::Space< @STYPE@ > {
-    const kqp::SpaceBase< @STYPE@ > * get() { return $self->operator->(); }
-}
+%template(Space@SNAME@) kqp::SpaceBase< @STYPE@ >;
 
 
 // Dense
@@ -79,13 +77,19 @@ FMatrixCommonDefs(Sparse@SNAME@, kqp::Sparse< @STYPE@ >)
 // ---- Kernel spaces
 
 %include <kqp/feature_matrix/unary_kernel.hpp>
-%shared_ptr(kqp::UnaryKernelSpace< @STYPE@ >);
-%shared_ptr(kqp::GaussianSpace< @STYPE@ >);
-%shared_ptr(kqp::PolynomialSpace< @STYPE@ >);
-%template(UnaryKernelSpace@SNAME@) kqp::UnaryKernelSpace< @STYPE@ >;
-%template(GaussianSpace@SNAME@) kqp::GaussianSpace< @STYPE@ >;
-%template(PolynomialSpace@SNAME@) kqp::PolynomialSpace< @STYPE@ >;
 
+AbstractSpaceCommonDefs(UnaryKernelSpace@SNAME@, kqp::UnaryKernelSpace< @STYPE@ >);
+
+SpaceCommonDefs(GaussianSpace@SNAME@, kqp::GaussianSpace< @STYPE@ >);
+
+SpaceCommonDefs(PolynomialSpace@SNAME@, kqp::PolynomialSpace< @STYPE@ >);
+
+%include <kqp/feature_matrix/tensor.hpp>
+
+%shared_ptr(kqp::TensorMatrix< @STYPE@ >);
+%template(TensorMatrix@SNAME@) kqp::TensorMatrix< @STYPE@ >;
+
+SpaceCommonDefs(TensorSpace@SNAME@, kqp::TensorSpace< @STYPE@ >);
 
 // ---- Rank selection
 

@@ -46,7 +46,7 @@ namespace kqp{
         
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs.newMatrix()) {
+        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
         }
         
         virtual ~AccumulatorKernelEVD() {
@@ -58,7 +58,7 @@ namespace kqp{
             if(alpha < 0)
                 KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
             
-            FMatrix fm = this->getFSpace().linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
+            FMatrix fm = this->getFSpace()->linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
             fMatrix->add(*fm);
         }
         
@@ -69,7 +69,7 @@ namespace kqp{
         //! Actually performs the computation
         virtual Decomposition<Scalar> _getDecomposition() const override {
             
-            const ScalarMatrix& gram = this->getFSpace().k(fMatrix);
+            const ScalarMatrix& gram = this->getFSpace()->k(fMatrix);
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(gram.template selfadjointView<Eigen::Lower>());
             
             ScalarMatrix _mY;
@@ -96,7 +96,7 @@ namespace kqp{
 
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs.newMatrix()) {
+        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
             offsets_X.push_back(0);
             offsets_A.push_back(0);
         }
@@ -115,8 +115,8 @@ namespace kqp{
             // Do a deep copy of mA
             combination_matrices.push_back(mA);
             alphas.push_back(Eigen::internal::sqrt(alpha));
-            fMatrix.add(mX);
-            offsets_X.push_back(offsets_X.back() + mX.size());
+            fMatrix->add(mX);
+            offsets_X.push_back(offsets_X.back() + mX->size());
             offsets_A.push_back(offsets_A.back() + mA.cols());
         }
         
@@ -136,13 +136,13 @@ namespace kqp{
             
             // Nothing to do
             if (size == 0) {
-                d.mX = this->getFSpace().newMatrix();
+                d.mX = this->getFSpace()->newMatrix();
                 d.mY.resize(0,0);
                 d.mD.resize(0,1);
                 return d;
             }
             
-            ScalarMatrix gram_X = this->getFSpace().k(fMatrix);
+            ScalarMatrix gram_X = this->getFSpace()->k(fMatrix);
             ScalarMatrix gram(size, size);
             
             for(size_t i = 0; i < combination_matrices.size(); i++) {
@@ -201,7 +201,9 @@ namespace kqp{
 }
 
 #ifndef SWIG
-#define KQP_SCALAR_GEN(type) extern template class kqp::AccumulatorKernelEVD<type, true>; extern template class kqp::AccumulatorKernelEVD<type, false>;
+#define KQP_SCALAR_GEN(type) \
+  extern template class kqp::AccumulatorKernelEVD<type, true>; \
+  extern template class kqp::AccumulatorKernelEVD<type, false>;
 #include <kqp/for_all_scalar_gen.h.inc>
 #endif
 

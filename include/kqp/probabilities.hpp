@@ -100,13 +100,13 @@ namespace kqp {
         }
         
         //! Get the feature space
-        inline const FSpace &fs() const {
-            return m_operator.fs;
+        inline const FSpaceBase &fs() const {
+            return *m_operator.fs;
         }
         
         //! Get the feature matrix
-        inline const FMatrix &X() const {
-            return m_operator.mX;
+        inline const FMatrixBase &X() const {
+            return *m_operator.mX;
         }
         
         inline const ScalarAltMatrix &Y() const {
@@ -132,14 +132,14 @@ namespace kqp {
             if (isOrthonormal()) 
                 return m_operator.mD.squaredNorm();
             
-            return m_operator.fs.k(X(), Y(), S()).squaredNorm();
+            return m_operator.fs->k(X(), Y(), S()).squaredNorm();
         }
         
         //! Computes the trace of the operator
         Real trace() const {
             if (isOrthonormal()) 
                 return m_operator.mD.cwiseAbs2().sum();
-            return m_operator.fs.k(X(), Y(), S()).trace();
+            return m_operator.fs->k(X(), Y(), S()).trace();
         }
         
         //! Multiply the operator by a positive real
@@ -158,7 +158,7 @@ namespace kqp {
          *         and each column to one dimension of the subspace
          */
         ScalarMatrix inners(const KernelOperator<Scalar>& that) const {
-            return m_operator.fs.k(m_operator.mX, m_operator.mY, m_operator.mD,
+            return m_operator.fs->k(m_operator.mX, m_operator.mY, m_operator.mD,
                                    that.m_operator.mX, that.m_operator.mY, that.m_operator.mD);
         }
         
@@ -167,7 +167,7 @@ namespace kqp {
          * @throws An exception if the feature matrix cannot be linearly combined
          */
         FMatrix matrix() const {
-            return m_operator.fs.linearCombination(X(), ScalarMatrix(Y() * S().asDiagonal()));
+            return m_operator.fs->linearCombination(X(), ScalarMatrix(Y() * S().asDiagonal()));
         }
         
        
@@ -184,8 +184,8 @@ namespace kqp {
             m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_abs2_op<Real>());
 
             // If we can linearly combine, use it to reduce the future amount of computation
-            if (m_operator.fs.canLinearlyCombine()) {
-                m_operator.mX = m_operator.fs.linearCombination(m_operator.mX, m_operator.mY, 1);
+            if (m_operator.fs->canLinearlyCombine()) {
+                m_operator.mX = m_operator.fs->linearCombination(m_operator.mX, m_operator.mY, 1);
                 m_operator.mY = Eigen::Identity<Scalar>(X().size(),X().size());
             } 
             
@@ -222,7 +222,7 @@ namespace kqp {
          */
         Event(const KernelEVD<Scalar>  &evd, bool fuzzy = false) 
         : KernelOperator<Scalar>(evd), 
-        useLinearCombination(evd.getFSpace().canLinearlyCombine()) {       
+        useLinearCombination(evd.getFSpace()->canLinearlyCombine()) {       
             if (!fuzzy) {
                 this->orthonormalize();
                 this->m_operator.mD = RealVector::Ones(this->X().size());
@@ -231,11 +231,12 @@ namespace kqp {
         
         /** Construct an event from a basis */
         Event(const FSpace &fs, const FMatrix &mX, bool orthonormal)
-        : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
         
         /** Construct an event from a basis */
-        Event(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, RealVector::Ones(mX.size()), orthonormal) {
+        Event(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, bool orthonormal) 
+        : KernelOperator<Scalar>(fs, mX, mY, RealVector::Ones(mX->size()), orthonormal) {
         }
         
         //! (debug) Manually sets the linear combination
@@ -252,8 +253,8 @@ namespace kqp {
             ScalarMatrix lc;
             noalias(lc) = event.Y() * event.m_operator.k(density.m_operator);
             
-            FMatrix mX = event.m_operator.fs.linearCombination(event.X(), lc);
-            ScalarAltMatrix mY = Eigen::Identity<Scalar>(mX.size(),mX.size());
+            FMatrix mX = event.m_operator.fs->linearCombination(event.X(), lc);
+            ScalarAltMatrix mY = Eigen::Identity<Scalar>(mX->size(),mX->size());
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<Scalar>(event.m_operator.fs, mX, mY, mS, false);
         }
@@ -267,17 +268,17 @@ namespace kqp {
             // FIXME
             RealVector s = event.S();
             ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() 
-                                 * event.m_operator.fs.k(event.X(), event.Y(), density.X(), density.Y()));
+                                 * event.m_operator.fs->k(event.X(), event.Y(), density.X(), density.Y()));
             
-            FMatrix mX = density.m_operator.fs.linearCombination(density.X(), density.Y(), 1., event.X(), e_mY, -1.);
+            FMatrix mX = density.m_operator.fs->linearCombination(density.X(), density.Y(), 1., event.X(), e_mY, -1.);
             
-            return Density<Scalar>(event.m_operator.fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), density.S(), false);
+            return Density<Scalar>(event.m_operator.fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), density.S(), false);
         }
         
         
         static Density<Scalar> project(const Density<Scalar>& density, const Event<Scalar> &event) {        
             event.orthonormalize();
-            FMatrix mX = event.m_operator.fs.newMatrix(event.X());
+            FMatrix mX = event.X().copy(); //event.m_operator.fs->newMatrix(event.X());
             ScalarAltMatrix mY(event.Y() * event.m_operator.k(density.m_operator));
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<Scalar>(event.m_operator.fs, mX, mY, mS, false);
@@ -287,8 +288,8 @@ namespace kqp {
             event.orthonormalize();
             
             // Concatenates the vectors
-            FMatrix mX = event.m_operator.fs.newMatrix(density.X());
-            mX.add(event.X());
+            FMatrix mX = density.X().copy(); //event.m_operator.fs->newMatrix(density.X());
+            mX->add(event.X());
             
             // Computes the new linear combination matrix
             ScalarMatrix _mY(density.X().size() + event.X().size(), density.S().rows());
@@ -297,7 +298,7 @@ namespace kqp {
             
             _mY.topRows(density.X().size()) = density.Y();
             _mY.bottomRows(event.X().size()) = ((Scalar)-1)
-                * (event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * event.m_operator.fs.k(event.X(), event.Y(), density.X(), density.Y()));
+                * (event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() * event.m_operator.fs->k(event.X(), event.Y(), density.X(), density.Y()));
             
             ScalarAltMatrix mY; 
             mY.swap(_mY);
@@ -342,7 +343,8 @@ namespace kqp {
         Density(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, mD, orthonormal) {
         }
         
-        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX.size(),mX.size()), RealVector::Ones(mX.size()), orthonormal) {
+        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) 
+            : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
         
         //! Normalise the density
@@ -373,9 +375,9 @@ namespace kqp {
             auto &other = event.m_operator;
             
             if (noEigenValues)
-                return this->m_operator.fs.k(
+                return this->m_operator.fs->k(
                             this->X(), this->Y(), RealVector::Ones(this->Y().cols()), 
-                            other.mX, other.mY, other.mD)
+                            *other.mX, other.mY, other.mD)
                         .rowwise().squaredNorm();
 
             return this->m_operator.k(other).rowwise().squaredNorm();
@@ -406,7 +408,7 @@ namespace kqp {
             
             // --- Notation
             
-            ScalarMatrix inners = this->m_operator.fs.k(rho.X(), tau.X());
+            ScalarMatrix inners = this->m_operator.fs->k(rho.X(), tau.X());
             noalias(inners) = rho.S().asDiagonal() * rho.Y().adjoint() * inners * tau.Y(); 
             
             // --- Compute tr(p log q)

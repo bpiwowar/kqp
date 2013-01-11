@@ -9,7 +9,7 @@ namespace kqp {
     
     int test_reduced_set_unused(std::deque<std::string> &/*args*/) {
         Eigen::MatrixXd _mF = Eigen::MatrixXd::Random(10,10);
-        FeatureMatrix<double> mF(Dense<double>::create(_mF));
+        Dense<double>::SelfPtr mF(new Dense<double>(_mF));
         
         Eigen::MatrixXd mY = Eigen::MatrixXd::Random(10,8);
         mY.row(3).setZero();

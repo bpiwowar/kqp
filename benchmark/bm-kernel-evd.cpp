@@ -185,7 +185,7 @@ namespace kqp {
             int run(const KernelEVDBenchmark &bm) {
                 
                 FSpace fs = KQPSpace::create(bm.dimension);
-                fs.setUseLinearCombination(bm.useLC);
+                fs->setUseLinearCombination(bm.useLC);
                 init(bm);
                 
                 boost::scoped_ptr<KernelEVD<Scalar>> builder(this->getBuilder(fs, bm));
@@ -295,7 +295,7 @@ namespace kqp {
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
             
             virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &) override {
-                if (fs.canLinearlyCombine()) 
+                if (fs->canLinearlyCombine()) 
                     return new AccumulatorKernelEVD<Scalar,true>(fs);
                 
                 KQP_LOG_INFO(logger, "Accumulator without linear combination selected");
