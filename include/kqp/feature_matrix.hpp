@@ -111,6 +111,25 @@ template<> struct ScalarInfo<std::complex<float> >
 template<typename Scalar> class FeatureMatrixBase;
 template<typename Scalar> class SpaceBase;
 
+
+/**
+  * Store for kernel values when computing kernels 
+  */
+template<typename Scalar> class KernelValues {
+public:
+    KernelValues(Scalar normX, Scalar normY, Scalar inner) :
+        _normX(normX), _normY(normY), _inner(inner) {}
+
+    KernelValues() {}    
+
+    inline Scalar inner(int mode = 0) const { if (mode == -1) return _normX; return mode == 1 ? _normY : _inner; }
+    inline Scalar normX(int mode = 0) const { if (mode == 1) return _normY; return _normX; }
+    inline Scalar normY(int mode = 0) const { if (mode == -1) return _normX; return _normY; }
+
+    std::vector<KernelValues> children;
+    Scalar _normX, _normY, _inner;
+};
+
 /**
  * @brief Base for all feature matrix classes
  *
@@ -258,6 +277,9 @@ public:
     */
     virtual void updatePartials(Real /*alpha*/, std::vector<Real> & /*partials*/, int /*offset*/,
                                 const FMatrixBase &/*mX*/, const FMatrixBase &/*mY*/) const {}
+
+    virtual void updatePartials(Real, std::vector<Real> &, int, const KernelValues<Scalar> &, int /* mode */) const {}
+    virtual void update(KernelValues<Scalar> &) const {}
 
     /**
      * Returns the number of parameters for this feature space
@@ -435,7 +457,10 @@ public:
         setParameters(parameters, offset);
     }
 
-
+    std::string demangle() const {
+        return KQP_DEMANGLE(*this);
+    }
+    
 protected:
     //! Returns whether the pre-images can be linearly combined
     virtual bool _canLinearlyCombine() const

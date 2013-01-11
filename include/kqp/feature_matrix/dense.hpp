@@ -243,6 +243,7 @@ namespace kqp {
         // Overriden methods
 
         Index dimension() const override { return m_dimension; }
+        void dimension(Index dimension) { m_dimension = dimension; }
 
 
         virtual FMatrixBasePtr newMatrix() const override {
@@ -269,6 +270,7 @@ namespace kqp {
                                              const FMatrixBase *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
             return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, dynamic_cast<const Dense<Scalar> *>(mY), mB, beta));
         }
+
 
         virtual void load(const pugi::xml_node &node) override {
             m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());

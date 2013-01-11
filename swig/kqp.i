@@ -34,7 +34,7 @@
     #include <kqp/space_factory.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
-    #include <kqp/feature_matrix/tensor.hpp>
+    #include <kqp/feature_matrix/kernel_sum.hpp>
     #include <kqp/feature_matrix/sparse.hpp>
     #include <kqp/feature_matrix/sparse_dense.hpp>
     #include <kqp/feature_matrix/unary_kernel.hpp>
@@ -107,6 +107,7 @@
 %rename operator!= notEqual;
 %rename operator()(Index) get;
 %rename operator()(Index, Index) get;
+%rename operator[] at;
 
 %ignore kqp::Intervals;
 %ignore kqp::IntervalsIterator;
@@ -147,6 +148,19 @@ namespace kqp {
     template<typename T1,typename T2>
     class AltMatrix {
     };
+    
+    static std::string demangle(unsigned long pointer) {
+        return KQP_DEMANGLE((void*)pointer);
+    }
+
+%{
+    namespace kqp {
+    static std::string demangle(long pointer) {
+        return KQP_DEMANGLE(pointer);
+    }
+
+    }
+%}
 }
 
 

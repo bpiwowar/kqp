@@ -10,19 +10,21 @@
 %define AbstractSpaceCommonDefs(NAME, TYPE)
 %shared_ptr(TYPE)
 %template(NAME) TYPE;
+%extend TYPE {
+    static const TYPE &cast(const kqp::AbstractSpace &base) {
+        return dynamic_cast<const TYPE &>(base);
+    }
+    static bool isInstance(const kqp::AbstractSpace &base) {
+        return dynamic_cast<const TYPE *>(&base) != 0;
+    }
+}
 %enddef
 
 %define SpaceCommonDefs(NAME, TYPE)
 AbstractSpaceCommonDefs(NAME, TYPE)
-%extend TYPE {
-    static const TYPE *cast(const kqp::SpaceBase< @STYPE@ > *base) {
-        return dynamic_cast<const TYPE *>(base);
-    }
-}
 %{
   kqp::SpaceFactory::Register< @STYPE@, TYPE > REGISTER_ ## NAME; 
 %}
-
 %enddef
 
 %define FMatrixCommonDefs(NAME, TYPE)
@@ -48,11 +50,11 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 
 %include <kqp/feature_matrix.hpp>
 %include <kqp/space_factory.hpp>
+
 FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
-
-%shared_ptr(kqp::SpaceBase< @STYPE@ >)
-%template(Space@SNAME@) kqp::SpaceBase< @STYPE@ >;
-
+AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
+%template(KernelValues@SNAME@) kqp::KernelValues< @STYPE@ >;
+%template(KernelValuesList@SNAME@) std::vector< kqp::KernelValues< @STYPE@ > >;
 
 // Dense
 %include <kqp/feature_matrix/dense.hpp>
@@ -84,12 +86,12 @@ SpaceCommonDefs(GaussianSpace@SNAME@, kqp::GaussianSpace< @STYPE@ >);
 
 SpaceCommonDefs(PolynomialSpace@SNAME@, kqp::PolynomialSpace< @STYPE@ >);
 
-%include <kqp/feature_matrix/tensor.hpp>
 
-%shared_ptr(kqp::TensorMatrix< @STYPE@ >);
-%template(TensorMatrix@SNAME@) kqp::TensorMatrix< @STYPE@ >;
+%include <kqp/feature_matrix/kernel_sum.hpp>
 
-SpaceCommonDefs(TensorSpace@SNAME@, kqp::TensorSpace< @STYPE@ >);
+%template(FeatureMatrixList@SNAME@) std::vector< boost::shared_ptr< kqp::FeatureMatrixBase< @STYPE@ > > >;
+FMatrixCommonDefs(KernelSumMatrix@SNAME@, kqp::KernelSumMatrix< @STYPE@ >);
+SpaceCommonDefs(KernelSumSpace@SNAME@, kqp::KernelSumSpace< @STYPE@ >);
 
 // ---- Rank selection
 

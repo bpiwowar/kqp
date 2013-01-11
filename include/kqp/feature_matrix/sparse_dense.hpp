@@ -249,9 +249,6 @@ namespace kqp {
             return m_dimension;
         }
 
-        void dimension(Index dimension) {
-            m_dimension = dimension;
-        }
         
 #ifndef SWIG
         struct Insert {
@@ -456,7 +453,8 @@ namespace kqp {
         
         
         Index dimension() const override { return m_dimension; }
-        
+        void dimension(Index dimension) { m_dimension = dimension; }
+
         virtual FSpacePtr copy() const override { return FSpacePtr(new SparseDenseSpace(m_dimension));  }
 
         virtual FMatrixBasePtr newMatrix() const override {
@@ -480,7 +478,7 @@ namespace kqp {
             cast(mX1).inner(cast(mX2), inner);
             return mD1.asDiagonal() * mY1.adjoint() * inner * mY2 * mD2.asDiagonal();
         };
-        
+ 
         virtual FMatrixBasePtr linearCombination(const FeatureMatrixBase<Scalar> &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                           const FeatureMatrixBase<Scalar> *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
             return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);

@@ -237,6 +237,7 @@ namespace kqp {
         inline static const Sparse<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const Sparse<Scalar> &>(mX); }
         
         Index dimension() const override { return m_dimension; }
+        void dimension(Index dimension) { m_dimension = dimension; }
         
         virtual FSpacePtr copy() const override { return FSpacePtr(new SparseSpace(m_dimension)); }
         
@@ -267,6 +268,8 @@ namespace kqp {
             pugi::xml_node self = node.append_child(name().c_str());
             self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
         }
+
+
 
     private:
         Index m_dimension;     

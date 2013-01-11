@@ -14,8 +14,8 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __KQP_TENSOR_FEATURE_MATRIX_H__
-#define __KQP_TENSOR_FEATURE_MATRIX_H__
+#ifndef __KQP_KERNEL_SUM_H__
+#define __KQP_KERNEL_SUM_H__
 
 #include <vector>
 #include <boost/lexical_cast.hpp>
@@ -23,31 +23,31 @@
 #include <kqp/space_factory.hpp>
 
 namespace kqp {
-	template<typename Scalar> class TensorSpace;
+	template<typename Scalar> class KernelSumSpace;
 
 	/**
 	 * Tensor space matrix
 	 */
 	template <typename Scalar> 
-    class TensorMatrix : public FeatureMatrixBase<Scalar> {
+    class KernelSumMatrix : public FeatureMatrixBase<Scalar> {
     public:       
         KQP_SCALAR_TYPEDEFS(Scalar);
-        typedef TensorMatrix<Scalar> Self;
+        typedef KernelSumMatrix<Scalar> Self;
 
-        TensorMatrix(const TensorSpace<Scalar> &space) {
+        KernelSumMatrix(const KernelSumSpace<Scalar> &space) {
         	for(size_t i = 0; i < space.m_spaces.size(); i++) {
         		m_matrices.push_back(space.m_spaces[i]->newMatrix());
         	}
         }
 
-        TensorMatrix(const Self &other) : m_matrices(other.m_matrices) {
+        KernelSumMatrix(const Self &other) : m_matrices(other.m_matrices) {
         }
 
-        TensorMatrix(const std::vector<FMatrix> &matrices) : m_matrices(matrices) {
+        KernelSumMatrix(const std::vector<FMatrix> &matrices) : m_matrices(matrices) {
         }
 
 #       ifndef SWIG
-        TensorMatrix(Self &&other) {
+        KernelSumMatrix(Self &&other) {
 			m_matrices.swap(other.m_matrices);       	
 		}        
 		Self &operator=(Self &&other) {
@@ -94,7 +94,7 @@ namespace kqp {
 
 
         private:
-        	TensorMatrix() {}
+        	KernelSumMatrix() {}
         	std::vector<FMatrix> m_matrices;
     };
 
@@ -106,12 +106,12 @@ namespace kqp {
      * @ingroup FeatureMatrix
      */
     template <typename Scalar> 
-    class TensorSpace : public SpaceBase<Scalar> {
+    class KernelSumSpace : public SpaceBase<Scalar> {
     public:
 		KQP_SCALAR_TYPEDEFS(Scalar);
 
-		typedef TensorMatrix<Scalar> TMatrix;
-		friend class TensorMatrix<Scalar>;
+		typedef KernelSumMatrix<Scalar> TMatrix;
+		friend class KernelSumMatrix<Scalar>;
 
 		/** Add a new space */
 		void addSpace(Real weight, const FSpace &space) {
@@ -119,11 +119,11 @@ namespace kqp {
 			m_spaces.push_back(space);
 		}
 
-        TensorSpace() {}
-        TensorSpace(const TensorSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights) {}
-        ~TensorSpace() {}
+        KernelSumSpace() {}
+        KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights) {}
+        ~KernelSumSpace() {}
 
-        static FSpace create() { return FSpace(new TensorSpace()); }
+        static FSpace create() { return FSpace(new KernelSumSpace()); }
 
         virtual Index dimension() const override { 
         	Index n = 1;
@@ -136,7 +136,7 @@ namespace kqp {
         }
 
         virtual boost::shared_ptr< SpaceBase<Scalar> > copy() const {
-            return FSpacePtr(new TensorSpace());
+            return FSpacePtr(new KernelSumSpace());
         }
 
         virtual bool canLinearlyCombine() const override { return false; }
@@ -174,7 +174,39 @@ namespace kqp {
 
         	return k;
         }
+
+     
         
+        virtual void update(KernelValues<Scalar> &values) const override {
+            KQP_LOG_ASSERT_F(main_logger, values.children.size() == size(),
+                 "Expected only %d children values for kernel sum while updating partials, got %d", %size() %values.children.size());
+
+            for(size_t i = 0; i < m_spaces.size(); i++) {
+                auto &child = values.children[i];
+                m_spaces[i]->update(child);
+                values._inner += m_weights[i] * child._inner;
+                values._normX += m_weights[i] * child._normX;
+                values._normY += m_weights[i] * child._normY;
+            }
+
+        }
+
+        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const KernelValues<Scalar> &values, int mode) const override {
+            KQP_LOG_ASSERT_F(main_logger, values.children.size() == size(),
+                 "Expected only %d children values for kernel sum while updating partials, got %d", %size() %values.children.size());
+
+            for(size_t i = 0; i < m_spaces.size(); i++) {
+                partials[offset] += alpha * values.inner(mode);
+                offset++;
+            }
+
+            for(size_t i = 0; i < m_spaces.size(); i++) {
+                m_spaces[i]->updatePartials(alpha * m_weights[i], partials, offset, values.children[i], mode);
+                offset += m_spaces[i]->numberOfParameters();
+            }
+
+        }
+
         virtual void updatePartials(double alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
         	for(size_t i = 0; i < m_spaces.size(); i++) {
         		Scalar k = m_spaces[i]->k(mX.template as<TMatrix>()[i], mY.template as<TMatrix>()[i])(0,0);
@@ -188,6 +220,8 @@ namespace kqp {
 			}
 
         }
+
+
 
         virtual int numberOfParameters() const {
             int n = m_spaces.size();
@@ -224,8 +258,9 @@ namespace kqp {
         static const std::string &name() { static std::string NAME("tensor"); return NAME; }
 
         FSpacePtr space(size_t i) { return m_spaces[i]; }
-        Real weight(size_t i) { return m_weights[i]; }
-        size_t size() { return m_spaces.size(); }
+        FSpaceCPtr space(size_t i) const { return m_spaces[i]; }
+        Real weight(size_t i) const { return m_weights[i]; }
+        size_t size() const { return m_spaces.size(); }
 
 
         virtual void load(const pugi::xml_node &node) {

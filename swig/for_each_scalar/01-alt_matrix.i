@@ -1,3 +1,4 @@
+
 #define SCALAR_ALTMATRIX_@SNAME@ kqp::AltMatrix< typename kqp::AltDense<@STYPE@>::DenseType, typename kqp::AltDense<@STYPE@>::IdentityType >
 
 #define SCALARMATRIX Eigen::Matrix< @STYPE@, Eigen::Dynamic, Eigen::Dynamic>
