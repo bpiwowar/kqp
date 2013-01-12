@@ -136,7 +136,7 @@ namespace kqp {
             m_base->update(child);
             Scalar sigma_2 = m_sigma * m_sigma;
             Scalar re_inner = Eigen::internal::real(child._inner);
-            values._inner =  Eigen::internal::exp((2. * re_inner - child._normX + child._normY) / sigma_2);
+            values._inner =  Eigen::internal::exp((2. * re_inner - child._normX - child._normY) / sigma_2);
             values._normX = 1;
             values._normY = 1;
         }
@@ -148,7 +148,7 @@ namespace kqp {
             Scalar sigma_2 = m_sigma * m_sigma;
             if (mode == 0) {
                 Scalar re_inner = Eigen::internal::real(child.inner(0));
-                Scalar v = (2. * re_inner - child.normX(0) + child.normY(0)) / sigma_2;
+                Scalar v = (2. * re_inner - child.normX(0) - child.normY(0)) / sigma_2;
                 exp_v = Eigen::internal::exp(v);
                 partials[offset] +=  alpha * -2. / m_sigma * v * Eigen::internal::exp(v);
             }
