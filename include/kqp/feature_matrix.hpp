@@ -23,9 +23,10 @@
 #include <boost/shared_ptr.hpp>
 #include <kqp/alt_matrix.hpp>
 
-
 namespace kqp
 {
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.feature_matrix");
 
 #ifndef SWIG
 template <typename Scalar>
@@ -174,6 +175,9 @@ public:
     /** Copy */
     virtual FMatrixBasePtr copy() const = 0;
 
+
+
+#ifndef SWIG
     /** Dynamic cast */
     template<typename T> inline const T &as() const
     {
@@ -184,7 +188,6 @@ public:
         return dynamic_cast<T &>(*this);
     }
 
-#ifndef SWIG
     /** Add pre-images vectors */
     inline void add(const FMatrix &f, const std::vector<bool> *which = NULL)
     {
@@ -227,7 +230,16 @@ class SpaceBase : public AbstractSpace
 public:
     KQP_SCALAR_TYPEDEFS(Scalar);
 
-    virtual ~SpaceBase() {}
+    
+    static int &counter() { static int counter = 0; return counter; }
+
+    virtual ~SpaceBase() {
+        KQP_HLOG_DEBUG_F("Destroying %s (%d / counter = %d)", %KQP_DEMANGLE(*this) %this %--counter());
+    }
+
+    SpaceBase() {
+        KQP_HLOG_DEBUG_F("Creating %s (%d / counter = %d)", %KQP_DEMANGLE(*this) %this %++counter());
+    }
 
     //! Dimension of the underlying space (-1 for infinity)
     virtual Index dimension() const = 0;
@@ -306,6 +318,7 @@ public:
         KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Cannot compute the linear combination in feature space [%s]", % KQP_DEMANGLE(*this));
     }
 
+#ifndef SWIG
     /** Dynamic casts */
     template<typename T> inline const T &as() const
     {
@@ -315,6 +328,7 @@ public:
     {
         return dynamic_cast<T &>(*this);
     }
+#endif
 
     template<typename T> inline bool castable_as() const
     {

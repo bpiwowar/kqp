@@ -32,6 +32,7 @@
     #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
     #include <kqp/space_factory.hpp>
+    #include <kqp/logging.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
     #include <kqp/feature_matrix/kernel_sum.hpp>
@@ -43,7 +44,7 @@
     #include <kqp/kernel_evd/accumulator.hpp>
     #include <kqp/kernel_evd/incremental.hpp>
     #include <kqp/kernel_evd/divide_and_conquer.hpp>
-    
+
     #include <kqp/probabilities.hpp>
 
     namespace kqp {
@@ -210,6 +211,6 @@ namespace Eigen {
 }
 
 %include <kqp/eigen_identity.hpp>
-
+%include <kqp/logging.hpp>
 
 %include "kqp_all.i"

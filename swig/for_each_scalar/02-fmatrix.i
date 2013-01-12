@@ -11,11 +11,11 @@
 %shared_ptr(TYPE)
 %template(NAME) TYPE;
 %extend TYPE {
-    static const TYPE &cast(const kqp::AbstractSpace &base) {
-        return dynamic_cast<const TYPE &>(base);
+    static boost::shared_ptr< TYPE > cast(const boost::shared_ptr<kqp::AbstractSpace> &base) {
+        return boost::dynamic_pointer_cast< TYPE >(base);
     }
-    static bool isInstance(const kqp::AbstractSpace &base) {
-        return dynamic_cast<const TYPE *>(&base) != 0;
+    static bool isInstance(const boost::shared_ptr<kqp::AbstractSpace> &base) {
+        return dynamic_cast<const TYPE *>(base.get()) != 0;
     }
 }
 %enddef
@@ -32,8 +32,8 @@ AbstractSpaceCommonDefs(NAME, TYPE)
 %ignore TYPE::subset;
 %template(NAME) TYPE;
 %extend TYPE {
-    static const TYPE *cast(const kqp::FeatureMatrixBase< @STYPE@ > *base) {
-        return dynamic_cast<const TYPE * >(base);
+    static boost::shared_ptr< TYPE > cast(const boost::shared_ptr<kqp::FeatureMatrixBase< @STYPE@ > > &base) {
+        return boost::dynamic_pointer_cast< TYPE >(base);
     }
 }
 %enddef
