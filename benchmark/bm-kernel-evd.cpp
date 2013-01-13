@@ -142,7 +142,7 @@ namespace kqp {
             typedef DenseSpace<Scalar> KQPSpace;
             typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
 
-            virtual KernelEVD<Scalar>  *getBuilder(const Space<Scalar> &, const KernelEVDBenchmark &) = 0;
+            virtual KernelEVD<Scalar>  *getBuilder(const FSpaceCPtr &, const KernelEVDBenchmark &) = 0;
 
             ScalarMatrix m_genVectors;
             
@@ -210,7 +210,7 @@ namespace kqp {
                 std::clock_t c_end = std::clock();
                 total_time += c_end-c_start;
                 std::cout << "kevd\t" << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << std::endl;
-                KQP_LOG_INFO_F(logger, "Decomposition result: %d pre-images and rank %d", %result.mX.size() %result.mY.cols());
+                KQP_LOG_INFO_F(logger, "Decomposition result: %d pre-images and rank %d", %result.mX->size() %result.mY.cols());
                 
                 // --- Cleaning up
                 
@@ -274,7 +274,7 @@ namespace kqp {
                 std::cout << "o_error\t" << orthogononal_error << std::endl;
                 std::cout << "s_error\t" << (ScalarMatrix(sumWWT.template selfadjointView<Eigen::Lower>()) - ScalarMatrix(result.mD.asDiagonal())).squaredNorm() << std::endl;
                 
-                std::cout << "pre_images\t" << result.mX.size() << std::endl;
+                std::cout << "pre_images\t" << result.mX->size() << std::endl;
                 std::cout << "rank\t" << result.mY.cols() << std::endl;
                 return 0;
                 
@@ -285,7 +285,8 @@ namespace kqp {
         
         template<typename Scalar>
         struct DirectConfigurator : public BuilderConfigurator<Scalar> {
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &, const KernelEVDBenchmark &bm) override {
+            KQP_SCALAR_TYPEDEFS(Scalar);
+            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &, const KernelEVDBenchmark &bm) override {
                 return new DenseDirectBuilder<Scalar>(bm.dimension);
             };
             virtual std::string getName() const { return "direct"; }
@@ -293,8 +294,9 @@ namespace kqp {
         
         template<typename Scalar> 
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
+            KQP_SCALAR_TYPEDEFS(Scalar);
             
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &) override {
+            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
                 if (fs->canLinearlyCombine()) 
                     return new AccumulatorKernelEVD<Scalar,true>(fs);
                 
@@ -310,7 +312,7 @@ namespace kqp {
         
         template<typename Scalar> 
         struct IncrementalConfigurator : public BuilderConfigurator<Scalar> {
-            typedef typename Eigen::NumTraits<Scalar>::Real Real;
+            KQP_SCALAR_TYPEDEFS(Scalar);
             float maxPreImageRatio;
             Index maxRank;
             
@@ -344,7 +346,7 @@ namespace kqp {
         
             virtual std::string getName() const { return "incremental"; }
             
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &) override {
+            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(maxRank, this->targetRank));
                 boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
@@ -367,7 +369,7 @@ namespace kqp {
         /** Configurator for "Divide and Conquer" KEVD */
         template<typename Scalar> 
         struct DivideAndConquerConfigurator : public BuilderConfigurator<Scalar> {
-            typedef typename Eigen::NumTraits<Scalar>::Real Real;
+            KQP_SCALAR_TYPEDEFS(Scalar);
             typedef boost::shared_ptr<KernelEVD<Scalar>> KEVDPtr;
             typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
 
@@ -437,7 +439,7 @@ namespace kqp {
 
             }
             
-            virtual KernelEVD<Scalar> *getBuilder(const Space<Scalar> &fs, const KernelEVDBenchmark &bm) override {                
+            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &bm) override {                
                 DivideAndConquerBuilder<Scalar> *dc = new DivideAndConquerBuilder<Scalar>(fs);
                 dc->setBatchSize(batchSize);
                 
