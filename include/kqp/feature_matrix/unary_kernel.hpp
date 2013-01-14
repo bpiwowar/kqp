@@ -119,7 +119,7 @@ namespace kqp {
         virtual FSpacePtr copy() const override { return FSpacePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
 
         virtual Index dimension() const override { return -1; }
-        virtual bool canLinearlyCombine() const override { return false; }
+        virtual bool _canLinearlyCombine() const override { return false; }
 
         
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
@@ -237,7 +237,7 @@ namespace kqp {
         PolynomialSpace() : UnaryKernelSpace<Scalar>(FSpace()), m_bias(0), m_degree(1) {}
 
         virtual Index dimension() const override { return -1; }
-        virtual bool canLinearlyCombine() const override { return false; }
+        virtual bool _canLinearlyCombine() const override { return false; }
 
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {

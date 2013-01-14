@@ -20,6 +20,7 @@
 
 #include <utility>
 
+
 #include <kqp/decomposition.hpp>
 #include <kqp/feature_matrix.hpp>
 #include <kqp/rank_selector.hpp>
@@ -42,7 +43,7 @@ namespace kqp {
      *            The type of the base vectors in the original space
      * @ingroup OperatorBuilder
      */
-    template <class Scalar> class KernelEVD  {        
+    template <class Scalar> class KernelEVD {        
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         

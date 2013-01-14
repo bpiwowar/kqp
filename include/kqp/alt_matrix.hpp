@@ -17,6 +17,7 @@
 #ifndef _KQP_ALTMATRIX_H_
 #define _KQP_ALTMATRIX_H_
 
+#include <boost/shared_ptr.hpp>
 #include <algorithm>
 
 #include <kqp/kqp.hpp>

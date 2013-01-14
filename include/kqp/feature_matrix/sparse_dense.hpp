@@ -464,7 +464,7 @@ namespace kqp {
             return FMatrixBasePtr(new SparseDense<Scalar>(cast(mX)));            
         }
         
-        virtual bool canLinearlyCombine() const override {
+        virtual bool _canLinearlyCombine() const override {
             return true;
         }
         

@@ -18,6 +18,7 @@
 #ifndef __KQP_RANK_SELECTOR_H__
 #define __KQP_RANK_SELECTOR_H__
 
+
 #include <kqp/kqp.hpp>
 
 namespace kqp {

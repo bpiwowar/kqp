@@ -67,7 +67,7 @@ namespace kqp {
         
     protected:
         void reset() {
-            *this = DivideAndConquerBuilder(this->getFSpace());
+            decompositions.clear();
         }
 
         virtual Decomposition<Scalar> _getDecomposition() const override {

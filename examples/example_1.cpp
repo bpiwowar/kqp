@@ -65,11 +65,11 @@ int main(int, const char**) {
     std::cout << "Probability = " << rho.probability(event) << std::endl;
 
     // Conditional probability
-    Density<double> rho_cond = event.project(kevd).normalize(); 
+    Density<double> rho_cond = event.project(kevd);
     std::cout << "Entropy rho/E = " << rho_cond.entropy() << std::endl;
     
     // Conditional probability (orthogonal event)
-    Density<double> rho_cond_orth = event.project(kevd, true).normalize();
+    Density<double> rho_cond_orth = event.project(kevd, true);
     std::cout << "Entropy rho/not E = " << rho_cond_orth.entropy() << std::endl;
     
     return 0;

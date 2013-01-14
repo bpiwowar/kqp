@@ -65,7 +65,11 @@ namespace kqp {
         virtual ~IncrementalKernelEVD() {}
         
         void reset() {
-            *this = IncrementalKernelEVD(this->getFSpace());
+            mX = this->getFSpace()->newMatrix();
+            mY = ScalarMatrix();
+            mZ = ScalarMatrix();
+            mD = RealVector();
+            // mutable ScalarMatrix k;        
         }
                
         void setSelector(const boost::shared_ptr< const Selector<Real> > &selector) {
@@ -156,7 +160,7 @@ namespace kqp {
             
 
 
-            // --- Rank selection   
+            // --- Rankselection   
             DecompositionList<Real> list(mD);
             bool identityZ = false;
             if (this->selector) {
@@ -252,7 +256,7 @@ namespace kqp {
         FastRankOneUpdate<Scalar> evdRankOneUpdate;
         
         // Used in computation
-        mutable ScalarMatrix k;    
+        // mutable ScalarMatrix k;    
         
         //! Eigen value selector
         boost::shared_ptr< const Selector<Real> > selector;   

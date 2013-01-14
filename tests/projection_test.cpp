@@ -71,15 +71,15 @@ namespace kqp {
         
         FMatrixPtr v(Dense<double>::create(Eigen::VectorXd::Random(dimension)));
         
-        Density<double> v1 = subspace.project(Density<double>(fs, v, true), false);
-        Density<double> v2 = subspace.project(Density<double>(fs, v, true), true);
+        Density<double> v1 = subspace.project(Density<double>(fs, v, true), false, false);
+        Density<double> v2 = subspace.project(Density<double>(fs, v, true), true, false);
         
         // Check that v1 . v2 = 0
         ScalarMatrix inners = v1.inners(v2);
         
         // Check that projecting in orthogonal subspaces leads to a null vector
-        Density<double> v1_p = subspace.project(v1, true);        
-        Density<double> v2_p = subspace.project(v2, false);
+        Density<double> v1_p = subspace.project(v1, true, false);        
+        Density<double> v2_p = subspace.project(v2, false, false);
         
         // Check that v = v1 + v2
         return  inners.squaredNorm() < EPSILON 
@@ -133,19 +133,19 @@ namespace kqp {
             
             // Projection
             Density<double> pRho = sb.project(rho, false);
-            code |= isApproxEqual("projection of rho onto A", pRho.normalize(), wanted_pRho);
+            code |= isApproxEqual("projection of rho onto A", pRho, wanted_pRho);
             
             // Orthogonal projection
             Density<double> opRho = sb.project(rho, true);
-            code |=isApproxEqual("projection of rho onto orth A", opRho.normalize(), wanted_opRho);
+            code |=isApproxEqual("projection of rho onto orth A", opRho, wanted_opRho);
             
             // Fuzzy projection
             Density<double> fpRho = sb_fuzzy.project(rho, false);
-            code |=isApproxEqual("fuzzy projection of rho onto A", fpRho.normalize(), wanted_fpRho);
+            code |=isApproxEqual("fuzzy projection of rho onto A", fpRho, wanted_fpRho);
             
             // Fuzzy orthogonal projection
             Density<double> ofpRho = sb_fuzzy.project(rho, true);
-            code |=isApproxEqual("fuzzy projection of rho onto orth A", ofpRho.normalize(), wanted_ofpRho);
+            code |=isApproxEqual("fuzzy projection of rho onto orth A", ofpRho, wanted_ofpRho);
         }
         
         return code;

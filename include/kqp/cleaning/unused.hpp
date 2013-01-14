@@ -47,7 +47,7 @@ namespace kqp {
                     to_keep[i] = false;
             
             select_rows(to_keep, mY, mY);
-            const_cast<FMatrixPtr &>(mF) = mF->subset(to_keep);
+            *mF = *mF->subset(to_keep);
         }
         
         static void run(const FMatrixPtr &mF, ScalarAltMatrix &mY) {
@@ -71,7 +71,7 @@ namespace kqp {
             
             select_rows(to_keep, mY, mY);
             
-            const_cast<FMatrixPtr &>(mF) = mF->subset(to_keep);
+            *mF = *mF->subset(to_keep);
         }
     };
     

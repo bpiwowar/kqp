@@ -310,15 +310,22 @@ namespace kqp {
         
         /**
          * @brief Project onto a subspace.
-         *
-         * The resulting density will <b>not</b> normalized 
          */
         
-        Density<Scalar> project(const Density<Scalar>& density, bool orthogonal = false) {
-            if (orthogonal) 
-                return useLinearCombination ? projectOrthogonalWithLC(density, *this) : projectOrthogonal(density, *this);
-            
-            return  useLinearCombination ? projectWithLC(density, *this) : project(density, *this);
+        Density<Scalar> project(const Density<Scalar>& density, bool orthogonal = false, bool normalize = true) {
+            // Orthogonal projection
+            if (orthogonal) {
+                Density<Scalar> r = useLinearCombination ? projectOrthogonalWithLC(density, *this) : projectOrthogonal(density, *this);
+                if (normalize)
+                    r.normalize();
+                return r;
+            } 
+
+            // Normal projection
+            Density<Scalar> r = useLinearCombination ? projectWithLC(density, *this) : project(density, *this);
+            if (normalize)
+                r.normalize();
+            return r;
         }
     };
     
@@ -348,9 +355,8 @@ namespace kqp {
         }
         
         //! Normalise the density
-        Density &normalize() {
+        void normalize() {
             this->multiplyBy((Scalar)1 / this->trace());
-            return *this;
         }
         
         /**

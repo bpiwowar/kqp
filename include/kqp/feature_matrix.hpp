@@ -23,6 +23,7 @@
 #include <boost/shared_ptr.hpp>
 #include <kqp/alt_matrix.hpp>
 
+
 namespace kqp
 {
 #   include <kqp/define_header_logger.hpp>
@@ -138,7 +139,7 @@ public:
  * @author B. Piwowarski <benjamin@bpiwowar.net>
  */
 template <class Scalar>
-class FeatureMatrixBase
+class FeatureMatrixBase 
 {
 public:
     KQP_SCALAR_TYPEDEFS(Scalar);
@@ -204,7 +205,7 @@ public:
 /**
  * Common ancestor class for all spaces
  */
-class AbstractSpace
+class AbstractSpace 
 {
 public:
     virtual ~AbstractSpace() {}
@@ -386,7 +387,7 @@ public:
     //! Returns whether the pre-images can be linearly combined
     inline bool canLinearlyCombine() const
     {
-        return m_useLinearCombination && canLinearlyCombine();
+        return m_useLinearCombination && _canLinearlyCombine();
     };
 
 

@@ -128,7 +128,7 @@ ENDIF()
 
 
 file(GLOB kqp_kqp_H  "include/kqp/*.hpp" "include/kqp/for_all*")
-file(GLOB kqp_fmatrix_H "include/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
+file(GLOB kqp_fmatrix_H "ADD_CUSTOM_COMMAND/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
 file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
 file(GLOB kqp_cleaning_H "include/kqp/cleaning/*.hpp" "include/kqp/cleaning.hpp")
 

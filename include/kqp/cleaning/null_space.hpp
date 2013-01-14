@@ -164,7 +164,7 @@ namespace kqp {
             ScalarMatrix kernel = lu_decomposition.kernel();
             RealVector weights = mY.rowwise().squaredNorm().array() * fs->k(mF).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            const_cast<FMatrixPtr&>(mF) = remove(mF, kernel, mP, weights);
+            *mF = *remove(mF, kernel, mP, weights);
             
             // Y <- (Id A) P Y
             ScalarMatrix mY2(mY);

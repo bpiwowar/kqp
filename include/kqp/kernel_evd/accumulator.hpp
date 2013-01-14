@@ -63,7 +63,7 @@ namespace kqp{
         }
         
         void reset() override {
-            *this = AccumulatorKernelEVD(this->getFSpace());
+            fMatrix = this->getFSpace()->newMatrix();
         }
         
         //! Actually performs the computation
@@ -121,7 +121,14 @@ namespace kqp{
         }
         
         void reset() {
-            *this = AccumulatorKernelEVD(this->getFSpace());
+            fMatrix = this->getFSpace()->newMatrix();
+            alphas.clear();
+            offsets_X.clear();
+            offsets_A.clear();
+            combination_matrices.clear();
+            
+            offsets_X.push_back(0);
+            offsets_A.push_back(0);
         }
 
         

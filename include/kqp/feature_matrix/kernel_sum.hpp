@@ -139,7 +139,7 @@ namespace kqp {
             return FSpacePtr(new KernelSumSpace());
         }
 
-        virtual bool canLinearlyCombine() const override { return false; }
+        virtual bool _canLinearlyCombine() const override { return false; }
 
         virtual FMatrixBasePtr newMatrix() const override { 
         	return FMatrixBasePtr(new TMatrix(*this)); 

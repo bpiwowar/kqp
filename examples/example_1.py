@@ -64,14 +64,10 @@ print "Probability = %g\n" % rho.probability(event)
 
 # Conditional probability
 rho_cond = event.project(rho)
-print rho_cond
-print "Entropy of rho/E = %g\n" % rho_cond.entropy()
-rho_cond = rho_cond.normalize()
-print rho_cond
 print "Entropy of rho/E = %g\n" % rho_cond.entropy()
 
 # Conditional probability (orthogonal event)
-rho_cond_orth = event.project(rho, true)
-rho_cond_orth= rho_cond_orth.normalize()
+rho_cond_orth = event.project(rho, True)
+rho_cond_orth.normalize()
 print "Entropy of rho/not E = %g\n" % rho_cond.entropy()
 
