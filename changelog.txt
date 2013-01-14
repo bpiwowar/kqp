@@ -1,5 +1,17 @@
 ### HEAD ###
 
+
+## 1.2.0 ##
+
+Bugs
+* Much improved SWIG support (crashes)
+
+Features
+* Update partials with respect to kernel parameters
+* New kernel: linear combination
+
+## 1.1.0 ##
+
 * Installation with make install
 * Fix gcc 4.7 compilation problems
 * Fix entropy computation bug (opposite sign)
