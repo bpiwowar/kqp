@@ -70,7 +70,7 @@ public class example_1 {
         System.out.format("Probability = %g%n", rho.probability(event));
 
         // Conditional probability
-        DensityDouble rho_cond = event.project(rho)
+        DensityDouble rho_cond = event.project(rho);
         System.out.format("Entropy of rho/E = %g%n", rho_cond.entropy());
 
         // Conditional probability (orthogonal event)
