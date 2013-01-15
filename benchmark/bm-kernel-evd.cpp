@@ -38,6 +38,8 @@
 DEFINE_LOGGER(logger,  "kqp.benchmark.kernel-evd");
 
 namespace kqp {
+
+    // FIXME: use boost program options library instead
     
     
     struct KernelEVDBenchmark {
@@ -96,11 +98,16 @@ namespace kqp {
         
         struct BuilderConfiguratorBase {
             Index targetRank;
+            Index maxRank;
+
             float targetPreImageRatio;
+            float maxPreImageRatio;
             
             BuilderConfiguratorBase() :
                 targetRank(std::numeric_limits<Index>::max()),
-                targetPreImageRatio(std::numeric_limits<float>::infinity())
+                maxRank(std::numeric_limits<Index>::max()),
+                targetPreImageRatio(std::numeric_limits<float>::infinity()),
+                maxPreImageRatio(std::numeric_limits<float>::infinity())
             {
                 
             }
@@ -108,7 +115,12 @@ namespace kqp {
             virtual void print(const KernelEVDBenchmark &bm, const std::string & prefix = "") const {
                 std::cout << prefix << "\t" << this->getName() << std::endl;
                 std::cout << prefix << ".rank\t" << targetRank << std::endl;
-                if (!bm.useLC) std::cout << prefix << ".pre_images\t" << targetPreImageRatio << std::endl;
+                std::cout << prefix << ".max_rank\t" << maxRank << std::endl;
+
+                if (!bm.useLC) {
+                    std::cout << prefix << ".pre_images\t" << targetPreImageRatio << std::endl;
+                    std::cout << prefix << ".max_pre_images\t" << maxPreImageRatio << std::endl;
+                }
             }
             
             virtual std::string getName() const = 0;
@@ -126,6 +138,21 @@ namespace kqp {
                     args.pop_front();
                     return true;
                 }
+
+                if (options[0] == "max_rank" && args.size() >= 2) {
+                    args.pop_front();
+                    maxRank = boost::lexical_cast<Index>(args[0]);
+                    args.pop_front();
+                    return true;
+                }
+                
+                if (options[0] == "max_pre_images" && args.size() >= 2) {
+                    args.pop_front();
+                    maxPreImageRatio = boost::lexical_cast<float>(args[0]);
+                    args.pop_front();
+                    return true;
+                }
+
 
                 return false;
             }
@@ -218,7 +245,7 @@ namespace kqp {
                 c_start = std::clock();
                 CleanerList<Real> cleaner;
                 
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->targetRank));
+                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
                 boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
@@ -228,7 +255,7 @@ namespace kqp {
                 cleaner.add(CleanerPtr(new CleanerUnused<Scalar>()));
                 
                 boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
-                qpCleaner->setPreImagesPerRank(this->targetPreImageRatio, this->targetPreImageRatio);
+                qpCleaner->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
                 cleaner.add(qpCleaner);
                 
                 cleaner.cleanup(result);
@@ -313,42 +340,14 @@ namespace kqp {
         template<typename Scalar> 
         struct IncrementalConfigurator : public BuilderConfigurator<Scalar> {
             KQP_SCALAR_TYPEDEFS(Scalar);
-            float maxPreImageRatio;
-            Index maxRank;
             
-            IncrementalConfigurator() : maxPreImageRatio(std::numeric_limits<float>::infinity()), maxRank(-1) {}
+            IncrementalConfigurator()  {}
             
-            virtual void print(const KernelEVDBenchmark &bm, const std::string& prefix = "") const override {
-                BuilderConfigurator<Scalar>::print(bm, prefix);
-                if (!bm.useLC) std::cout << prefix << ".max_pre_images\t" << maxPreImageRatio << std::endl;
-                std::cout << prefix << ".max_rank\t" << maxRank << std::endl;
-            }
-            
-            virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
-                if (options.size() == 1) {
-                    if (options[0] == "max_rank" && args.size() >= 2) {
-                        args.pop_front();
-                        maxRank = boost::lexical_cast<Index>(args[0]);
-                        args.pop_front();
-                        return true;
-                    }
-                    
-                    if (options[0] == "max_pre_images" && args.size() >= 2) {
-                        args.pop_front();
-                        maxPreImageRatio = boost::lexical_cast<float>(args[0]);
-                        args.pop_front();
-                        return true;
-                    }
-                }
-                
-                return BuilderConfigurator<Scalar>::processOption(options, args);            
-            }
-        
             virtual std::string getName() const { return "incremental"; }
             
             virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
                 // Construct the rank selector
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(maxRank, this->targetRank));
+                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
                 boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
@@ -382,7 +381,7 @@ namespace kqp {
             
             virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
                 
-                if (options.size() == 2 && options[0] == "batch" && options[1] == "size" && args.size() >= 2) {
+                if (options.size() == 1 && options[0] == "batch_size" && args.size() >= 2) {
                     batchSize = boost::lexical_cast<Index>(args[1]);
                     args.pop_front();
                     args.pop_front();
@@ -390,7 +389,8 @@ namespace kqp {
                 }
                 
                 if (options[0] != "merger" && options[0] != "builder")
-                    return false;
+                    return BuilderConfigurator<Scalar>::processOption(options, args);
+
                 boost::scoped_ptr<BuilderConfigurator<Scalar>> &cf = options[0] == "builder" ? builder : merger;
 
                 
@@ -419,7 +419,7 @@ namespace kqp {
 
             boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &, const BuilderConfigurator<Scalar> &bc) {
                 // Construct the rank selector
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.targetRank, bc.targetRank));
+                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.maxRank, bc.targetRank));
                 boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Scalar>::epsilon()));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
@@ -432,7 +432,7 @@ namespace kqp {
                 cleaner->add(CleanerPtr(new CleanerUnused<Scalar>()));
                 
                 boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
-                qpCleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.targetPreImageRatio);
+                qpCleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.maxPreImageRatio);
                 cleaner->add(qpCleaner);
                 
                 return cleaner;
