@@ -60,7 +60,11 @@ namespace std {
         {   // forward _Arg as movable
             return ((typename _Remove_reference<_Ty>::_Type&&)_Arg);
         }
-        
+        template<class S>
+		S&& forward(typename _Remove_reference<S>::type& a) noexcept
+		{
+			return static_cast<S&&>(a);
+		}
     }
 }
 #endif

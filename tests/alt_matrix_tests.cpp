@@ -306,6 +306,16 @@ namespace {
         return error1 > EPSILON || error2 > EPSILON;
     }
     
+    int test_rowwise() {
+        typedef double Scalar;
+        AltDense<Scalar>::type a = AltDense<Scalar>::Identity(10);
+        MatrixXd b = MatrixXd::Identity(10,10);
+        
+        double error = (a.rowwise().squaredNorm() - b.rowwise().squaredNorm()).squaredNorm();
+        std::cerr << "Row-wise error[identity]: " << error << std::endl;
+        return error > EPSILON;  
+    }
+    
 } // end <> ns
 
 
@@ -356,6 +366,10 @@ test_adjoint_post_product(x,y);
         // Sparse
         
         code |= test_sparse<double>();
+        
+        // Row-wise
+        
+        code |= test_rowwise();
         
         // Array
         // FIXME: not working for the moment

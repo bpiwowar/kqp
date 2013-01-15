@@ -72,7 +72,7 @@ namespace kqp {
         typedef AltMatrix<DenseType, IdentityType> type;
         
         static  inline type Identity(Index n) { 
-            return Eigen::Matrix<Scalar,Dynamic,Dynamic>::Identity(n,n); 
+            return type(Eigen::Matrix<Scalar,Dynamic,Dynamic>::Identity(n,n));
         }
     };    
     
@@ -741,9 +741,8 @@ namespace kqp {
         return x.diagonal().rowwise();
     }
     
-    template <typename Scalar> auto rowwise(const Eigen::Identity<Scalar> &x) -> decltype(Eigen::Matrix<Scalar, 1, Dynamic>::Ones(0).rowwise()) {
-        eigen_assert(x.rows() == x.cols()); // otherwise, it is a bit more complex! We need a constant expression
-        return Eigen::Matrix<Scalar, 1, Dynamic>::Ones(x.rows()).rowwise();
+    template <typename Scalar> typename Eigen::Identity<Scalar>::RowWise rowwise(const Eigen::Identity<Scalar> &x) {
+		return x.rowwise();
     }
 
     

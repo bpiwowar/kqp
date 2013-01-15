@@ -37,7 +37,23 @@ namespace Eigen {
 #ifndef SWIG
         typedef typename MatrixXd::Index Index;
         typedef Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<Scalar>, Eigen::Matrix<Scalar,Dynamic,1> > VectorType;
+		
+		class RowWise {
+		public:
+			RowWise(Index rows, Index cols) : m_rows(rows), m_cols(cols) {}
+
+			auto squaredNorm() const -> decltype(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>::Ones(-1)) {
+				eigen_assert(m_rows == m_cols); // otherwise, it is a bit more complex! We need a constant expression
+				return Eigen::Matrix<Scalar, Eigen::Dynamic, 1>::Ones(m_rows);
+			}
+		private:
+			Index m_rows;
+			Index m_cols;
+		};
+		
+		RowWise rowwise() const { return RowWise(m_rows, m_cols); }
 #endif
+		
         
         Identity() : m_rows(0), m_cols(0) {}
         Identity(Index size) : m_rows(size), m_cols(size) {}
@@ -50,7 +66,8 @@ namespace Eigen {
         
         Index rows() const { return this->m_rows; }
         Index cols() const { return this->m_cols; }
-                
+        
+		
 
         Scalar trace() const { return std::min(m_rows, m_cols); }
         Scalar sum() const { return std::min(m_rows, m_cols); }
