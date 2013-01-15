@@ -83,20 +83,6 @@
         return false;
     }
 
-    private static boolean init(Properties properties) {
-        String libraryPath = properties.get("library.path").toString();
-        if (libraryPath != null) {
-            for(String systemId: SYSTEM_IDS)
-            for(String jniext: JNIEXT) {
-                libraryPath = libraryPath.replaceAll("@systemId@", systemId);
-                libraryPath = libraryPath.replaceAll("@jniext@", jniext);
-                if (init(libraryPath)) return true;
-            }
-        }
-        else System.out.println("No library path");
-        return false;
-    }
-
 
     private static void loadKQP() {
         // Try with system property
@@ -114,13 +100,20 @@
                 if (url.getProtocol() == "jar") {
                     url = new URL(url.getPath());
                     basepath = new File((url.getPath().split("!"))[0]).getParentFile().toString();
+                } else if (url.getProtocol() == "file") {
+                    basepath = new File(url.getPath()).getParentFile().getParentFile().getParent();
                 }
-                Properties properties = new Properties();
-                properties.load(in);
-                for(Map.Entry<Object, Object> p: properties.entrySet()) {
-                    p.setValue(p.getValue().toString().replaceAll("@basepath@", basepath));
+
+                String libraryPath;
+                while ((libraryPath = in.readLine()) != null) {
+                    libraryPath = libraryPath.replaceAll("@basepath@", basepath);
+                    for(String systemId: SYSTEM_IDS)
+                        for(String jniext: JNIEXT) {
+                        libraryPath = libraryPath.replaceAll("@systemId@", systemId);
+                        libraryPath = libraryPath.replaceAll("@jniext@", jniext);
+                        if (init(libraryPath)) return;
+                    }
                 }
-                if (init(properties)) return;
             }
         } catch (IOException e) {
             e.printStackTrace();
