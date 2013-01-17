@@ -136,9 +136,9 @@ namespace kqp {
             m_base->update(child);
             Scalar sigma_2 = m_sigma * m_sigma;
             Scalar re_inner = Eigen::internal::real(child._inner);
-            values._inner =  Eigen::internal::exp((2. * re_inner - child._normX - child._normY) / sigma_2);
-            values._normX = 1;
-            values._normY = 1;
+            values._inner =  Eigen::internal::exp((2. * re_inner - child._innerX - child._innerY) / sigma_2);
+            values._innerX = 1;
+            values._innerY = 1;
         }
 
         virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const KernelValues<Scalar> &values, int mode) const {
@@ -148,7 +148,7 @@ namespace kqp {
             Scalar sigma_2 = m_sigma * m_sigma;
             if (mode == 0) {
                 Scalar re_inner = Eigen::internal::real(child.inner(0));
-                Scalar v = (2. * re_inner - child.normX(0) - child.normY(0)) / sigma_2;
+                Scalar v = (2. * re_inner - child.innerX(0) - child.innerY(0)) / sigma_2;
                 exp_v = Eigen::internal::exp(v);
                 partials[offset] +=  alpha * -2. / m_sigma * v * Eigen::internal::exp(v);
             }
@@ -161,11 +161,11 @@ namespace kqp {
         }
 
         virtual void updatePartials(Real alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
-            Scalar inner = m_base->k(mX, mY)(0,0), normX = m_base->k(mX)(0,0), normY = m_base->k(mY)(0,0);
+            Scalar inner = m_base->k(mX, mY)(0,0), innerX = m_base->k(mX)(0,0), innerY = m_base->k(mY)(0,0);
 
             Scalar sigma_2 = m_sigma * m_sigma;
             Scalar re_inner = Eigen::internal::real(inner);
-            Scalar v = (2. * re_inner - normX + normY) / sigma_2;
+            Scalar v = (2. * re_inner - innerX + innerY) / sigma_2;
             Scalar exp_v = Eigen::internal::exp(v);
             partials[offset] +=  alpha * -2. / m_sigma * v * Eigen::internal::exp(v);
 
@@ -264,8 +264,8 @@ namespace kqp {
             auto &child = values.children[0];
             m_base->update(child);
             values._inner = Eigen::internal::pow(child._inner + m_bias, (Scalar)m_degree);
-            values._normX = Eigen::internal::pow(child._normX + m_bias, (Scalar)m_degree);            
-            values._normY = Eigen::internal::pow(child._normY + m_bias, (Scalar)m_degree);
+            values._innerX = Eigen::internal::pow(child._innerX + m_bias, (Scalar)m_degree);            
+            values._innerY = Eigen::internal::pow(child._innerY + m_bias, (Scalar)m_degree);
         }
 
         virtual int numberOfParameters() const {

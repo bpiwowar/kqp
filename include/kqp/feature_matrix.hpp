@@ -119,17 +119,17 @@ template<typename Scalar> class SpaceBase;
   */
 template<typename Scalar> class KernelValues {
 public:
-    KernelValues(Scalar normX, Scalar normY, Scalar inner) :
-        _normX(normX), _normY(normY), _inner(inner) {}
+    KernelValues(Scalar innerX, Scalar innerY, Scalar inner) :
+        _innerX(innerX), _innerY(innerY), _inner(inner) {}
 
     KernelValues() {}    
 
-    inline Scalar inner(int mode = 0) const { if (mode == -1) return _normX; return mode == 1 ? _normY : _inner; }
-    inline Scalar normX(int mode = 0) const { if (mode == 1) return _normY; return _normX; }
-    inline Scalar normY(int mode = 0) const { if (mode == -1) return _normX; return _normY; }
+    inline Scalar inner(int mode = 0) const { if (mode == -1) return _innerX; return mode == 1 ? _innerY : _inner; }
+    inline Scalar innerX(int mode = 0) const { if (mode == 1) return _innerY; return _innerX; }
+    inline Scalar innerY(int mode = 0) const { if (mode == -1) return _innerX; return _innerY; }
 
     std::vector<KernelValues> children;
-    Scalar _normX, _normY, _inner;
+    Scalar _innerX, _innerY, _inner;
 };
 
 /**

@@ -185,8 +185,8 @@ namespace kqp {
                 auto &child = values.children[i];
                 m_spaces[i]->update(child);
                 values._inner += m_weights[i] * child._inner;
-                values._normX += m_weights[i] * child._normX;
-                values._normY += m_weights[i] * child._normY;
+                values._innerX += m_weights[i] * child._innerX;
+                values._innerY += m_weights[i] * child._innerY;
             }
 
         }
