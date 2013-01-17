@@ -37,6 +37,7 @@
 
 namespace kqp {
     
+#ifndef SWIG
 #   include <kqp/define_header_logger.hpp>
     DEFINE_KQP_HLOGGER("kqp.qp-approach");
     
@@ -361,7 +362,8 @@ namespace kqp {
             new_mF = std::move(_new_mF);
         }
     };
-    
+#endif
+
     template <typename Scalar>
     class CleanerQP : public Cleaner<Scalar> {
     public:
@@ -404,7 +406,7 @@ namespace kqp {
     };
     
     
-    
+#ifndef SWIG    
     /**
      * The KKT pre-solver to solver the QP problem
      * @ingroup coneqp
@@ -433,6 +435,8 @@ extern template class CleanerQP<scalar>;
 #define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(extern, scalar)
 #include <kqp/for_all_scalar_gen.h.inc>
 #undef KQP_SCALAR_GEN
+#endif
+
 }
 
 

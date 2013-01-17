@@ -45,6 +45,9 @@
     #include <kqp/kernel_evd/incremental.hpp>
     #include <kqp/kernel_evd/divide_and_conquer.hpp>
 
+    #include <kqp/cleaning/unused.hpp>
+    #include <kqp/cleaning/qp_approach.hpp>
+
     #include <kqp/probabilities.hpp>
 
     namespace kqp {

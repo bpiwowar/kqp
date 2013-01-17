@@ -15,6 +15,14 @@
 %template(CleanerList@SNAME@) kqp::CleanerList< @STYPE@ >;
 %template(CleanerRank@SNAME@) kqp::CleanerRank< @STYPE@ >;
 
+%include "kqp/cleaning/qp_approach.hpp"
+%shared_ptr(kqp::CleanerQP< @STYPE@ >)
+%template(CleanerQP@SNAME@) kqp::CleanerQP< @STYPE@ >;
+
+%include "kqp/cleaning/unused.hpp"
+%shared_ptr(kqp::CleanerUnused< @STYPE@ >);
+%template(CleanerUnused@SNAME@) kqp::CleanerUnused< @STYPE@ >;
+
 // ---- Kernel EVD
 
 %shared_ptr(kqp::KernelEVD< @STYPE@ >);
