@@ -116,6 +116,11 @@ struct Decomposition
         return fs->k(mX, mY, mD, other.mX, other.mY, other.mD);
     }
 
+    /** Check that the decomposition is valid */
+    bool check() const {
+        return mX->size() == mY.rows() && mY.cols() == mD.rows();
+    }
+
 
 };
 

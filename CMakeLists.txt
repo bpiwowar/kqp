@@ -41,6 +41,10 @@ SET (libkqp_SOVERSION "${libkqp_VERSION_MAJOR}.${libkqp_VERSION_MINOR}")
 
 # --- Output some information
 
+if (NOT(CMAKE_BUILD_TYPE))
+  SET(CMAKE_BUILD_TYPE Debug)
+ENDIF()
+
 MESSAGE(STATUS "Creating project KQP ${libkqp_VERSION} with build type ${CMAKE_BUILD_TYPE}")
 
 # --- Compilation flags

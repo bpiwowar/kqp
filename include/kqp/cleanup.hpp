@@ -45,8 +45,14 @@ namespace kqp {
         typedef boost::shared_ptr< const Cleaner<Scalar> > CPtr;
         
         virtual void cleanup(Decomposition<Scalar> &d) const override {
-            for(auto i = list.begin(); i != list.end(); ++i) 
+            for(auto i = list.begin(); i != list.end(); ++i) {
                 (*i)->cleanup(d);
+
+                // Sanity check
+                if (!d.check())
+                    KQP_THROW_EXCEPTION_F(assertion_exception, "Decomposition in an invalid state (%d, %dx%d, %d) after cleaner %s", 
+                        %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows() % KQP_DEMANGLE(*i))
+            }
         }
         
         void add(const Ptr &item) {

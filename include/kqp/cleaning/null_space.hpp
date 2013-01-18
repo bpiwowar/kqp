@@ -57,6 +57,10 @@ namespace kqp {
          */
         static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
+
+            // --- Check if we have something to do
+            if (mF->size() == 0)
+                return mF;
             
             // --- Look up at the indices to remove
             

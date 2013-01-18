@@ -225,7 +225,7 @@ namespace kqp {
         useLinearCombination(evd.getFSpace()->canLinearlyCombine()) {       
             if (!fuzzy) {
                 this->orthonormalize();
-                this->m_operator.mD = RealVector::Ones(this->X().size());
+                this->m_operator.mD = RealVector::Ones(this->Y().cols());
             }
         }
         

@@ -207,7 +207,11 @@ namespace Eigen {
         std::cerr << boost::diagnostic_information(e) << std::endl;
         throw;
     }
-    
+    catch(const std::exception &e) {
+        std::cerr << "Caught a std exception" << std::endl;
+        std::cerr << e.what() << std::endl;
+        throw;
+    }    
     catch(...) {
         std::cerr << "Caught an unknown exception!" << std::endl;
         throw;
