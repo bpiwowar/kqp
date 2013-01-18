@@ -174,7 +174,7 @@ namespace kqp {
                 d.updateCount = d1.updateCount + d2.updateCount;
                 assert(!kqp::isNaN(d.fs->k(d.mX, d.mY, d.mD).squaredNorm()));
 
-                KQP_HLOG_INFO_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
+                KQP_HLOG_DEBUG_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
                                  %d1.mD.rows() %d1.mX->size() %d1.updateCount 
                                  %d2.mD.rows() %d2.mX->size() %d2.updateCount 
                                  %d.mD.rows()  %d.mX->size()  %d.updateCount);
