@@ -94,7 +94,7 @@ namespace kqp {
                 d.mX = d.fs->newMatrix();
             if (!d.check())
                 KQP_THROW_EXCEPTION_F(assertion_exception, "Decomposition in an invalid state (%d, %dx%d, %d) for KEVD %s", 
-                        %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows() %KQP_DEMANGLE(*this))
+                        %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows() %KQP_DEMANGLE(*this));
 
             return d;
         }

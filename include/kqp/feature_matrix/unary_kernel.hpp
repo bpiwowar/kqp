@@ -181,12 +181,14 @@ namespace kqp {
 
         virtual void getParameters(std::vector<Real> & parameters, int offset) const {
             parameters[offset] = m_sigma;
+            m_base->getParameters(parameters, offset + 1);
         }
 
         virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
             m_sigma = parameters[offset];
             if (m_sigma < 0) m_sigma = -m_sigma;
             if (m_sigma < EPSILON) m_sigma = kqp::EPSILON;
+            m_base->setParameters(parameters, offset + 1);
         }
 
         static const std::string &name() { static std::string NAME("gaussian"); return NAME; }

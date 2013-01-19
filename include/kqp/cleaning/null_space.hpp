@@ -55,7 +55,7 @@ namespace kqp {
          * @param weights give an order to the different pre-images
          * @param delta
          */
-        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
+        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double /*delta*/ = 1e-4) {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
 
             // --- Check if we have something to do
@@ -66,11 +66,10 @@ namespace kqp {
             
             // Get the pre-images available for removal (one per vector of the null space, i.e. by columns in kernel)
             // Summarize the result per pre-image (number of vectors where it appears)
-            Eigen::Matrix<int,Dynamic,1> num_vectors = (kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta).template cast<int>().rowwise().sum();
+            // Eigen::Matrix<int,Dynamic,1> num_vectors = (kernel.array().abs() > kernel.array().abs().colwise().maxCoeff().replicate(kernel.rows(), 1) * delta).template cast<int>().rowwise().sum();
             
             std::vector<Index> to_remove;
-            for(Index i = 0; i < num_vectors.rows(); i++)
-                if (num_vectors[i] > 0) 
+            for(Index i = 0; i < /*num_vectors*/kernel.rows(); i++)
                     to_remove.push_back(i);
             
             // Sort        
@@ -83,32 +82,50 @@ namespace kqp {
             
             std::sort(to_remove.begin(), to_remove.end(), IndirectSort<RealVector>(weights));
             std::vector<bool> selection(mF->size(), true);
-            std::vector<bool> used(remove_size, false);
+            std::vector<bool> used(to_remove.size(), false);
             
             ScalarVector v;
             
             // --- Remove the vectors one by one (Pivoted Gauss)
-            
-            for(size_t index = 0;  index < remove_size; index++) {
-                // remove the ith pre-image
-                size_t i = to_remove[index];
-                
-                // Searching for the highest magnitude
+            Index last = mF->size() - 1;
+
+            Index remaining = remove_size;
+
+            while (remaining > 0) {
+                // Select the pre-image to remove along with the null space vector
+                // that will be used
+                // TODO: find a better way
+                size_t i = 0;
                 Index j = -1;
-                Real max = 0;
-                for(Index k = 0; k < kernel.cols(); k++) {
-                    Real x = kernel.array().abs()(i, k);
-                    if (!used[k] && x > max) {
-                        max = x;
-                        j = k;
+                for(size_t index = 0; index < to_remove.size(); index++) {
+                    // remove the ith pre-image
+                    i = to_remove[index];
+                    if (!selection[i]) continue;
+                    
+                    // Searching for the highest magnitude
+                    j = -1;
+                    Real max = kqp::EPSILON;
+                    for(Index k = 0; k < kernel.cols(); k++) {
+                        Real x = kernel.array().abs()(i, k);
+                        if (!used[k] && x > max) {
+                            max = x;
+                            j = k;
+                        }
                     }
+                    if (j >= 0) break;
                 }
-                assert(j != -1);
+                if (j == -1)
+                    KQP_THROW_EXCEPTION_F(assertion_exception,
+                     "Could not find a way to remove the a pre-image with null space (%d/%d pre-images). %d remaining.",
+                     %kernel.cols() %kernel.rows() %remaining);
+
+                remaining--;
                 used[j] = true;
                 
-                // Update permutation
+                // Update permutation by putting this vector at the end
                 selection[i] = false;            
                 mP.indices()(i) = j + keep_size;
+                last -= 1;
                 
                 // Update the matrix
                 Scalar kij = kernel(i,j);
