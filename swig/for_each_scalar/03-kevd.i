@@ -1,4 +1,34 @@
 
+// ---- Rank selection
+
+
+%include "kqp/rank_selector.hpp"
+%shared_ptr(kqp::RankSelector< @STYPE@, true >);
+%shared_ptr(kqp::RankSelector< @STYPE@, false >);
+%shared_ptr(kqp::RatioSelector< @STYPE@ >);
+
+
+%template(EigenList@SNAME@) kqp::EigenList< @STYPE@ >;
+
+%ignore kqp::Selector< @STYPE@ >::selection;
+shared_template(Selector@SNAME@, kqp::Selector< @STYPE@ >);
+
+shared_template(Aggregator@SNAME@, kqp::Aggregator< @STYPE@ >);
+shared_template(AggregatorMax@SNAME@, kqp::Max< @STYPE@ >);
+shared_template(AggregatorMean@SNAME@, kqp::Mean< @STYPE@ >);
+
+%ignore kqp::RatioSelector@SNAME@::selection;
+%template(RatioSelector@SNAME@) kqp::RatioSelector< @STYPE@ >;
+
+%ignore kqp::RankSelector< @STYPE@, true >::selection;
+%template(RankSelectorAbs@SNAME@) kqp::RankSelector< @STYPE@,true >;
+
+%ignore kqp::RankSelector< @STYPE@, false >::selection;
+%template(RankSelector@SNAME@) kqp::RankSelector< @STYPE@,false >;
+
+%ignore kqp::ChainSelector< @STYPE@ >::selection;
+shared_template(ChainSelector@SNAME@, kqp::ChainSelector< @STYPE@ >);
+
 // --- Decomposition
 
 %include "kqp/decomposition.hpp"
@@ -22,6 +52,9 @@
 %include "kqp/cleaning/unused.hpp"
 %shared_ptr(kqp::CleanerUnused< @STYPE@ >);
 %template(CleanerUnused@SNAME@) kqp::CleanerUnused< @STYPE@ >;
+
+
+
 
 // ---- Kernel EVD
 

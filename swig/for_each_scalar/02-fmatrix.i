@@ -93,31 +93,3 @@ SpaceCommonDefs(PolynomialSpace@SNAME@, kqp::PolynomialSpace< @STYPE@ >);
 FMatrixCommonDefs(KernelSumMatrix@SNAME@, kqp::KernelSumMatrix< @STYPE@ >);
 SpaceCommonDefs(KernelSumSpace@SNAME@, kqp::KernelSumSpace< @STYPE@ >);
 
-// ---- Rank selection
-
-
-%include "kqp/rank_selector.hpp"
-%shared_ptr(kqp::Selector< @STYPE@ >);
-%shared_ptr(kqp::RankSelector< @STYPE@, true >);
-%shared_ptr(kqp::RankSelector< @STYPE@, false >);
-%shared_ptr(kqp::MinimumSelector< @STYPE@ >);
-%template(EigenList@SNAME@) kqp::EigenList< @STYPE@ >;
-
-
-%ignore kqp::Selector< @STYPE@ >::selection;
-%template(Selector@SNAME@) kqp::Selector< @STYPE@ >;
-
-%ignore MinimumSelector@SNAME@::selection;
-%template(MinimumSelector@SNAME@) kqp::MinimumSelector< @STYPE@ >;
-
-%ignore kqp::RankSelector< @STYPE@, true >::selection;
-%template(RankSelectorAbs@SNAME@) kqp::RankSelector< @STYPE@,true >;
-
-%ignore kqp::RankSelector< @STYPE@, false >::selection;
-%template(RankSelector@SNAME@) kqp::RankSelector< @STYPE@,false >;
-
-// --- Cleanup
-%include "kqp/cleanup.hpp"
-%shared_template(Cleaner@SNAME@, kqp::Cleaner< @STYPE@ >);
-%shared_template(CleanerRank@SNAME@, kqp::CleanerRank< @STYPE@ >);
-%shared_template(CleanerList@SNAME@, kqp::CleanerList< @STYPE@ >);

@@ -167,31 +167,87 @@ namespace kqp {
         }
         
     };
-    
+
+
+    template<typename Scalar> 
+    class Aggregator {
+    public:
+        Aggregator() { }
+
+        virtual void reset() = 0;
+        virtual void add(Scalar value) = 0;
+        virtual Scalar get() const = 0;
+    };
+
+    template<typename Scalar> 
+    class Max : public Aggregator<Scalar> {
+        void reset() { 
+            max = -std::numeric_limits<float>::infinity(); 
+        }
+
+        void add(Scalar value) {
+            max = std::max(value, max);
+        }
+
+        Scalar get() const {
+            return max;
+        }
+    private:
+        Scalar max;
+    };
+
+    template<typename Scalar> 
+    class Mean : public Aggregator<Scalar> {
+        void reset() { 
+            sum = 0;
+            count = 0;
+        }
+        
+        void add(Scalar value) {
+            sum += value;
+            count++;
+        }
+
+        Scalar get() const {
+            return sum / (Scalar)count;
+        }
+    private:
+        Scalar sum;
+        long count;
+    };
+
+
     /**
      * @brief Select the eigenvalues with a ratio to the highest magnitude above a given threshold.
      */
     template<typename Scalar>
-    class MinimumSelector : public Selector<Scalar> {
-        Scalar minRatio;
+    class RatioSelector : public Selector<Scalar> {
     public:
-        MinimumSelector(Scalar threshold) : minRatio(threshold) {}
-        virtual ~MinimumSelector() {}
+        typedef boost::shared_ptr< Aggregator<Scalar> > AggregatorPtr;
+
+        RatioSelector(Scalar threshold, const AggregatorPtr &aggregator) 
+            : minRatio(threshold), m_aggregator(aggregator) {}
+        virtual ~RatioSelector() {}
+
         virtual void selection(EigenList<Scalar>& eigenvalues) const override {
             // Computes the maximum of eigenvalues
-            Scalar maxLambda = 0;
+            m_aggregator->reset();
             for(Index i = 0; i < eigenvalues.size(); i++) 
                 if (eigenvalues.isSelected(i)) 
-                    maxLambda = std::max(maxLambda, eigenvalues.get(i));
+                    m_aggregator->add(std::abs(eigenvalues.get(i)));
             
             // Remove those above the maximum * ratio
-            Scalar threshold = maxLambda * minRatio;
+            Scalar threshold = m_aggregator->get() * minRatio;
             for(Index i = 0; i < eigenvalues.size(); i++) 
                 if (eigenvalues.isSelected(i)) 
-                    if (eigenvalues.get(i) < threshold)
+                    if (std::abs(eigenvalues.get(i)) < threshold)
                         eigenvalues.remove(i);
    
         }
+
+    private:
+        Scalar minRatio;
+        AggregatorPtr m_aggregator;
     };
     
     /**

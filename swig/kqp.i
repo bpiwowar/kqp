@@ -33,6 +33,7 @@
     #include <kqp/cleanup.hpp>
     #include <kqp/space_factory.hpp>
     #include <kqp/logging.hpp>
+    #include <kqp/decomposition.hpp>
 
     #include <kqp/feature_matrix/dense.hpp>
     #include <kqp/feature_matrix/kernel_sum.hpp>
@@ -220,5 +221,11 @@ namespace Eigen {
 
 %include <kqp/eigen_identity.hpp>
 %include <kqp/logging.hpp>
+
+%define shared_template(NAME, TYPE)
+%shared_ptr(TYPE)
+%template(NAME) TYPE;
+%enddef
+
 
 %include "kqp_all.i"
