@@ -477,10 +477,10 @@ public:
     }
     
 protected:
-    //! Returns whether the pre-images can be linearly combined
+    //! Returns whether the pre-images can be linearly combined (false by default)
     virtual bool _canLinearlyCombine() const
     {
-        return true;
+        return false;
     }
 
 private:
