@@ -31,6 +31,7 @@ namespace kqp {
 #   include <kqp/define_header_logger.hpp>
     DEFINE_KQP_HLOGGER("kqp.cleaning.null_space");
 
+#ifndef SWIG
     template <class ComparableArray, typename Index = int>
     struct IndirectSort {
         const ComparableArray &array;
@@ -204,6 +205,16 @@ namespace kqp {
         }
         
     };
+
+#endif
+
+    template<typename Scalar> class CleanerNullSpace: public Cleaner<Scalar> {
+    public:
+        virtual void cleanup(Decomposition<Scalar> &d) const {
+           ReducedSetNullSpace<Scalar>::run(d.fs, d.mX, d.mY); 
+        }        
+    };
+    
     
 # ifndef SWIG
 # define KQP_SCALAR_GEN(Scalar) extern template struct ReducedSetNullSpace<Scalar>;
