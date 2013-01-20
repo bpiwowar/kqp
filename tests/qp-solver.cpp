@@ -14,11 +14,21 @@ DEFINE_LOGGER(logger, "kqp.test.kqp-qp-solver")
 
 namespace kqp {
    
+    cvxopt::ConeQPOptions<double> options;
     
 #include "generated/kkt_solver.inc"
 #include "generated/qp_solver.inc"
     
     int kqp_qp_solver_test(std::deque<std::string> &args) {
+        options.useCorrection = true;
+        options.correction = true;
+        options.show_progress = true;
+        options.maxiters = 100;
+        options.abstol = 1e-7;
+        options.reltol = 1e-6;
+        options.feastol = 1e-7;
+        options.refinement = -1;
+
         KQP_LOG_INFO(logger, "Starting qp solver tests");
         if (args.size() == 0)
             KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Expected one argument, got %d", %args.size());
