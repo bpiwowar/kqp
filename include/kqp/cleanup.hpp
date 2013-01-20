@@ -24,7 +24,10 @@
 #include <kqp/subset.hpp>
 
 namespace kqp {
-    
+
+#   include <kqp/define_header_logger.hpp>
+DEFINE_KQP_HLOGGER("kqp.cleaner");
+
     template<typename Scalar> class Cleaner {
     public:
         virtual ~Cleaner() {}
@@ -47,6 +50,8 @@ namespace kqp {
         virtual void cleanup(Decomposition<Scalar> &d) const override {
             for(auto i = list.begin(); i != list.end(); ++i) {
                 (*i)->cleanup(d);
+
+                KQP_HLOG_DEBUG_F("After cleaner %s: pre-images=%d, rank=%d", %KQP_DEMANGLE(*i) %d.mX->size() %d.mD.rows());
 
                 // Sanity check
                 if (!d.check())
