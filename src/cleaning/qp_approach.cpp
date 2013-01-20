@@ -395,7 +395,8 @@ namespace kqp {
                   const KQP_MATRIX(Scalar) &gramMatrix, 
                   const KQP_MATRIX(Scalar) &alpha, 
                   const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu,
-                  kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result) {
+                  kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result,
+                  const cvxopt::ConeQPOptions<KQP_REAL_OF(Scalar)>& options) {
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         const bool isComplex = boost::is_complex<Scalar>::value; 
         
@@ -422,7 +423,6 @@ namespace kqp {
         
         QPConstraints<Scalar> G(n, r, nu);
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix, nu);
-        cvxopt::ConeQPOptions<Real> options;
         
         KQP_LOG_DEBUG(logger,  "c:\n" << c.adjoint());
 
@@ -439,7 +439,9 @@ namespace kqp {
     
     
 # define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(, scalar) \
- template void solve_qp<scalar>(int r, KQP_REAL_OF(scalar) lambda, const KQP_MATRIX(scalar) &gramMatrix, const KQP_MATRIX(scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(scalar)> &result);
+ template void solve_qp<scalar>(int r, KQP_REAL_OF(scalar) lambda, const KQP_MATRIX(scalar) &gramMatrix, \
+    const KQP_MATRIX(scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(scalar)> &result,\
+    const cvxopt::ConeQPOptions<KQP_REAL_OF(scalar)>& options);
 
 # include <kqp/for_all_scalar_gen.h.inc>
    

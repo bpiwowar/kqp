@@ -52,7 +52,9 @@ namespace kqp {
      * @param complex If the original problem was in the complex field (changes the constraints)
      */
     template<typename Scalar>
-    void solve_qp(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result);
+    void solve_qp(int r, KQP_REAL_OF(Scalar) lambda, const KQP_MATRIX(Scalar) &gramMatrix, const KQP_MATRIX(Scalar) &alpha, 
+        const KQP_VECTOR(KQP_REAL_OF(Scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(Scalar)> &result,
+        const cvxopt::ConeQPOptions< KQP_REAL_OF(Scalar) >& options = cvxopt::ConeQPOptions< KQP_REAL_OF(Scalar) >());
     
     /// Structured used to estimate the lambda
     template<typename Scalar>

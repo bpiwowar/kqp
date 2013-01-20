@@ -49,7 +49,7 @@ def doit(name, n,r, g, a, nu, Lambda):
     print "// Solve"
 
     print "kqp::cvxopt::ConeQPReturn<Scalar> result;"
-    print "solve_qp(r, lambda, g, a, nu, result);"
+    print "solve_qp(r, lambda, g, a, nu, result, options);"
     print
 
     # Construct P

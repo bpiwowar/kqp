@@ -20,7 +20,7 @@ nu <<  1 ,  1 ;
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, nu, result);
+solve_qp(r, lambda, g, a, nu, result, options);
 
 /*
 Constructing P...
@@ -72,7 +72,7 @@ nu <<  1 ,  1 ,  1 ,  1 ,  1 ,  1 ,  1 ,  1 ;
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, nu, result);
+solve_qp(r, lambda, g, a, nu, result, options);
 
 /*
 Constructing P...
@@ -124,7 +124,7 @@ nu <<  6.0377637394309067175868221966084092855453491210938 ,  5.8794008978218732
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, nu, result);
+solve_qp(r, lambda, g, a, nu, result, options);
 
 /*
 Constructing P...
@@ -173,7 +173,7 @@ nu <<  1.3814646324751502781680301268352195620536804199219 ,  1.6916320332925323
 
 // Solve
 kqp::cvxopt::ConeQPReturn<Scalar> result;
-solve_qp(r, lambda, g, a, nu, result);
+solve_qp(r, lambda, g, a, nu, result, options);
 
 /*
 Constructing P...
