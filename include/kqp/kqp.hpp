@@ -311,7 +311,7 @@ namespace kqp {
 
 #define KQP_LOG_ASSERT(name,condition,message) \
     { if (!(condition)) { \
-        KQP_THROW_EXCEPTION(kqp::assertion_exception, (boost::format("Assert failed [%s] ")  %KQP_STRING_IT(condition) %message).str()); \
+        KQP_THROW_EXCEPTION(kqp::assertion_exception, (boost::format("Assert failed [%s]: %s")  %KQP_STRING_IT(condition) %message).str()); \
     }}
 
 #endif // ndef(NOLOGGING)

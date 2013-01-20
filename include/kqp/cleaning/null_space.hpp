@@ -166,7 +166,7 @@ namespace kqp {
          * 2. Computes a \f$LDL^\dagger\f$ decomposition of the Gram matrix to find redundant pre-images
          * 3. Removes newly unused pre-images
          */
-        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarAltMatrix &mY) {
+        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarAltMatrix &mY, Real epsilon = Eigen::NumTraits<Real>::epsilon()) {
             
             // Removes unused pre-images
             CleanerUnused<Scalar>::run(mF, mY);
@@ -177,6 +177,9 @@ namespace kqp {
             
             // LDL decomposition (stores the L^T matrix)
             Eigen::FullPivLU<ScalarMatrix> lu_decomposition(fs->k(mF));
+
+            // Set the thresholds according to the same heuristic than Eigen
+            lu_decomposition.setThreshold(epsilon * lu_decomposition.matrixLU().diagonalSize());
             
             // Stop if full rank
             if (lu_decomposition.rank() == N) 
@@ -210,9 +213,15 @@ namespace kqp {
 
     template<typename Scalar> class CleanerNullSpace: public Cleaner<Scalar> {
     public:
+        typedef typename Eigen::NumTraits<Scalar>::Real Real;
+        CleanerNullSpace(Real epsilon = Eigen::NumTraits<Scalar>::epsilon()) : m_epsilon(epsilon) {
+
+        }
         virtual void cleanup(Decomposition<Scalar> &d) const {
-           ReducedSetNullSpace<Scalar>::run(d.fs, d.mX, d.mY); 
+           ReducedSetNullSpace<Scalar>::run(d.fs, d.mX, d.mY, m_epsilon); 
         }        
+    private:
+        Real m_epsilon;
     };
     
     

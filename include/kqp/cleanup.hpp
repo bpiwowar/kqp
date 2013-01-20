@@ -48,15 +48,16 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
         typedef boost::shared_ptr< const Cleaner<Scalar> > CPtr;
         
         virtual void cleanup(Decomposition<Scalar> &d) const override {
+            KQP_HLOG_DEBUG_F("Before cleaning: pre-images=%d, rank=%d", %d.mX->size() %d.mD.rows());
             for(auto i = list.begin(); i != list.end(); ++i) {
                 (*i)->cleanup(d);
 
-                KQP_HLOG_DEBUG_F("After cleaner %s: pre-images=%d, rank=%d", %KQP_DEMANGLE(*i) %d.mX->size() %d.mD.rows());
+                KQP_HLOG_DEBUG_F("After cleaner %s: pre-images=%d, rank=%d", %KQP_DEMANGLE(**i) %d.mX->size() %d.mD.rows());
 
                 // Sanity check
                 if (!d.check())
                     KQP_THROW_EXCEPTION_F(assertion_exception, "Decomposition in an invalid state (%d, %dx%d, %d) after cleaner %s", 
-                        %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows() % KQP_DEMANGLE(*i));
+                        %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows() % KQP_DEMANGLE(**i));
             }
         }
         
