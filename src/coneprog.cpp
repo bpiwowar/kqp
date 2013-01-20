@@ -36,9 +36,9 @@ namespace kqp { namespace cvxopt {
     correction(true),
     show_progress(true),
     maxiters(100),
-    abstol(1e-7),
-    reltol(1e-6),
-    feastol(1e-7),
+    abstol(1e-5),
+    reltol(1e-3),
+    feastol(1e-5),
     refinement(-1)
     {
         
@@ -1316,7 +1316,9 @@ namespace kqp { namespace cvxopt {
                 KQP_LOG_DEBUG(logger, "x=" << x.adjoint());
                 KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
             } catch(arithmetic_exception &e) {
-                BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+                // Add some context information
+                e << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n");
+                throw e;
             }
             
             s = -z;

@@ -423,7 +423,8 @@ namespace kqp {
             
 			// The background density span the subspace of rho
             Index rank = rho.S().rows() + tau.S().rows();
-            if (rank > rho.fs().dimension()) rank = rho.fs().dimension();
+            Index dimension = rho.fs().dimension();
+            if (rank > dimension && dimension > 0) rank = dimension;
             
 			Real alpha = 1. / (Real)(rank);
 			Real alpha_noise = epsilon * alpha;

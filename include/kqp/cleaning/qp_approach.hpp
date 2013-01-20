@@ -182,6 +182,8 @@ namespace kqp {
                 return;
             }
             
+            KQP_HLOG_INFO_F("QP approach : reduce rank from %d to %d", %_mF->size() %target);
+
             //
             // (0) Compute the EVD (used by lambda computation), and use it to remove the null space 
             //     so that we are sure that we won't have a singular KKT

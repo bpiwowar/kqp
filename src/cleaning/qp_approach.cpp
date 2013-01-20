@@ -189,8 +189,8 @@ namespace kqp {
             // Detect NaN
             
             
-            if (isnan(x)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in x");
-            if (isnan(z)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in z");
+            if (isnan(x)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in solved x");
+            if (isnan(z)) KQP_THROW_EXCEPTION(arithmetic_exception, "NaN in solved z");
         }
         
         

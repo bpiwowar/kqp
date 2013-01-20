@@ -23,6 +23,7 @@
 #endif
 
 #include <iostream>
+#include <execinfo.h>
 
 namespace Eigen {
     template<typename Scalar> class Identity;
@@ -125,10 +126,35 @@ namespace kqp {
     
     /** Anything below is considered zero in approximations */
     extern double EPSILON;
+
     
-    
+    /** Message information */    
     typedef boost::error_info<struct errinfo_file_name_,std::string> errinfo_message;
-    
+
+    /** Stack information */
+    template <typename T> struct trace_info_struct_ {
+        int count;
+        T *pointers[100];
+        trace_info_struct_() {
+         count = backtrace( pointers, 100 );       
+        }
+    };
+
+    typedef trace_info_struct_<void> trace_info_struct;
+    typedef boost::error_info<struct tag_stack, trace_info_struct> stack_info;
+    inline stack_info trace_info() { return stack_info(trace_info_struct()); }
+
+    template<typename T>
+    inline std::ostream  & operator<<( std::ostream  & x,  const trace_info_struct_<T>& trace ) {
+        char **stack_syms(backtrace_symbols( trace.pointers, trace.count ));
+        for ( int i = 0 ; i < trace.count ; ++i )
+        {
+            x << stack_syms[i] << "\n";
+        }
+        std::free( stack_syms );
+        return x;
+    }
+
     /**Base class for exceptions */
     class exception : public virtual std::exception, public  virtual boost::exception  {};   
     
@@ -223,7 +249,7 @@ namespace kqp {
 #    define KQP_IS_ERROR_ENABLED(name) false
 
 #    //! Throw an exception with a message
-#    define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+#    define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message) << trace_info())
 
     
     
@@ -234,6 +260,7 @@ namespace kqp {
         
     extern log4cxx::LoggerPtr main_logger;
     
+#   define KQP_IS_TRACE_ENABLED(name) (name->isTraceEnabled())
 #   define KQP_IS_DEBUG_ENABLED(name) (name->isDebugEnabled())
 #   define KQP_IS_INFO_ENABLED(name) (name->isInfoEnabled())
 #   define KQP_IS_WARN_ENABLED(name) (name->isWarnEnabled())
@@ -245,7 +272,8 @@ namespace kqp {
 #    // * Note * Use the if (false) construct to compile code; the code optimizer
 #    // is able to remove the corresponding code, so it does change
 #    // the speed 
-#    // * Note 2 * When NDEBUG is defined, we fully skip DEBUG messages
+     // * Note * We fully skip trace messages when NDEBUG is defined
+
 #    ifndef NDEBUG
     
 #     //! Useful to remove unuseful statements when debugging (or not)
@@ -253,13 +281,14 @@ namespace kqp {
 #     define KQP_M_DEBUG(x) x
 
 #      /** Debug */
-#      define KQP_LOG_DEBUG(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
+#      define KQP_LOG_TRACE(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
     
 #     /** Assertion with message */
-#     define KQP_LOG_ASSERT(name,condition,message) { if (!(condition)) { prepareLogger(); LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
 
 #     //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
-#     define KQP_THROW_EXCEPTION(type, message) { kqp::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  abort(); }
+#     define KQP_THROW_EXCEPTION(type, message) { \
+    kqp::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  \
+    abort(); }
 
 #    else // No DEBUG
 
@@ -270,29 +299,33 @@ namespace kqp {
 #     define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
 
 #     /** Debug */
-#     define KQP_LOG_DEBUG(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
-    
-#     /** Assertion with message */
-#     define KQP_LOG_ASSERT(name,condition,message) { if (false && !(condition)) { LOG4CXX_ERROR(name, "Assert failed [" << KQP_STRING_IT(condition) << "] " << message); assert(false); } }
+#     define KQP_LOG_TRACE(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
     
 #endif // ELSE
     
     
+#define KQP_LOG_DEBUG(name,message) { kqp::prepareLogger(); LOG4CXX_DEBUG(name, message); }
 #define KQP_LOG_INFO(name,message) { kqp::prepareLogger(); LOG4CXX_INFO(name, message); }
 #define KQP_LOG_WARN(name,message) { kqp::prepareLogger(); LOG4CXX_WARN(name, message); }
 #define KQP_LOG_ERROR(name,message) { kqp::prepareLogger(); LOG4CXX_ERROR(name, message); }
 
+#define KQP_LOG_ASSERT(name,condition,message) \
+    { if (!(condition)) { \
+        KQP_THROW_EXCEPTION(kqp::assertion_exception, (boost::format("Assert failed [%s] ")  %KQP_STRING_IT(condition) %message).str()); \
+    }}
 
 #endif // ndef(NOLOGGING)
     
 // --- Helper macros for logging
     
 #define KQP_THROW_EXCEPTION_F(type, message, arguments) KQP_THROW_EXCEPTION(type, (boost::format(message) arguments).str())
-#define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, boost::format(message) args)
-#define KQP_LOG_INFO_F(name,message,args) KQP_LOG_INFO(name, boost::format(message) args)
-#define KQP_LOG_WARN_F(name,message,args) KQP_LOG_WARN(name, boost::format(message) args)
-#define KQP_LOG_ERROR_F(name,message,args) KQP_LOG_ERROR(name, boost::format(message) args)
-#define KQP_LOG_ASSERT_F(name,condition,message,args) KQP_LOG_ASSERT(name,condition,boost::format(message) args)
+
+#define KQP_LOG_TRACE_F(name,message,args) KQP_LOG_TRACE(name, (boost::format(message) args))
+#define KQP_LOG_DEBUG_F(name,message,args) KQP_LOG_DEBUG(name, (boost::format(message) args))
+#define KQP_LOG_INFO_F(name,message,args) KQP_LOG_INFO(name, (boost::format(message) args))
+#define KQP_LOG_WARN_F(name,message,args) KQP_LOG_WARN(name, (boost::format(message) args))
+#define KQP_LOG_ERROR_F(name,message,args) KQP_LOG_ERROR(name, (boost::format(message) args))
+#define KQP_LOG_ASSERT_F(name,condition,message,args) KQP_LOG_ASSERT(name,condition,(boost::format(message) args).str())
 #define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
 
 } // NS kqp

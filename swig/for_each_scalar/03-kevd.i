@@ -53,6 +53,8 @@ shared_template(ChainSelector@SNAME@, kqp::ChainSelector< @STYPE@ >);
 %shared_ptr(kqp::CleanerUnused< @STYPE@ >);
 %template(CleanerUnused@SNAME@) kqp::CleanerUnused< @STYPE@ >;
 
+%include "kqp/cleaning/null_space.hpp"
+shared_template(CleanerNullSpace@SNAME@, kqp::CleanerNullSpace< @STYPE@ >);
 
 
 
