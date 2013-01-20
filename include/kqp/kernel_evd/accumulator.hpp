@@ -63,6 +63,7 @@ namespace kqp{
         }
         
         void reset() override {
+            KernelEVD<Scalar>::reset();
             fMatrix = this->getFSpace()->newMatrix();
         }
         
@@ -121,6 +122,8 @@ namespace kqp{
         }
         
         void reset() {
+            KernelEVD<Scalar>::reset();
+
             fMatrix = this->getFSpace()->newMatrix();
             alphas.clear();
             offsets_X.clear();

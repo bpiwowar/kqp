@@ -67,6 +67,8 @@ namespace kqp {
         
     protected:
         void reset() {
+            KernelEVD<Scalar>::reset();
+
             decompositions.clear();
         }
 
