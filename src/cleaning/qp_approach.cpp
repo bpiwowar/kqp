@@ -9,14 +9,10 @@ DEFINE_LOGGER(logger, "kqp.qp-approach");
 
 namespace kqp {
     
-    namespace {
-        template<typename Derived>
-        bool isnan(const Eigen::MatrixBase<Derived> &x) {
-            for(Index i = 0; i < x.rows(); i++)
-                for(Index j = 0; j < x.cols(); j++)
-                    if (std::isnan(x(i,j))) return true;
-            return false;
-        }
+    template<typename Derived>
+    bool isnan(const Eigen::MatrixBase<Derived>& x)
+    {
+      return !(x.array() == x.array()).all();
     }
     
     // --- QP solver
@@ -59,14 +55,18 @@ namespace kqp {
                 KQP_MATRIX(Scalar) mX = nu[i] * nu[i] * BBT;
                 mX.diagonal() += U.segment(i*n, n);
                 L22[i].compute(mX);
+                if (L22[i].info() != Eigen::ComputationInfo::Success) 
+                    KQP_THROW_EXCEPTION_F(arithmetic_exception, "Error [%d] in computing L22[%d]", %L22[i].info() %i);                
             }
-            
+
+
             // Computes L32[i]
             L32.resize(r);
             for(int i = 0; i < r; i++) {
                 //  Solves L32 . L22' = - B . B^\top
                 L32[i] = -nu[i] * nu[i] * BBT;
                 L22[i].matrixU().template solveInPlace<Eigen::OnTheRight>(L32[i]);
+                if (isnan(L32[i])) KQP_THROW_EXCEPTION_F(arithmetic_exception, "NaN in L32[%d]", %i);
             }
             
             // Computes L33
@@ -76,7 +76,8 @@ namespace kqp {
                 KQP_MATRIX(Scalar) mX = nu[i] * nu[i] * BBT - L32[i] * L32[i].adjoint();
                 mX.diagonal() += V.segment(i*n, n);
                 L33[i].compute(mX);
-                
+                if (L33[i].info() != Eigen::ComputationInfo::Success) 
+                    KQP_THROW_EXCEPTION_F(arithmetic_exception, "Error [%d] in computing L33[%d]", %L33[i].info() %i);                
             }
             
             // Computes L42
@@ -85,6 +86,7 @@ namespace kqp {
                 // Solves L42 L22' = Id
                 L42[i].setIdentity(n,n);
                 L22[i].matrixU().template solveInPlace<Eigen::OnTheRight>(L42[i]);
+                if (isnan(L42[i])) KQP_THROW_EXCEPTION_F(arithmetic_exception, "NaN in L42[%d]", %i);                
             }
             
             
@@ -95,6 +97,7 @@ namespace kqp {
                 L43[i].noalias() = - L42[i] * L32[i].adjoint();
                 L43[i].diagonal().array() += 1;
                 L33[i].matrixU().template solveInPlace<Eigen::OnTheRight>(L43[i]);
+                if (isnan(L43[i])) KQP_THROW_EXCEPTION_F(arithmetic_exception, "NaN in L43[%d]", %i);                
             }
             
             // Computes L44: Cholesky of 
@@ -104,6 +107,8 @@ namespace kqp {
                 _L44 += L43[i] * L43[i].adjoint() + L42[i] * L42[i].adjoint();
             }
             L44.compute(_L44);
+            if (L44.info() != Eigen::ComputationInfo::Success) 
+                KQP_THROW_EXCEPTION_F(arithmetic_exception, "Error [%d] in computing L44", %L44.info());                
             
         }
         
