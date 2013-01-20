@@ -24,33 +24,11 @@
 
 namespace kqp {
     template<typename Scalar>
-    struct CleanerUnused : public Cleaner<Scalar> {
+    class CleanerUnused : public Cleaner<Scalar> {
+    public:
         KQP_SCALAR_TYPEDEFS(Scalar);
-        
-        virtual void cleanup(Decomposition<Scalar> &d) const override {
-            run(d.mX, d.mY);
-        }
-        
-        /**
-         * @brief Removes unused pre-images
-         */
-        static void run(const FMatrixPtr &mF, ScalarMatrix &mY) {
-            // Dimension of the problem
-            Index N = mY.rows();
-            assert(N == mF->size());
-            
-            std::vector<bool> to_keep(N, true);
-            
-            // Removes unused pre-images
-            for(Index i = 0; i < N; i++) 
-                if (mY.row(i).norm() < Eigen::NumTraits<Scalar>::epsilon()) 
-                    to_keep[i] = false;
-            
-            select_rows(to_keep, mY, mY);
-            *mF = *mF->subset(to_keep);
-        }
-        
-        static void run(const FMatrixPtr &mF, ScalarAltMatrix &mY) {
+    private:
+         template <typename T> static void _run(const FMatrixPtr &mF, T &mY) {
             // Dimension of the problem
             Index N = mY.rows();
             assert(N == mF->size());
@@ -58,11 +36,12 @@ namespace kqp {
             
             // Removes unused pre-images
             RealVector v = mY.rowwise().squaredNorm();
-            
+            Real threshold = v.sum() * Eigen::NumTraits<Scalar>::epsilon();
+
             bool change = false;
             std::vector<bool> to_keep(N, true);
             for(Index i = 0; i < N; i++) 
-                if (v(i) < Eigen::NumTraits<Scalar>::epsilon()) {
+                if (v(i) < threshold) {
                     change = true;
                     to_keep[i] = false;
                 }
@@ -72,6 +51,22 @@ namespace kqp {
             select_rows(to_keep, mY, mY);
             
             *mF = *mF->subset(to_keep);
+        }       
+    public:
+        
+        virtual void cleanup(Decomposition<Scalar> &d) const override {
+            run(d.mX, d.mY);
+        }
+        
+        /**
+         * @brief Removes unused pre-images
+         */
+        static void run(const FMatrixPtr &mF, ScalarMatrix &mY) {
+            CleanerUnused<Scalar>::_run(mF, mY);
+        }
+        
+        static void run(const FMatrixPtr &mF, ScalarAltMatrix &mY) {
+            CleanerUnused<Scalar>::_run(mF, mY);
         }
     };
     
