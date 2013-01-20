@@ -24,6 +24,7 @@ DEFINE_LOGGER(logger, "kqp.coneqp")
 
 #define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(kqp::not_implemented_exception())
 
+typedef boost::error_info<struct qp_error_,std::string> qp_error_info;
 
 namespace kqp { namespace cvxopt {
     
@@ -1223,8 +1224,9 @@ namespace kqp { namespace cvxopt {
                 ScalingMatrix<Scalar> w;
                 KQP_LOG_DEBUG(logger, "Constructing a KKT solver");
                 f3 = boost::shared_ptr<KKTSolver<Scalar> >(kktpresolver->get(w));
-            } catch(...) {
-                BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+            } catch(exception &e) {
+                e << qp_error_info("Rank(A) < p or Rank([P; A; G]) < n");
+                throw;
             }
             
             x = -q;
@@ -1294,7 +1296,8 @@ namespace kqp { namespace cvxopt {
             try {
                 f = boost::shared_ptr<KKTSolver<Scalar> >(kktpresolver->get(W));   
             } catch(arithmetic_exception &e) {
-                BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
+                e << qp_error_info("Rank(A) < p or Rank([P; A; G]) < n");
+                throw;
             }
             
             
@@ -1317,8 +1320,8 @@ namespace kqp { namespace cvxopt {
                 KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
             } catch(arithmetic_exception &e) {
                 // Add some context information
-                e << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n");
-                throw e;
+                e << qp_error_info("Rank(A) < p or Rank([P; A; G]) < n");
+                throw;
             }
             
             s = -z;
@@ -1544,7 +1547,7 @@ namespace kqp { namespace cvxopt {
             boost::shared_ptr<KKTSolver<Scalar> > f3; 
             try { 
                 f3 = boost::shared_ptr<KKTSolver<Scalar> >(kktpresolver->get(W)); 
-            } catch(arithmetic_exception &) {
+            } catch(arithmetic_exception &e) {
                 if (iters == 0)
                     BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
                 else {
@@ -1557,10 +1560,12 @@ namespace kqp { namespace cvxopt {
                         //                    ind += m**2
                     }
                     r.primal_slack = -max_step(s, dims);
-                    r.dual_slack = -max_step(z, dims);
-                    std::cerr << "Terminated [A] (singular KKT matrix).";
+                    r.dual_slack = -max_step(z, dims);               
+    
                     status = SINGULAR_KKT_MATRIX;
-                    return;
+                    e << qp_error_info("Terminated [A] (singular KKT matrix).");
+
+                    throw;
                 }
             }
             
@@ -1643,7 +1648,7 @@ namespace kqp { namespace cvxopt {
                     KQP_LOG_DEBUG(logger, "[ds]=" << convert(ds.adjoint()));
                     f4(dx, dy, dz, ds); 
                 }
-                catch(arithmetic_exception &) {
+                catch(arithmetic_exception &e) {
                     if (iters == 0)
                         BOOST_THROW_EXCEPTION(arithmetic_exception() << errinfo_message("Rank(A) < p or Rank([P; A; G]) < n"));
                     
@@ -1657,9 +1662,9 @@ namespace kqp { namespace cvxopt {
                     }
                     r.primal_slack = -max_step(s, dims);
                     r.dual_slack = -max_step(z, dims);
-                    std::cerr << "Terminated [B] (singular KKT matrix)." << std::endl;
                     status = SINGULAR_KKT_MATRIX;
-                    return;
+                    e << qp_error_info("Terminated [B] (singular KKT matrix).");
+                    throw;
                     
                 }
                 
