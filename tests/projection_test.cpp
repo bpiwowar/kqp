@@ -41,7 +41,7 @@ namespace kqp {
         
         int isApproxEqual(const std::string & name, const Density< double > &a, const Eigen::MatrixXd &b) {
             auto _a = a.matrix();
-            auto m = dynamic_cast<Dense<double>&>(*_a);
+            auto m = kqp::our_dynamic_cast<Dense<double>&>(*_a);
             KQP_MATRIX(double) op = m.getMatrix() * m.getMatrix().adjoint();
             return isApproxEqual(name, op, b);
         }
@@ -50,7 +50,7 @@ namespace kqp {
     
     template<typename Scalar>
     const Matrix<Scalar,Dynamic,Dynamic> getMatrix(const Density<Scalar> &d) {
-        return dynamic_cast<Dense<double>&>(*d.matrix()).getMatrix();
+        return kqp::our_dynamic_cast<Dense<double>&>(*d.matrix()).getMatrix();
     }
     
     int simple_projection_test(std::deque<std::string> &/*args*/) {

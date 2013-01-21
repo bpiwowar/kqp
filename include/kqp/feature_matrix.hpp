@@ -182,11 +182,11 @@ public:
     /** Dynamic cast */
     template<typename T> inline const T &as() const
     {
-        return dynamic_cast<const T &>(*this);
+        return kqp::our_dynamic_cast<const T &>(*this);
     }
     template<typename T> inline T &as()
     {
-        return dynamic_cast<T &>(*this);
+        return kqp::our_dynamic_cast<T &>(*this);
     }
 
     /** Add pre-images vectors */
@@ -323,17 +323,17 @@ public:
     /** Dynamic casts */
     template<typename T> inline const T &as() const
     {
-        return dynamic_cast<T &>(*this);
+        return kqp::our_dynamic_cast<T &>(*this);
     }
     template<typename T> inline T &as()
     {
-        return dynamic_cast<T &>(*this);
+        return kqp::our_dynamic_cast<T &>(*this);
     }
 #endif
 
     template<typename T> inline bool castable_as() const
     {
-        return dynamic_cast<T *>(this) != 0;
+        return kqp::our_dynamic_cast<T *>(this) != 0;
     }
 
 #ifndef SWIG

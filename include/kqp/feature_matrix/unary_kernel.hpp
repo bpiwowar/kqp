@@ -75,7 +75,7 @@ namespace kqp {
 
             if (selected.empty())
                 KQP_THROW_EXCEPTION(exception, "A unary kernel element should have one child");
-            m_base = boost::dynamic_pointer_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
+            m_base = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
         }
 
         FSpacePtr base() {

@@ -23,7 +23,6 @@
 #endif
 
 #include <iostream>
-#include <execinfo.h>
 
 namespace Eigen {
     template<typename Scalar> class Identity;
@@ -77,10 +76,11 @@ namespace Eigen {
 
 #include "Eigen/Core"
 
-#include <boost/exception/errinfo_at_line.hpp>
-#include <boost/exception/info.hpp>
-#include <boost/exception/exception.hpp>
+
+
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/shared_ptr.hpp>
 #include <string>
 #include <complex>
 #include "cxxabi.h"
@@ -100,109 +100,10 @@ namespace Eigen {
 #endif // GCC
 
 
+#include <kqp/exceptions.hpp>
+#include <pugixml.hpp>
 
 namespace kqp {
-
-    // Using declarations
-    using Eigen::Dynamic;
-    using Eigen::Matrix;
-    
-    // The index type
-    typedef Eigen::DenseIndex Index;
-    
-    /** Check if the value is a NaN */
-    inline bool isNaN(double x) {
-        return !(x == x);
-    }
-    
-    inline bool isNaN(float x) {
-        return !(x == x);
-    }
-    
-    template<typename scalar> inline bool isNaN(const std::complex<scalar> &x) {
-        return !(std::real(x) == std::real(x)) || !(std::imag(x) == std::imag(x));
-    }
-    
-    
-    /** Anything below is considered zero in approximations */
-    extern double EPSILON;
-
-    
-    /** Message information */    
-    typedef boost::error_info<struct errinfo_file_name_,std::string> errinfo_message;
-
-    /** Stack information */
-    template <typename T> struct trace_info_struct_ {
-        int count;
-        T *pointers[100];
-        trace_info_struct_() {
-         count = backtrace( pointers, 100 );       
-        }
-    };
-
-    typedef trace_info_struct_<void> trace_info_struct;
-    typedef boost::error_info<struct tag_stack, trace_info_struct> stack_info;
-    inline stack_info trace_info() { return stack_info(trace_info_struct()); }
-
-    template<typename T>
-    inline std::ostream  & operator<<( std::ostream  & x,  const trace_info_struct_<T>& trace ) {
-        char **stack_syms(backtrace_symbols( trace.pointers, trace.count ));
-        for ( int i = 0 ; i < trace.count ; ++i )
-        {
-            x << stack_syms[i] << "\n";
-        }
-        std::free( stack_syms );
-        return x;
-    }
-
-    /**Base class for exceptions */
-    class exception : public virtual std::exception, public  virtual boost::exception  {};   
-    
-    /** Illegal argument */
-    class illegal_argument_exception : public virtual exception {};
-    
-    /** Arithmetic exception */
-    class arithmetic_exception : public virtual exception {};
-    
-    /** Out of bound exception */
-    class out_of_bound_exception : public virtual exception {};
-    
-    /** Illegal operation */
-    class illegal_operation_exception : public virtual exception {};
-    
-    /** Not implemented */
-    class not_implemented_exception : public virtual exception {};
-
-    /** Assertion */
-    class assertion_exception : public virtual exception {};
-
-    
-    inline std::string demangle(const std::type_info &x) {
-        //     __cxa_demangle(const char* __mangled_name, char* __output_buffer, size_t* __length, int* __status);
-        static size_t size = 500;
-        static char *buffer = (char*)malloc(size * sizeof(char));
-        return abi::__cxa_demangle(x.name(), buffer, &size, 0);
-    }
-    
-    /** Convert anything to a string. Might be specialized */
-    template <class T> std::string convert(const T &x) {
-        std::ostringstream strout;
-        strout << x;
-        return strout.str();
-    }
-    
-    
-    /** Convert anything to a string. Might be specialized */
-    template<class T> T convert(const std::string &s) {
-        T x;
-        std::istringstream str_in(s);
-        if (!str_in) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
-        else if (! (str_in >> x )) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
-        return x;
-    }
-    
-    
-
 # //! New shared ptr
 # define NEW_SHARED(T,...) boost::shared_ptr<T>(T(__VA_ARGS__))
 
@@ -249,7 +150,7 @@ namespace kqp {
 #    define KQP_IS_ERROR_ENABLED(name) false
 
 #    //! Throw an exception with a message
-#    define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message) << trace_info())
+#    define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(boost::enable_error_info(type()) << errinfo_message(message))
 
     
     
@@ -296,7 +197,7 @@ namespace kqp {
 #     define KQP_M_DEBUG(x)
     
 #     //! Throw an exception with a message
-#     define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(type() << errinfo_message(message))
+#     define KQP_THROW_EXCEPTION(type, message) BOOST_THROW_EXCEPTION(boost::enable_error_info(type()) << errinfo_message(message))
 
 #     /** Debug */
 #     define KQP_LOG_TRACE(name,message) { if (false) { LOG4CXX_DEBUG(name, message) }}
@@ -328,7 +229,100 @@ namespace kqp {
 #define KQP_LOG_ASSERT_F(name,condition,message,args) KQP_LOG_ASSERT(name,condition,(boost::format(message) args).str())
 #define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
 
-} // NS kqp
 
+    // Using declarations
+    using Eigen::Dynamic;
+    using Eigen::Matrix;
+    
+    // The index type
+    typedef Eigen::DenseIndex Index;
+    
+    /** Check if the value is a NaN */
+    inline bool isNaN(double x) {
+        return !(x == x);
+    }
+    
+    inline bool isNaN(float x) {
+        return !(x == x);
+    }
+    
+    template<typename scalar> inline bool isNaN(const std::complex<scalar> &x) {
+        return !(std::real(x) == std::real(x)) || !(std::imag(x) == std::imag(x));
+    }
+    
+    
+    /** Anything below is considered zero in approximations */
+    extern double EPSILON;
+
+    
+
+    inline std::string demangle(const std::type_info &x) {
+        //     __cxa_demangle(const char* __mangled_name, char* __output_buffer, size_t* __length, int* __status);
+        static size_t size = 500;
+        static char *buffer = (char*)malloc(size * sizeof(char));
+        return abi::__cxa_demangle(x.name(), buffer, &size, 0);
+    }
+    
+    /** Convert anything to a string. Might be specialized */
+    template <class T> std::string convert(const T &x) {
+        std::ostringstream strout;
+        strout << x;
+        return strout.str();
+    }
+    
+    
+    /** Convert anything to a string. Might be specialized */
+    template<class T> T convert(const std::string &s) {
+        T x;
+        std::istringstream str_in(s);
+        if (!str_in) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
+        else if (! (str_in >> x )) BOOST_THROW_EXCEPTION(errinfo_message("Bad input"));
+        return x;
+    }
+    
+    template<class T, class U> boost::shared_ptr<T> our_dynamic_cast(boost::shared_ptr<U> const & r) {
+        try {
+            return boost::dynamic_pointer_cast<T,U>(r);
+        } catch(std::exception &e) {
+            KQP_THROW_EXCEPTION_F(bad_cast_exception, "Bad cast from %s [%s] to %s", 
+                %KQP_DEMANGLEP(r.get()) %KQP_DEMANGLE(U) %KQP_DEMANGLE(T));
+        }
+    }
+    
+
+    template<class T, class U> T our_dynamic_cast(U &r) {
+        try {
+            return dynamic_cast<T>(r);
+        } catch(std::exception &e) {
+            KQP_THROW_EXCEPTION_F(bad_cast_exception, "Bad cast from %s [%s] to %s", 
+                %KQP_DEMANGLE(r) %KQP_DEMANGLE(U) %KQP_DEMANGLE(T));
+        }
+    }
+    
+    template<typename T, typename U> inline T lexical_cast(U &u) {
+        try {
+            boost::lexical_cast<T>(u);
+        } catch(boost::bad_lexical_cast &e) {
+            KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting [%s] to type %s", 
+                                   %u %KQP_DEMANGLE(T));
+        }
+    }
+
+    //! Gets the attribute value and casts it
+    template<typename T> inline T attribute(const pugi::xml_node &node, const std::string &name) {
+        try {
+            return boost::lexical_cast<T>(node.attribute(name.c_str()).value());
+        }
+        catch(boost::bad_lexical_cast &e) {
+            throw boost::enable_error_info(e) << errinfo_message((boost::format("Converting attribute %s of node %s to type %s") 
+                                    %name %node.name() %KQP_DEMANGLE(T)).str());
+        }
+
+    }
+
+
+
+
+} // NS kqp
 
 #endif

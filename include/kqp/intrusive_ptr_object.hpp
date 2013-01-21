@@ -109,7 +109,7 @@ inline intrusive_ptr_object::~intrusive_ptr_object()
 
 
 // All your classes derive from this class to allow for the
-// dynamic_cast<> in the intrusive_ptr_add_ref() and
+// kqp::our_dynamic_cast<> in the intrusive_ptr_add_ref() and
 // intrusive_ptr_release() functions.
 class intrusive_ptr_base
 {
@@ -125,13 +125,13 @@ inline intrusive_ptr_base::~intrusive_ptr_base()
 
 inline void intrusive_ptr_add_ref(const intrusive_ptr_base *a)
 {
-	dynamic_cast<const intrusive_ptr_object *>(a)->add_ref();
+	kqp::our_dynamic_cast<const intrusive_ptr_object *>(a)->add_ref();
 }
 
 
 inline void intrusive_ptr_release(const intrusive_ptr_base *a)
 {
-	dynamic_cast<const intrusive_ptr_object *>(a)->release();
+	kqp::our_dynamic_cast<const intrusive_ptr_object *>(a)->release();
 }
 
 

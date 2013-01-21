@@ -52,7 +52,7 @@ namespace kqp {
         
         // Compare
         
-        const ScalarMatrix &fm = dynamic_cast<const Dense<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
+        const ScalarMatrix &fm = kqp::our_dynamic_cast<const Dense<double>&>(*qp_rs.getFeatureMatrix()).getMatrix();
         Eigen::MatrixXd m1 = fm * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal()
             * qp_rs.getMixtureMatrix().adjoint() * fm.adjoint();
         Eigen::MatrixXd m2 = _mF * _mY * _mD.asDiagonal() * _mY.adjoint() * _mF.adjoint();
@@ -148,7 +148,7 @@ namespace kqp {
         
         // Compare
         
-        const ScalarMatrix &mX_r = dynamic_cast<const Dense<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
+        const ScalarMatrix &mX_r = kqp::our_dynamic_cast<const Dense<Scalar>&>(*qp_rs.getFeatureMatrix()).getMatrix();
         std::cerr << "mX_r\n" << mX_r << std::endl;
         std::cerr << "mY_r\n" << ScalarMatrix(qp_rs.getMixtureMatrix()) << std::endl;
         Eigen::MatrixXd m1 = mX_r * qp_rs.getMixtureMatrix() * qp_rs.getEigenValues().asDiagonal() * qp_rs.getMixtureMatrix().adjoint() * mX_r.adjoint();

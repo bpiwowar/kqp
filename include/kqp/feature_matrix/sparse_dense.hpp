@@ -267,7 +267,7 @@ namespace kqp {
 #endif
         
         void add(const FMatrixBase &_other, const std::vector<bool> *which = NULL) override {
-            const Self &other = dynamic_cast<const Self&>(_other);
+            const Self &other = kqp::our_dynamic_cast<const Self&>(_other);
             
             if (m_dimension != other.m_dimension)
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot add vectors of different sizes (%d vs %d)", %m_dimension %other.m_dimension);
@@ -378,7 +378,7 @@ namespace kqp {
             
             // Move and cleanup before returning
             FMatrixBasePtr sdMat(new Self(m_dimension, std::move(newMap), std::move(mat)));
-            dynamic_cast<Self&>(*sdMat).cleanup(EPSILON);
+            kqp::our_dynamic_cast<Self&>(*sdMat).cleanup(EPSILON);
             return sdMat;
         }
         
@@ -408,7 +408,7 @@ namespace kqp {
 
 
         virtual FMatrixBase &operator=(const FMatrixBase &_other) override {
-          return *this = dynamic_cast<const Self&>(_other);
+          return *this = kqp::our_dynamic_cast<const Self&>(_other);
         }
         
         //! Get the sparse to dense map
@@ -449,7 +449,7 @@ namespace kqp {
         SparseDenseSpace(Index dimension) : m_dimension(dimension) {}
         SparseDenseSpace() : m_dimension(0) {}
         
-        inline static const SparseDense<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const SparseDense<Scalar> &>(mX); }
+        inline static const SparseDense<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return kqp::our_dynamic_cast<const SparseDense<Scalar> &>(mX); }
         
         
         Index dimension() const override { return m_dimension; }
@@ -481,7 +481,7 @@ namespace kqp {
  
         virtual FMatrixBasePtr linearCombination(const FeatureMatrixBase<Scalar> &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                           const FeatureMatrixBase<Scalar> *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
-            return cast(mX).linearCombination(mA, alpha, dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);
+            return cast(mX).linearCombination(mA, alpha, kqp::our_dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);
         }
         
         static const std::string &name() { static std::string NAME("sparse-dense"); return NAME; }

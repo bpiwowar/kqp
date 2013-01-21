@@ -83,7 +83,7 @@ namespace kqp {
         }
         
         void add(const FMatrixBase &_other, const std::vector<bool> *which = NULL) override {
-            const Self &other = dynamic_cast<const Self&>(_other);
+            const Self &other = kqp::our_dynamic_cast<const Self&>(_other);
             
             // Computes the indices of the vectors to add
             std::vector<Index> ix;
@@ -194,7 +194,7 @@ namespace kqp {
         }
 
         virtual FMatrixBase& operator=(const FMatrixBase &other) override {
-            return *this = dynamic_cast<const Self&>(other);
+            return *this = kqp::our_dynamic_cast<const Self&>(other);
         }
 
         //! Get the dense matrix
@@ -234,7 +234,7 @@ namespace kqp {
         SparseSpace() {}
         SparseSpace(Index dimension) : m_dimension(dimension) {}
         
-        inline static const Sparse<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return dynamic_cast<const Sparse<Scalar> &>(mX); }
+        inline static const Sparse<Scalar>& cast(const FeatureMatrixBase<Scalar> &mX) { return kqp::our_dynamic_cast<const Sparse<Scalar> &>(mX); }
         
         Index dimension() const override { return m_dimension; }
         void dimension(Index dimension) { m_dimension = dimension; }

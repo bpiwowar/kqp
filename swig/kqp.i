@@ -204,14 +204,11 @@ namespace Eigen {
     }  
        
     catch(const boost::exception &e) {
-        std::cerr << "Caught a boost exception" << std::endl;
-        std::cerr << boost::diagnostic_information(e) << std::endl;
-        throw;
+        SWIG_exception(SWIG_RuntimeError, boost::diagnostic_information(e).c_str());
+
     }
     catch(const std::exception &e) {
-        std::cerr << "Caught a std exception" << std::endl;
-        std::cerr << e.what() << std::endl;
-        throw;
+        SWIG_exception(SWIG_RuntimeError, e.what());
     }    
     catch(...) {
         std::cerr << "Caught an unknown exception!" << std::endl;

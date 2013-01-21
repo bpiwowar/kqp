@@ -196,7 +196,7 @@ namespace kqp {
                  "Expected only %d children values for kernel sum while updating partials, got %d", %size() %values.children.size());
 
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                partials[offset] += alpha * values.inner(mode);
+                partials[offset] += alpha  * values.inner(mode);
                 offset++;
             }
 
@@ -255,20 +255,19 @@ namespace kqp {
 		}
 
         
-        static const std::string &name() { static std::string NAME("tensor"); return NAME; }
+        static const std::string &name() { static std::string NAME("sum"); return NAME; }
 
         FSpacePtr space(size_t i) { return m_spaces[i]; }
         FSpaceCPtr space(size_t i) const { return m_spaces[i]; }
         Real weight(size_t i) const { return m_weights[i]; }
         size_t size() const { return m_spaces.size(); }
 
-
         virtual void load(const pugi::xml_node &node) {
             static const std::string SUB_NAME("sub");
 
             for(auto child: node) {
                 if (child.type() == pugi::xml_node_type::node_element && child.name() == SUB_NAME) {
-                    Real weight = boost::lexical_cast<Real>(child.attribute("value").value());
+                    Real weight = kqp::attribute<Real>(child, "weight");
 
                     pugi::xml_node selected;
                     for(auto grandchild: child) {
@@ -283,7 +282,7 @@ namespace kqp {
                     if (selected.empty())
                         KQP_THROW_EXCEPTION(exception, "A unary kernel element should have one child");
 
-                    auto space = boost::dynamic_pointer_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
+                    auto space = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
 
                     m_spaces.push_back(space);
                     m_weights.push_back(weight);

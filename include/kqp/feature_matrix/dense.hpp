@@ -116,7 +116,7 @@ namespace kqp {
 
 #ifndef SWIG
         inline static const Self &cast(const FMatrixBase &m) {
-            return dynamic_cast<const Self&>(m);
+            return kqp::our_dynamic_cast<const Self&>(m);
         }
 #endif
         
@@ -187,7 +187,7 @@ namespace kqp {
         }
 
         virtual FMatrixBase& operator=(const FMatrixBase &other) override {
-            return *this = dynamic_cast<const Self&>(other);
+            return *this = kqp::our_dynamic_cast<const Self&>(other);
         }
 
         
@@ -238,7 +238,7 @@ namespace kqp {
             return FSpacePtr(new DenseSpace(*this));
         }
         
-        inline static const Dense<Scalar>& cast(const FMatrixBase &mX) { return dynamic_cast<const Dense<Scalar> &>(mX); }
+        inline static const Dense<Scalar>& cast(const FMatrixBase &mX) { return kqp::our_dynamic_cast<const Dense<Scalar> &>(mX); }
 
         FMatrixBasePtr newMatrix(const ScalarMatrix &mX) const {
             return FMatrixBasePtr(new Dense<Scalar>(mX));            
@@ -273,7 +273,7 @@ namespace kqp {
         
         virtual FMatrixBasePtr linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha, 
                                              const FMatrixBase *mY, const ScalarAltMatrix *mB, Scalar beta) const override {
-            return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, dynamic_cast<const Dense<Scalar> *>(mY), mB, beta));
+            return FMatrixBasePtr(cast(mX).linearCombination(mA, alpha, kqp::our_dynamic_cast<const Dense<Scalar> *>(mY), mB, beta));
         }
 
 

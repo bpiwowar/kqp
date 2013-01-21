@@ -58,7 +58,7 @@ namespace kqp {
 
 
         virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
-            rankUpdate2(matrix.template selfadjointView<Eigen::Lower>(), dynamic_cast<const FDense &>(*mX).getMatrix() * mA, (Scalar)alpha);
+            rankUpdate2(matrix.template selfadjointView<Eigen::Lower>(), kqp::our_dynamic_cast<const FDense &>(*mX).getMatrix() * mA, (Scalar)alpha);
         }
         
         virtual Decomposition<Scalar> _getDecomposition() const override {
