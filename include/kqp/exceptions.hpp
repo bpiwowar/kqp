@@ -22,6 +22,7 @@
 #include <boost/exception/errinfo_at_line.hpp>
 #include <boost/exception/info.hpp>
 #include <boost/exception/exception.hpp>
+#include <boost/format.hpp>
 
 // Stack information
 #include <execinfo.h>
@@ -87,7 +88,7 @@ namespace kqp {
     class bad_cast_exception : public virtual exception {};
 
     #undef BOOST_THROW_EXCEPTION
-    #define BOOST_THROW_EXCEPTION(x) throw_exception_(x,BOOST_CURRENT_FUNCTION,__FILE__,__LINE__)
+    #define BOOST_THROW_EXCEPTION(x) kqp::throw_exception_(x,BOOST_CURRENT_FUNCTION,__FILE__,__LINE__)
 
     // Throw an exception
     template <class E>

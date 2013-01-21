@@ -298,6 +298,15 @@ namespace kqp {
                 %KQP_DEMANGLE(r) %KQP_DEMANGLE(U) %KQP_DEMANGLE(T));
         }
     }
+
+    template<class T, class U> T our_dynamic_cast(U *r) {
+        try {
+            return dynamic_cast<T>(r);
+        } catch(std::exception &e) {
+            KQP_THROW_EXCEPTION_F(bad_cast_exception, "Bad cast from %s [%s] to %s", 
+                %KQP_DEMANGLE(r) %KQP_DEMANGLE(U) %KQP_DEMANGLE(T));
+        }
+    }
     
     template<typename T, typename U> inline T lexical_cast(U &u) {
         try {
@@ -314,8 +323,8 @@ namespace kqp {
             return boost::lexical_cast<T>(node.attribute(name.c_str()).value());
         }
         catch(boost::bad_lexical_cast &e) {
-            throw boost::enable_error_info(e) << errinfo_message((boost::format("Converting attribute %s of node %s to type %s") 
-                                    %name %node.name() %KQP_DEMANGLE(T)).str());
+            KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting attribute %s of node %s to type %s",
+                                    %name %node.name() %KQP_DEMANGLE(T));
         }
 
     }
