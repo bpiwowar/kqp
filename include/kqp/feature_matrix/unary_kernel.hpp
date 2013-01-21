@@ -78,13 +78,14 @@ namespace kqp {
             m_base = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
         }
 
-        FSpacePtr base() {
-            return m_base;
-        }
-
         FSpaceCPtr base() const {
             return m_base;
         }
+
+        virtual int numberOfKernelValues() const override  {
+            return 1 + m_base->numberOfKernelValues();
+        }
+
 
 
     protected:
@@ -96,7 +97,7 @@ namespace kqp {
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const = 0;
 
         //! The base feature space 
-        FSpace m_base;
+        FSpaceCPtr m_base;
 
     private:              
         //! Gram matrices
@@ -113,7 +114,7 @@ namespace kqp {
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
 #endif
-        GaussianSpace(Real sigma, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
+        GaussianSpace(Real sigma, const FSpaceCPtr &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
         GaussianSpace() :  UnaryKernelSpace<Scalar>(FSpace()), m_sigma(1) {}
 
         virtual FSpacePtr copy() const override { return FSpacePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
@@ -130,20 +131,19 @@ namespace kqp {
         }
         
 
-        virtual void update(KernelValues<Scalar> &values) const override {
-            KQP_LOG_ASSERT(main_logger, values.children.size() == 1, "Expected only one child in values for gaussian kernel while updating partials");
-            auto &child = values.children[0];
-            m_base->update(child);
+        virtual void update(std::vector< KernelValues<Scalar> > &values, int kOffset = 0) const override {
+            auto &self = values[kOffset];
+            auto &child = values[kOffset+1];
+            m_base->update(values, kOffset+1);
             Scalar sigma_2 = m_sigma * m_sigma;
             Scalar re_inner = Eigen::internal::real(child._inner);
-            values._inner =  Eigen::internal::exp((2. * re_inner - child._innerX - child._innerY) / sigma_2);
-            values._innerX = 1;
-            values._innerY = 1;
+            self._inner =  Eigen::internal::exp((2. * re_inner - child._innerX - child._innerY) / sigma_2);
+            self._innerX = 1;
+            self._innerY = 1;
         }
 
-        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const KernelValues<Scalar> &values, int mode) const {
-            KQP_LOG_ASSERT(main_logger, values.children.size() == 1, "Expected only one child in values for gaussian kernel while updating partials");
-            const auto &child  = values.children[0];
+        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const std::vector< KernelValues<Scalar> > &values, int kOffset, int mode) const {
+            auto &child = values[kOffset+1];
             Scalar exp_v = 1;
             Scalar sigma_2 = m_sigma * m_sigma;
             if (mode == 0) {
@@ -155,24 +155,9 @@ namespace kqp {
 
 
             Scalar beta = alpha * (exp_v / sigma_2);
-            m_base->updatePartials(2 * beta, partials, offset+1, child, 0);
-            m_base->updatePartials(- beta, partials, offset+1, child, -1);
-            m_base->updatePartials(- beta, partials, offset+1, child, 1);
-        }
-
-        virtual void updatePartials(Real alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
-            Scalar inner = m_base->k(mX, mY)(0,0), innerX = m_base->k(mX)(0,0), innerY = m_base->k(mY)(0,0);
-
-            Scalar sigma_2 = m_sigma * m_sigma;
-            Scalar re_inner = Eigen::internal::real(inner);
-            Scalar v = (2. * re_inner - innerX + innerY) / sigma_2;
-            Scalar exp_v = Eigen::internal::exp(v);
-            partials[offset] +=  alpha * -2. / m_sigma * v * Eigen::internal::exp(v);
-
-            Scalar beta = alpha * (exp_v / sigma_2);
-            m_base->updatePartials(2 * beta, partials, offset+1, mX, mY);
-            m_base->updatePartials(- beta, partials, offset+1, mX, mX);
-            m_base->updatePartials(- beta, partials, offset+1, mY, mY);
+            m_base->updatePartials(2 * beta, partials, offset+1, values, kOffset + 1, 0);
+            m_base->updatePartials(- beta, partials, offset+1, values, kOffset + 1, -1);
+            m_base->updatePartials(- beta, partials, offset+1, values, kOffset + 1, 1);
         }
 
         virtual int numberOfParameters() const {
@@ -246,28 +231,20 @@ namespace kqp {
             return mD1.asDiagonal() * mY1.adjoint() * this->f(m_base->k(mX1,mX2)) * mY2 * mD2.asDiagonal();
         }
 
-        virtual void updatePartials(Real alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const override {
-            Scalar inner = m_base->k(mX,mY)(0,0);
-            Scalar v = (Scalar)m_degree * Eigen::internal::pow(inner + m_bias, (Scalar)m_degree - 1);
-            partials[offset] += alpha * inner * v;
-            m_base->updatePartials(alpha * v, partials, offset+1, mX, mY);
+        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const std::vector< KernelValues<Scalar> > &values, int kOffset, int mode) const override {
+            Scalar v = (Scalar)m_degree * Eigen::internal::pow(values[kOffset+1].inner(mode) + m_bias, (Scalar)m_degree - 1);
+            partials[offset] += alpha * v;
+
+            m_base->updatePartials(alpha * v, partials, offset+1, values, kOffset + 1, mode);
         }
 
-        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const KernelValues<Scalar> &values, int mode) const override {
-            KQP_LOG_ASSERT(main_logger, values.children.size() == 1, "Expected only one child in values for polynomial kernel while updating partials");
-            Scalar v = (Scalar)m_degree * Eigen::internal::pow(values.children[0].inner(mode) + m_bias, (Scalar)m_degree - 1);
-            partials[offset] += alpha * values.inner(mode) * v;
-
-            m_base->updatePartials(alpha * v, partials, offset+1, values.children[0], mode);
-        }
-
-        virtual void update(KernelValues<Scalar> &values) const override {
-            KQP_LOG_ASSERT(main_logger, values.children.size() == 1, "Expected only one child in values for polynomial kernel while updating partials");
-            auto &child = values.children[0];
-            m_base->update(child);
-            values._inner = Eigen::internal::pow(child._inner + m_bias, (Scalar)m_degree);
-            values._innerX = Eigen::internal::pow(child._innerX + m_bias, (Scalar)m_degree);            
-            values._innerY = Eigen::internal::pow(child._innerY + m_bias, (Scalar)m_degree);
+        virtual void update(std::vector< KernelValues<Scalar> > &values, int kOffset = 0) const override {
+            m_base->update(values, kOffset);
+            auto &self = values[kOffset];
+            auto &child = values[kOffset+1];
+            self._inner = Eigen::internal::pow(child._inner + m_bias, (Scalar)m_degree);
+            self._innerX = Eigen::internal::pow(child._innerX + m_bias, (Scalar)m_degree);            
+            self._innerY = Eigen::internal::pow(child._innerY + m_bias, (Scalar)m_degree);
         }
 
         virtual int numberOfParameters() const {

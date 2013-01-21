@@ -26,7 +26,10 @@ namespace kqp {
 	template<typename Scalar> class KernelSumSpace;
 
 	/**
-	 * Tensor space matrix
+	 * Linear combination kernel
+     *
+     * Coefficients are squared (always positive) and normalized so they sum to 1
+     *
 	 */
 	template <typename Scalar> 
     class KernelSumMatrix : public FeatureMatrixBase<Scalar> {
@@ -116,11 +119,12 @@ namespace kqp {
 		/** Add a new space */
 		void addSpace(Real weight, const FSpace &space) {
 			m_weights.push_back(weight);
+            m_sum += weight * weight;
 			m_spaces.push_back(space);
 		}
 
-        KernelSumSpace() {}
-        KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights) {}
+        KernelSumSpace() : m_sum(0) {}
+        KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights), m_sum(0)  {}
         ~KernelSumSpace() {}
 
         static FSpace create() { return FSpace(new KernelSumSpace()); }
@@ -159,7 +163,7 @@ namespace kqp {
             gram = ScalarMatrix::Zero(mX.size(), mX.size());
 
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                gram += m_weights[i] * m_spaces[i]->k(mX.template as<TMatrix>()[i]);
+                gram += getNormalizedWeight(i) * m_spaces[i]->k(mX.template as<TMatrix>()[i]);
             }    
             return gram;
         }
@@ -169,7 +173,7 @@ namespace kqp {
         	ScalarMatrix k = ScalarMatrix::Zero(mX1.size(), mX2.size());
 
         	for(size_t i = 0; i < m_spaces.size(); i++) {
-        		k += m_weights[i] * m_spaces[i]->k(mX1.template as<TMatrix>()[i], mY1, mD1, mX2.template as<TMatrix>()[i], mY2, mD2);
+        		k += getNormalizedWeight(i) * m_spaces[i]->k(mX1.template as<TMatrix>()[i], mY1, mD1, mX2.template as<TMatrix>()[i], mY2, mD2);
         	}
 
         	return k;
@@ -177,51 +181,42 @@ namespace kqp {
 
      
         
-        virtual void update(KernelValues<Scalar> &values) const override {
-            KQP_LOG_ASSERT_F(main_logger, values.children.size() == size(),
-                 "Expected only %d children values for kernel sum while updating partials, got %d", %size() %values.children.size());
+        virtual void update(std::vector< KernelValues<Scalar> > &values, int kOffset = 0) const override {
+            auto &self = values[kOffset];
+            kOffset++;
 
+            self._inner = self._innerX = self._innerY = 0;
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                auto &child = values.children[i];
-                m_spaces[i]->update(child);
-                values._inner += m_weights[i] * child._inner;
-                values._innerX += m_weights[i] * child._innerX;
-                values._innerY += m_weights[i] * child._innerY;
+                m_spaces[i]->update(values, kOffset);
+                const auto &child = values[kOffset];
+                self._inner += getNormalizedWeight(i) * child._inner;
+                self._innerX += getNormalizedWeight(i) * child._innerX;
+                self._innerY += getNormalizedWeight(i) * child._innerY;
+                kOffset += m_spaces[i]->numberOfKernelValues();
             }
 
         }
 
-        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const KernelValues<Scalar> &values, int mode) const override {
-            KQP_LOG_ASSERT_F(main_logger, values.children.size() == size(),
-                 "Expected only %d children values for kernel sum while updating partials, got %d", %size() %values.children.size());
+        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const std::vector< KernelValues<Scalar> > &values,  int kOffset, int mode) const override {
+            Scalar k = values[kOffset].inner(mode);
+            kOffset += 1;
 
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                partials[offset] += alpha  * values.inner(mode);
-                offset++;
-            }
+                partials[offset] += alpha * 2. * (m_weights[i]*m_weights[i]) * (values[kOffset+1].inner(mode) - k) / m_sum;
+                m_spaces[i]->updatePartials(alpha * getNormalizedWeight(i), partials, offset, values, kOffset, mode);
 
-            for(size_t i = 0; i < m_spaces.size(); i++) {
-                m_spaces[i]->updatePartials(alpha * m_weights[i], partials, offset, values.children[i], mode);
-                offset += m_spaces[i]->numberOfParameters();
+                offset += m_spaces[i]->numberOfParameters() + 1;
+                kOffset +=  m_spaces[i]->numberOfKernelValues();
             }
 
         }
 
-        virtual void updatePartials(double alpha, std::vector<Real> & partials, int offset, const FMatrixBase &mX, const FMatrixBase &mY) const {
-        	for(size_t i = 0; i < m_spaces.size(); i++) {
-        		Scalar k = m_spaces[i]->k(mX.template as<TMatrix>()[i], mY.template as<TMatrix>()[i])(0,0);
-        		partials[offset] += alpha * k;
-				offset++;
-			}
-
-        	for(size_t i = 0; i < m_spaces.size(); i++) {
-        		m_spaces[i]->updatePartials(alpha * m_weights[i], partials, offset, mX.template as<TMatrix>()[i], mY.template as<TMatrix>()[i]);
-				offset += m_spaces[i]->numberOfParameters();
-			}
-
+        virtual int numberOfKernelValues() const {
+            int n = 1;
+            for(size_t i = 0; i < m_spaces.size(); i++)
+                n += m_spaces[i]->numberOfKernelValues();
+            return n;
         }
-
-
 
         virtual int numberOfParameters() const {
             int n = m_spaces.size();
@@ -233,24 +228,18 @@ namespace kqp {
         virtual void getParameters(std::vector<Real> & parameters, int offset) const {
         	for(size_t i = 0; i < m_spaces.size(); i++) {
 				parameters[offset] = m_weights[i];
-				offset++;
-			}
-
-        	for(size_t i = 0; i < m_spaces.size(); i++) {
-				m_spaces[i]->getParameters(parameters, offset);
-				offset += m_spaces[i]->numberOfParameters();
+                m_spaces[i]->getParameters(parameters, offset+1);
+                offset += m_spaces[i]->numberOfParameters() + 1;
 			}
         }
 
         virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+            m_sum = 0;
         	for(size_t i = 0; i < m_spaces.size(); i++) {
 				m_weights[i] = parameters[offset];
-				offset++;
-			}
-
-        	for(size_t i = 0; i < m_spaces.size(); i++) {
-				m_spaces[i]->setParameters(parameters, offset);
-				offset += m_spaces[i]->numberOfParameters();
+                m_sum += m_weights[i];
+                m_spaces[i]->setParameters(parameters, offset + 1);
+                offset += m_spaces[i]->numberOfParameters() + 1;
 			}
 		}
 
@@ -264,6 +253,10 @@ namespace kqp {
 
         virtual void load(const pugi::xml_node &node) {
             static const std::string SUB_NAME("sub");
+
+            m_sum = 0;
+            m_spaces.clear();
+            m_weights.clear();
 
             for(auto child: node) {
                 if (child.type() == pugi::xml_node_type::node_element && child.name() == SUB_NAME) {
@@ -284,8 +277,7 @@ namespace kqp {
 
                     auto space = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
 
-                    m_spaces.push_back(space);
-                    m_weights.push_back(weight);
+                    addSpace(weight, space);
                 }
             }
         }
@@ -300,9 +292,13 @@ namespace kqp {
             }
         }
 
+        inline Real getNormalizedWeight(size_t i) const {
+            return m_weights[i] * m_weights[i] / m_sum;
+        }
     private:
     	std::vector<FSpace> m_spaces;
     	std::vector<Real> m_weights;
+        mutable Real m_sum;
 	};
 
 }

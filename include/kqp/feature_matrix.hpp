@@ -128,9 +128,9 @@ public:
     inline Scalar innerX(int mode = 0) const { if (mode == 1) return _innerY; return _innerX; }
     inline Scalar innerY(int mode = 0) const { if (mode == -1) return _innerX; return _innerY; }
 
-    std::vector<KernelValues> children;
     Scalar _innerX, _innerY, _inner;
 };
+
 
 /**
  * @brief Base for all feature matrix classes
@@ -288,11 +288,15 @@ public:
      * \param mX A vector in the feature space
      * \param mY A vector in the feature space
     */
-    virtual void updatePartials(Real /*alpha*/, std::vector<Real> & /*partials*/, int /*offset*/,
-                                const FMatrixBase &/*mX*/, const FMatrixBase &/*mY*/) const {}
+    virtual void updatePartials(Real /*alpha*/, std::vector<Real> &/*partials*/, int /*offset*/, 
+        const std::vector< KernelValues<Scalar> > &/* kernelValues */, int /* kOffset */, int /* mode */) const {}
 
-    virtual void updatePartials(Real, std::vector<Real> &, int, const KernelValues<Scalar> &, int /* mode */) const {}
-    virtual void update(KernelValues<Scalar> &) const {}
+    virtual void updatePartials(Real alpha, std::vector<Real> &partials, 
+        const std::vector< KernelValues<Scalar> > &kernelValues, int mode) const {
+        updatePartials(alpha, partials, 0, kernelValues, 0, mode);
+    }
+
+    virtual void update(std::vector< KernelValues<Scalar> > &, int /* kOffset */ = 0) const {}
 
     /**
      * Returns the number of parameters for this feature space
@@ -300,6 +304,14 @@ public:
     virtual int numberOfParameters() const
     {
         return 0;
+    }
+
+    /**
+     * Returns the number of stored kernel values for this kernel
+     */
+    virtual int numberOfKernelValues() const
+    {
+        return 1;
     }
 
     virtual void getParameters(std::vector<Real> &, int) const
@@ -440,26 +452,6 @@ public:
     void setUseLinearCombination(bool flag)
     {
         m_useLinearCombination = flag;
-    }
-
-
-    /**
-     * \brief Update the partials.
-     *
-     * Update the partials with \f$ \alpha \times \frac{\partial k(X,Y)}{\partial \theta}\f$ where
-     * \f$theta\f$ are the parameters
-     * \param alpha The weight \f$\alpha\f$
-     * \param partials The partials to update
-     * \param offset The offset within the real values stored in \a partials
-     * \param mX A vector in the feature space
-     * \param mY A vector in the feature space
-    */
-    inline void updatePartials(Real alpha, std::vector<Real> &partials, size_t offset, const FMatrix &mX, const FMatrix &mY) const
-    {
-        if (mX->size() != 1 || mY->size() != 1)
-            KQP_THROW_EXCEPTION_F(illegal_operation_exception, "Update partials only works with vectors [sizes are %d and %d]", % mX->size() % mY->size());
-
-        return updatePartials(alpha, partials, offset, *mX, *mY);
     }
 
     void getParameters(std::vector<Real> &parameters, size_t offset) const
