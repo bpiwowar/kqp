@@ -78,6 +78,7 @@ if (JAVA_KQP OR PYTHON_KQP)
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
      
+      set(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${CMAKE_CURRENT_BINARY_DIR}/generated/*.i)
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)
