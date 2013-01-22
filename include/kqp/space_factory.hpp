@@ -82,7 +82,7 @@ namespace kqp {
         //! Registration class
         template<typename Scalar, class SpaceInstance> struct Register {
            Register() {
-              std::string name = SpaceInstance::name() + "[" + ScalarInfo<Scalar>::name() + "]";
+              std::string name = SpaceInstance::NAME() + "[" + ScalarInfo<Scalar>::name() + "]";
               SpaceFactory::registerSpace(name, CONSTRUCTOR<Scalar, SpaceInstance>);
            }
         };

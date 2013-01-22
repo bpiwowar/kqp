@@ -111,7 +111,8 @@ namespace kqp {
     template <typename Scalar> 
     class KernelSumSpace : public SpaceBase<Scalar> {
     public:
-		KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef KernelSumSpace<Scalar> Self;
+		KQP_SPACE_TYPEDEFS("sum", Scalar);
 
 		typedef KernelSumMatrix<Scalar> TMatrix;
 		friend class KernelSumMatrix<Scalar>;
@@ -243,9 +244,6 @@ namespace kqp {
 			}
 		}
 
-        
-        static const std::string &name() { static std::string NAME("sum"); return NAME; }
-
         FSpacePtr space(size_t i) { return m_spaces[i]; }
         FSpaceCPtr space(size_t i) const { return m_spaces[i]; }
         Real weight(size_t i) const { return m_weights[i]; }
@@ -290,6 +288,7 @@ namespace kqp {
                 child.append_attribute("weight") = boost::lexical_cast<std::string>(m_weights[i]).c_str();
                 m_spaces[i]->save(child);
             }
+            return self;
         }
 
         inline Real getNormalizedWeight(size_t i) const {
