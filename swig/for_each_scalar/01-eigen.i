@@ -5,7 +5,7 @@
 %define DEFINE_COMMON_EIGEN_MATRIX_OPERATIONS()
     // Aggregations
     @RTYPE@ squaredNorm() const { return $self->squaredNorm(); }
-    @RTYPE@ norm() const { return $self->squaredNorm(); }
+    @RTYPE@ norm() const { return $self->norm(); }
     @STYPE@ sum() const { return $self->sum(); }
     
     // Component wise nullary operations
