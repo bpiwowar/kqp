@@ -202,8 +202,8 @@ namespace kqp {
             kOffset += 1;
 
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                partials[offset] += alpha * 2. * (m_weights[i]*m_weights[i]) * (values[kOffset+1].inner(mode) - k) / m_sum;
-                m_spaces[i]->updatePartials(alpha * getNormalizedWeight(i), partials, offset, values, kOffset, mode);
+                partials[offset] += alpha * 2. * (m_weights[i]*m_weights[i]) * (values[kOffset].inner(mode) - k) / m_sum;
+                m_spaces[i]->updatePartials(alpha * getNormalizedWeight(i), partials, offset + 1, values, kOffset, mode);
 
                 offset += m_spaces[i]->numberOfParameters() + 1;
                 kOffset +=  m_spaces[i]->numberOfKernelValues();
@@ -260,7 +260,7 @@ namespace kqp {
 
             for(auto child: node) {
                 if (child.type() == pugi::xml_node_type::node_element && child.name() == SUB_NAME) {
-                    Real weight = kqp::attribute<Real>(child, "weight");
+                    Real weight = kqp::attribute<Real>(child, "weight", 1.);
 
                     pugi::xml_node selected;
                     for(auto grandchild: child) {

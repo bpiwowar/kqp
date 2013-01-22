@@ -179,7 +179,7 @@ namespace kqp {
         static const std::string &name() { static std::string NAME("gaussian"); return NAME; }
 
         virtual void load(const pugi::xml_node &node) override {
-            m_sigma = boost::lexical_cast<decltype(m_sigma)>(node.attribute("sigma").value());
+            m_sigma = kqp::attribute(node, "sigma", 1.);
             UnaryKernelSpace<Scalar>::load(node);
         }
 
@@ -231,7 +231,8 @@ namespace kqp {
             return mD1.asDiagonal() * mY1.adjoint() * this->f(m_base->k(mX1,mX2)) * mY2 * mD2.asDiagonal();
         }
 
-        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, const std::vector< KernelValues<Scalar> > &values, int kOffset, int mode) const override {
+        virtual void updatePartials(Real alpha, std::vector<Real> &partials, int offset, 
+            const std::vector< KernelValues<Scalar> > &values, int kOffset, int mode) const override {
             Scalar v = (Scalar)m_degree * Eigen::internal::pow(values[kOffset+1].inner(mode) + m_bias, (Scalar)m_degree - 1);
             partials[offset] += alpha * v;
 
@@ -239,7 +240,7 @@ namespace kqp {
         }
 
         virtual void update(std::vector< KernelValues<Scalar> > &values, int kOffset = 0) const override {
-            m_base->update(values, kOffset);
+            m_base->update(values, kOffset+1);
             auto &self = values[kOffset];
             auto &child = values[kOffset+1];
             self._inner = Eigen::internal::pow(child._inner + m_bias, (Scalar)m_degree);
@@ -253,18 +254,20 @@ namespace kqp {
 
         virtual void getParameters(std::vector<Real> & parameters, int offset) const {
             parameters[offset] = m_bias;
+            m_base->getParameters(parameters, offset + 1);
         }
 
         virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
             m_bias = parameters[offset];
+            m_base->setParameters(parameters, offset + 1);
         }
 
 
         static const std::string &name() { static std::string NAME("polynomial"); return NAME; }
         
         virtual void load(const pugi::xml_node &node) {
-            m_bias = boost::lexical_cast<decltype(m_bias)>(node.attribute("bias").value());
-            m_degree = boost::lexical_cast<decltype(m_degree)>(node.attribute("degree").value());
+            m_bias = kqp::attribute(node, "bias", 1.);
+            m_degree = kqp::attribute(node, "degree", 2);
             UnaryKernelSpace<Scalar>::load(node);
         }
 
