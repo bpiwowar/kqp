@@ -329,6 +329,20 @@ namespace kqp {
 
     }
 
+    template<typename T> inline T attribute(const pugi::xml_node &node, const std::string &name, const T &defaultValue = "") {
+        try {
+            auto n = node.attribute(name.c_str());
+            if (n.empty()) 
+                return defaultValue;
+            
+            return boost::lexical_cast<T>(n.value());
+        }
+        catch(boost::bad_lexical_cast &e) {
+            KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting attribute %s of node %s to type %s",
+                                    %name %node.name() %KQP_DEMANGLE(T));
+        }
+
+    }
 
 
 
