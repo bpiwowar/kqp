@@ -56,7 +56,7 @@ namespace kqp {
          * @param weights give an order to the different pre-images
          * @param delta
          */
-        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double /*delta*/ = 1e-4) {
+        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
 
             // --- Check if we have something to do
@@ -72,7 +72,7 @@ namespace kqp {
             std::vector<Index> to_remove;
             for(Index i = 0; i < /*num_vectors*/kernel.rows(); i++)
                     to_remove.push_back(i);
-            
+
             // Sort        
             const Index pre_images_count = kernel.rows();
             const std::size_t remove_size = kernel.cols();
@@ -96,8 +96,13 @@ namespace kqp {
                 // Select the pre-image to remove along with the null space vector
                 // that will be used
                 // TODO: find a better way
+
+                Eigen::Matrix<Real,Dynamic,1> colnorms = kernel.colwise().norm();
+
                 size_t i = 0;
                 Index j = -1;
+                Real max = 0;
+                Real threshold;
                 for(size_t index = 0; index < to_remove.size(); index++) {
                     // remove the ith pre-image
                     i = to_remove[index];
@@ -105,10 +110,12 @@ namespace kqp {
                     
                     // Searching for the highest magnitude
                     j = -1;
-                    Real max = kqp::EPSILON;
+                    // ... but we want it above a given threshold
+                    max = 0;
                     for(Index k = 0; k < kernel.cols(); k++) {
                         Real x = kernel.array().abs()(i, k);
-                        if (!used[k] && x > max) {
+                        if (!used[k] && x > max && x > delta * colnorms(k)) {
+                            threshold = delta * colnorms(k); // just for debug
                             max = x;
                             j = k;
                         }
@@ -119,6 +126,7 @@ namespace kqp {
                     KQP_THROW_EXCEPTION_F(assertion_exception,
                      "Could not find a way to remove the a pre-image with null space (%d/%d pre-images). %d remaining.",
                      %kernel.cols() %kernel.rows() %remaining);
+                KQP_HLOG_DEBUG_F("Selected pre-image %d with basis vector %d [%g > %g; norm=%g]", %i %j %max %threshold %colnorms(j));
 
                 remaining--;
                 used[j] = true;
@@ -182,14 +190,16 @@ namespace kqp {
             lu_decomposition.setThreshold(epsilon * lu_decomposition.matrixLU().diagonalSize());
             
             // Stop if full rank
-            if (lu_decomposition.rank() == N) 
+            Index rank = lu_decomposition.rank();
+            KQP_HLOG_DEBUG_F("Rank of LU decomposition is %d/%d [epsilon=%g]", %rank %N %epsilon);
+            if (rank == N) 
                 return;
             
             // Remove pre-images using the kernel
             ScalarMatrix kernel = lu_decomposition.kernel();
             RealVector weights = mY.rowwise().squaredNorm().array() * fs->k(mF).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            *mF = *remove(mF, kernel, mP, weights);
+            *mF = std::move(*remove(mF, kernel, mP, weights));
             
             // Y <- (Id A) P Y
             ScalarMatrix mY2(mY);
@@ -200,7 +210,7 @@ namespace kqp {
             CleanerUnused<Scalar>::run(mF, mY);
         }
         
-        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarMatrix &mY) {
+        static void run(const FSpacePtr &fs, const FMatrixPtr &mF, ScalarMatrix &mY) {
             ScalarAltMatrix _mY;
             _mY.swap(mY);
             run(fs, mF, _mY);

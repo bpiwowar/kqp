@@ -74,14 +74,14 @@ struct Decomposition
     //! Move assignement
     Decomposition &operator=(Decomposition && other)
     {
-        swap(other);
+        take(other);
         return *this;
     }
 #endif
-    void swap(Decomposition &other)
+    void take(Decomposition &other)
     {
-        fs = std::move(other.fs);
-        mX = std::move(other.mX);
+        fs = other.fs;
+        mX = other.mX;
         mY.swap(other.mY);
         mD.swap(other.mD);
         std::swap(orthonormal, other.orthonormal);

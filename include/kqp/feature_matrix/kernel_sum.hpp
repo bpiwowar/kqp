@@ -125,7 +125,7 @@ namespace kqp {
 		}
 
         KernelSumSpace() : m_sum(0) {}
-        KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights), m_sum(0)  {}
+        KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights), m_sum(other.m_sum)  {}
         ~KernelSumSpace() {}
 
         static FSpace create() { return FSpace(new KernelSumSpace()); }

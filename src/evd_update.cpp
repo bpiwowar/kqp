@@ -388,7 +388,7 @@ namespace kqp {
         std::vector<Rotation<Scalar> > rotations;
         
         // Deflate the matrix and order the singular values
-        IndexedValue<Scalar> *last;
+        IndexedValue<Scalar> *last = 0;
         for (int i = 0; i < N; i++) {
             IndexedValue<Scalar> &vi = *v[i];
             Scalar zi = vi.z;

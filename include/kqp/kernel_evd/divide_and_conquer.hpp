@@ -142,6 +142,8 @@ namespace kqp {
             
             Real posNorm = d.fs->k(d.mX, mYPos).norm();
             Real negNorm = d.fs->k(d.mX, mYNeg).norm();
+            KQP_HLOG_DEBUG_F("Adding a decomposition to a merger (pos=%d / %g, neg=%d / %g)",
+                %posCount %posNorm %negCount %negNorm);
             if (posCount > 0 && posNorm / negNorm > Eigen::NumTraits<Scalar>::epsilon()) 
                 merger.add(1, d.mX, mYPos);
             if (negCount > 0 && negNorm / posNorm > Eigen::NumTraits<Scalar>::epsilon()) 
@@ -154,18 +156,26 @@ namespace kqp {
          * @param force true if we want to merge all decompositions (i.e. not ensuring that mergings are balanced)
          */
         void merge(bool force) {
+            
             // Merge while the number of merged decompositions is the same for the two last decompositions
             // (or less, to handle the case of previous unbalanced merges)
             while (decompositions.size() >= 2 && (force || (decompositions.back().updateCount >= (decompositions.end()-2)->updateCount))) {
                 
-                Decomposition<Scalar> d1 = std::move(decompositions.back());
-                decompositions.pop_back();
-                Decomposition<Scalar> d2 = std::move(decompositions.back());
-                decompositions.pop_back();
+                const Decomposition<Scalar> &d1 = decompositions[decompositions.size() - 2];
+                const Decomposition<Scalar> &d2 = decompositions[decompositions.size() - 1];
+
+                KQP_HLOG_DEBUG_F("Starting the merge [force=%d, level=%d] of two decompositions [%d/%d;%d] and [%d/%d;%d]", 
+                                 %force %decompositions.size()
+                                 %d1.mD.rows() %d1.mX->size() %d1.updateCount 
+                                 %d2.mD.rows() %d2.mX->size() %d2.updateCount);
 
                 merger->reset();
                 merge(*merger, d1);
                 merge(*merger, d2);
+
+                decompositions.pop_back();
+                decompositions.pop_back();
+
                 
                 // Push back new decomposition
                 decompositions.push_back(merger->getDecomposition());
@@ -176,10 +186,11 @@ namespace kqp {
                 d.updateCount = d1.updateCount + d2.updateCount;
                 assert(!kqp::isNaN(d.fs->k(d.mX, d.mY, d.mD).squaredNorm()));
 
-                KQP_HLOG_DEBUG_F("Merged two decompositions [%d/%d;%d] and [%d/%d;%d] into [rank= %d, pre-images=%d; updates=%d]", 
-                                 %d1.mD.rows() %d1.mX->size() %d1.updateCount 
-                                 %d2.mD.rows() %d2.mX->size() %d2.updateCount 
+                KQP_HLOG_DEBUG_F("Merged [force=%d, level=%d] into [rank= %d, pre-images=%d; updates=%d]", 
+                                 %force %decompositions.size()
                                  %d.mD.rows()  %d.mX->size()  %d.updateCount);
+
+
             }
         }
         

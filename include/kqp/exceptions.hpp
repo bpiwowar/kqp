@@ -51,6 +51,7 @@ namespace kqp {
     inline std::ostream  & operator<<( std::ostream  & x,  const trace_info_struct_<T>& trace ) {
         char **stack_syms(backtrace_symbols( trace.pointers, trace.count ));
         Dl_info info;
+        x << "[" << trace.count << "]\n";
         for ( int i = 0 ; i < trace.count ; ++i )
         {
             dladdr(trace.pointers[i], &info);
