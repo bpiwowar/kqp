@@ -440,7 +440,8 @@ namespace kqp {
     template<typename Scalar>
     class SparseDenseSpace : public SpaceBase<Scalar> {
     public:  
-        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef SparseDenseSpace<Scalar> Self;
+        KQP_SPACE_TYPEDEFS("sparse-dense", Scalar);
 #ifndef SWIG
         using SpaceBase<Scalar>::k;
 #endif        
@@ -484,15 +485,14 @@ namespace kqp {
             return cast(mX).linearCombination(mA, alpha, kqp::our_dynamic_cast<const SparseDense<Scalar> *>(mY), mB, beta);
         }
         
-        static const std::string &name() { static std::string NAME("sparse-dense"); return NAME; }
-
         virtual void load(const pugi::xml_node &node) override {
             m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
         }
 
-        virtual void save(pugi::xml_node &node) const override {
-            pugi::xml_node self = node.append_child(name().c_str());
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
+            pugi::xml_node self = SpaceBase<Scalar>::save(node);
             self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
+            return self;
         }
 
     private:

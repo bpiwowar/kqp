@@ -74,7 +74,8 @@ struct ScalarDefinitions
         KQP_SCALAR_TYPEDEFS(Scalar) \
         typedef boost::shared_ptr<Self> SelfPtr; \
         typedef boost::shared_ptr<const Self> SelfCPtr; \
-        static const std::string &name() { static std::string NAME(SpaceName); return NAME; }
+        static const std::string &NAME() { static std::string _NAME(SpaceName); return _NAME; } \
+        const std::string &name() const { return NAME(); }
 
 
 //! Information about templates
@@ -216,8 +217,10 @@ public:
     virtual void load(const pugi::xml_node &node) = 0;
 
     //! Save in XML
-    virtual void save(pugi::xml_node &node) const = 0;
+    virtual pugi::xml_node save(pugi::xml_node &node) const = 0;
 
+    //! Name of the space
+    virtual const std::string & name() const = 0;
 };
 
 
@@ -320,6 +323,12 @@ public:
 
     virtual void setParameters(const std::vector<Real> &, int)
     {
+    }
+
+    virtual pugi::xml_node save(pugi::xml_node &node) const override {
+        pugi::xml_node self = node.append_child(name().c_str());
+        self.append_attribute("scalar") = ScalarInfo<Scalar>::name().c_str();
+        return self;
     }
 
     //! Creates a new feature matrix

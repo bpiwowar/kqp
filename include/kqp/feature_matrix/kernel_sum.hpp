@@ -282,9 +282,9 @@ namespace kqp {
             }
         }
 
-        virtual void save(pugi::xml_node &node) const override {
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
             static const std::string SUB_NAME("sub");
-            pugi::xml_node self = node.append_child(name().c_str());
+            pugi::xml_node self = SpaceBase<Scalar>::save(node);
             for(size_t i = 0; i < m_spaces.size(); i++) {
                 auto child = self.append_child(SUB_NAME.c_str());
                 child.append_attribute("weight") = boost::lexical_cast<std::string>(m_weights[i]).c_str();

@@ -109,7 +109,8 @@ namespace kqp {
     //! Gaussian Kernel \f$k'(x,y) = \exp(\frac{2 Re(k(x,y)) -  k(x) - k(y) \vert}{\sigma^2})\f$
     template<typename Scalar> class GaussianSpace : public UnaryKernelSpace<Scalar> {
     public:
-        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef GaussianSpace<Scalar> Self;
+        KQP_SPACE_TYPEDEFS("gaussian", Scalar);
 #ifndef SWIG
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
@@ -176,18 +177,17 @@ namespace kqp {
             m_base->setParameters(parameters, offset + 1);
         }
 
-        static const std::string &name() { static std::string NAME("gaussian"); return NAME; }
-
         virtual void load(const pugi::xml_node &node) override {
             m_sigma = kqp::attribute(node, "sigma", 1.);
             UnaryKernelSpace<Scalar>::load(node);
         }
 
-        virtual void save(pugi::xml_node &node) const override {
-            pugi::xml_node self = node.append_child(name().c_str());
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
+            pugi::xml_node self = UnaryKernelSpace<Scalar>::save(node);
             self.append_attribute("sigma") = boost::lexical_cast<std::string>(m_sigma).c_str();
             if (m_base)
                 m_base->save(self);
+            return self;
         }
     protected:
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const override {
@@ -213,7 +213,8 @@ namespace kqp {
     //! Polynomial Kernel \f$k'(x,y) = (k(x,y) + D)^p\f$
     template<typename Scalar> class PolynomialSpace  : public UnaryKernelSpace<Scalar> {
     public:
-        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef GaussianSpace<Scalar> Self;
+        KQP_SPACE_TYPEDEFS("polynomial", Scalar);
 #ifndef SWIG
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
@@ -262,8 +263,6 @@ namespace kqp {
             m_base->setParameters(parameters, offset + 1);
         }
 
-
-        static const std::string &name() { static std::string NAME("polynomial"); return NAME; }
         
         virtual void load(const pugi::xml_node &node) {
             m_bias = kqp::attribute(node, "bias", 1.);
@@ -271,12 +270,13 @@ namespace kqp {
             UnaryKernelSpace<Scalar>::load(node);
         }
 
-        virtual void save(pugi::xml_node &node) const override {
-            pugi::xml_node self = node.append_child(name().c_str());
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
+            pugi::xml_node self = UnaryKernelSpace<Scalar>::save(node);
             self.append_attribute("degree") = boost::lexical_cast<std::string>(m_degree).c_str();
             self.append_attribute("bias") = boost::lexical_cast<std::string>(m_bias).c_str();
             if (m_base)
                 m_base->save(self);
+            return self;
         }
 
     protected:

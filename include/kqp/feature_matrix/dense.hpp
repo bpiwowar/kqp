@@ -41,7 +41,7 @@ namespace kqp {
     class Dense : public FeatureMatrixBase<Scalar> {
     public:       
         typedef Dense<Scalar> Self;
-        KQP_MATRIX_TYPEDEFS(Scalar);
+        KQP_SPACE_TYPEDEFS("dense", Scalar);
 
         virtual ~Dense() {}
         
@@ -281,9 +281,10 @@ namespace kqp {
             m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
         }
 
-        virtual void save(pugi::xml_node &node) const override {
-            pugi::xml_node self = node.append_child(name().c_str());
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
+            pugi::xml_node self = SpaceBase<Scalar>::save(node);
             self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
+            return self;
         }
 
     private:

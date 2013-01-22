@@ -225,7 +225,8 @@ namespace kqp {
     template<typename Scalar>
     class SparseSpace : public SpaceBase<Scalar> {
     public:  
-        KQP_SCALAR_TYPEDEFS(Scalar);
+        typedef SparseSpace<Scalar> Self;
+        KQP_SPACE_TYPEDEFS("sparse", Scalar);
 #ifndef SWIG
         using SpaceBase<Scalar>::k;
 #endif        
@@ -257,16 +258,15 @@ namespace kqp {
                                const FeatureMatrixBase<Scalar> &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {        
             return mD1.asDiagonal() * mY1.adjoint() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
         };
-        
-        static const std::string &name() { static std::string NAME("sparse"); return NAME; }
-        
+                
         virtual void load(const pugi::xml_node &node) override {
             m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
         }
 
-        virtual void save(pugi::xml_node &node) const override {
-            pugi::xml_node self = node.append_child(name().c_str());
+        virtual pugi::xml_node save(pugi::xml_node &node) const override {
+            pugi::xml_node self = SpaceBase<Scalar>::save(node);
             self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
+            return self;
         }
 
 
