@@ -51,6 +51,10 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 %include <kqp/feature_matrix.hpp>
 %include <kqp/space_factory.hpp>
 
+
+FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
+AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
+
 // --- Kernel values
 
 %template(KernelValues@SNAME@) kqp::KernelValues< @STYPE@ >;
@@ -78,15 +82,57 @@ template<> struct ScalarDefinitions< @STYPE@ > {
   }
 }
 
+%template(KernelValuesListList@SNAME@) std::vector< std::vector< kqp::KernelValues< @STYPE@ > > >;
+%extend std::vector< std::vector< kqp::KernelValues< @STYPE@ > > > {
+    /** Adds a entry of size n and returns the index of the added value */
+    size_t add(size_t n) {
+        self->push_back(std::vector< kqp::KernelValues< @STYPE@ > >(n));
+        return self->size() - 1;
+    }
+    
+    void addAll(const std::vector< std::vector< kqp::KernelValues< @STYPE@ > > > &other) {
+        self->insert(self->end(), other.begin(), other.end());
+    }
+    
+    /** Add a new vector with copies */
+    size_t add(size_t n, @STYPE@ inner, @STYPE@ innerX, @STYPE@ innerY) {
+        self->push_back(std::vector< kqp::KernelValues< @STYPE@ > >(n, kqp::KernelValues< @STYPE@ >(inner, innerX, innerY)));
+        return self->size() - 1;
+    }
+    
+    /** Swap two entries */
+    void swap(size_t i, size_t j) {
+        (*self)[i].swap((*self)[j]);
+    }
+    
+    void update(size_t i, const kqp::SpaceBase< @STYPE@ > &space) {
+        space.update((*self)[i]);
+    }
+
+    void updatePartials(size_t i, const kqp::SpaceBase< @STYPE@ > &space, @RTYPE@ alpha, std::vector< @RTYPE@ > &partials, int mode) {
+        space.updatePartials(alpha, partials, (*self)[i], mode);
+    }
+
+    void set(size_t i, size_t j, @STYPE@ inner, @STYPE@ innerX, @STYPE@ innerY) {
+      auto &x = (*self)[i][j];
+      x._inner = inner;
+      x._innerX = innerX;
+      x._innerY = innerY;
+    }
+
+    // Direct access to values
+    @STYPE@ inner(size_t i, size_t j = 0) {
+      return (*self)[i][j].inner();
+    }
+    @STYPE@ innerX(size_t i, size_t j = 0) {
+      return (*self)[i][j].innerX();
+    }
+    @STYPE@ innerY(size_t i, size_t j = 0) {
+      return (*self)[i][j].innerY();
+    }
+}
 
 // --- Feature matrix
-
-FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
-AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
-
-%extend kqp::FeatureMatrix< @STYPE@ > {
-    
-}
 
 // Dense
 %include <kqp/feature_matrix/dense.hpp>
