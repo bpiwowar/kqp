@@ -294,7 +294,7 @@ public:
     virtual void updatePartials(Real /*alpha*/, std::vector<Real> &/*partials*/, int /*offset*/, 
         const std::vector< KernelValues<Scalar> > &/* kernelValues */, int /* kOffset */, int /* mode */) const {}
 
-    virtual void updatePartials(Real alpha, std::vector<Real> &partials, 
+    void updatePartials(Real alpha, std::vector<Real> &partials, 
         const std::vector< KernelValues<Scalar> > &kernelValues, int mode) const {
         updatePartials(alpha, partials, 0, kernelValues, 0, mode);
     }
