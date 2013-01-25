@@ -120,8 +120,8 @@ template<typename Scalar> class SpaceBase;
   */
 template<typename Scalar> class KernelValues {
 public:
-    KernelValues(Scalar innerX, Scalar innerY, Scalar inner) :
-        _innerX(innerX), _innerY(innerY), _inner(inner) {}
+    KernelValues(Scalar inner, Scalar innerX, Scalar innerY) :
+         _inner(inner), _innerX(innerX), _innerY(innerY) {}
 
     KernelValues() {}    
 
@@ -129,7 +129,7 @@ public:
     inline Scalar innerX(int mode = 0) const { if (mode == 1) return _innerY; return _innerX; }
     inline Scalar innerY(int mode = 0) const { if (mode == -1) return _innerX; return _innerY; }
 
-    Scalar _innerX, _innerY, _inner;
+    Scalar _inner, _innerX, _innerY;
 };
 
 

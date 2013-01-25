@@ -51,10 +51,42 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 %include <kqp/feature_matrix.hpp>
 %include <kqp/space_factory.hpp>
 
-FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
-AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
+// --- Kernel values
+
 %template(KernelValues@SNAME@) kqp::KernelValues< @STYPE@ >;
 %template(KernelValuesList@SNAME@) std::vector< kqp::KernelValues< @STYPE@ > >;
+%extend std::vector< kqp::KernelValues< @STYPE@ > > {
+  void set(size_t i, @STYPE@ inner, @STYPE@ innerX, @STYPE@ innerY) {
+    auto &x = (*self)[i];
+    x._inner = inner;
+    x._innerX = innerX;
+    x._innerY = innerY;
+  }
+
+  void add(@STYPE@ inner, @STYPE@ innerX, @STYPE@ innerY) {
+    self->push_back(kqp::KernelValues< @STYPE@ >(inner, innerX, innerY));
+  }
+
+  @STYPE@ inner(size_t i = 0) {
+    return (*self)[i].inner();
+  }
+  @STYPE@ innerX(size_t i = 0) {
+    return (*self)[i].innerX();
+  }
+  @STYPE@ innerY(size_t i = 0) {
+    return (*self)[i].innerY();
+  }
+}
+
+
+// --- Feature matrix
+
+FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrix< @STYPE@ >)
+AbstractSpaceCommonDefs(Space@SNAME@, kqp::Space< @STYPE@ >)
+
+%extend kqp::FeatureMatrix< @STYPE@ > {
+    
+}
 
 // Dense
 %include <kqp/feature_matrix/dense.hpp>
