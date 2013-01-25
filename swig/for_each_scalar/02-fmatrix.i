@@ -81,8 +81,8 @@ template<> struct ScalarDefinitions< @STYPE@ > {
 
 // --- Feature matrix
 
-FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrix< @STYPE@ >)
-AbstractSpaceCommonDefs(Space@SNAME@, kqp::Space< @STYPE@ >)
+FMatrixCommonDefs(FeatureMatrix@SNAME@, kqp::FeatureMatrixBase< @STYPE@ >)
+AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
 
 %extend kqp::FeatureMatrix< @STYPE@ > {
     
