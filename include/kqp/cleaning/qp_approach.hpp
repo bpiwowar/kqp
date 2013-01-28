@@ -375,7 +375,7 @@ namespace kqp {
         
         CleanerQP() : 
             m_preImageRatios(std::make_pair(0, std::numeric_limits<Real>::infinity())),
-            m_preImagesRange(std::make_pair(0, std::numeric_limits<Index>::max))
+            m_preImagesRange(std::make_pair(0, std::numeric_limits<Index>::max()))
         {}
 
         //! Set constraints on the number of pre-images
