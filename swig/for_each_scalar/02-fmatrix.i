@@ -109,6 +109,11 @@ AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
         space.update((*self)[i]);
     }
 
+    void update(const kqp::SpaceBase< @STYPE@ > &space) {
+        for(auto &values: *self)
+            space.update(values);
+    }
+
     void updatePartials(size_t i, const kqp::SpaceBase< @STYPE@ > &space, @RTYPE@ alpha, std::vector< @RTYPE@ > &partials, int mode) {
         space.updatePartials(alpha, partials, (*self)[i], mode);
     }
