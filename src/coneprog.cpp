@@ -1436,7 +1436,7 @@ namespace kqp { namespace cvxopt {
         Scalar &gap = r.gap, &relgap = r.relative_gap;
         
         
-        KQP_LOG_INFO(logger, boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres);
+        KQP_LOG_DEBUG(logger, boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres);
         
         gap = sdot(s, z, dims);
         
@@ -1491,7 +1491,7 @@ namespace kqp { namespace cvxopt {
             dres = resx/resx0;
             
             
-            KQP_LOG_INFO(logger, boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres);
+            KQP_LOG_DEBUG(logger, boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres);
             
             if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
                 int ind = dims.l  + dimsq;
@@ -1504,13 +1504,11 @@ namespace kqp { namespace cvxopt {
                 Scalar ts = max_step(s, dims);
                 Scalar tz = max_step(z, dims);
                 if (iters == options.maxiters) {
-                    if (options.show_progress)
-                        std::cerr << "Terminated (maximum number of iterations reached)." << std::endl;
+                    KQP_LOG_DEBUG(logger, "Terminated (maximum number of iterations reached).");
                     status = NOT_CONVERGED;
                 }
                 else {
-                    if (options.show_progress)
-                        std::cerr << "Optimal solution found." << std::endl;
+                    KQP_LOG_DEBUG(logger, "Optimal solution found.");
                     status = OPTIMAL;
                 }
                 r.dual_slack = -tz;
