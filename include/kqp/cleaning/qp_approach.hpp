@@ -373,14 +373,35 @@ namespace kqp {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         
+        CleanerQP() : 
+            m_preImageRatios(std::make_pair(0, std::numeric_limits<Real>::infinity())),
+            m_preImagesRange(std::make_pair(0, std::numeric_limits<Index>::max))
+        {}
+
         //! Set constraints on the number of pre-images
-        void setPreImagesPerRank(float minimum, float maximum) {
-            this->preImageRatios = std::make_pair(minimum, maximum);
+        void setPreImagesPerRank(float reset, float maximum) {
+            this->m_preImageRatios = std::make_pair(reset, maximum);
+        }
+
+        void setRankRange(Index reset, Index maximum) {
+            this->m_preImagesRange = std::make_pair(reset, maximum);
         }
         
         virtual void cleanup(Decomposition<Scalar> &d) const override {
+            // Sets the target value
+            Index target = d.mX->size();
+
+            if (d.mX->size() > this->m_preImageRatios.second * d.mD.rows())
+                target = std::min(target, (Index)(this->m_preImageRatios.first * d.mD.rows()));
+
+            if (d.mX->size() > this->m_preImagesRange.second)
+                target = std::min(target, this->m_preImagesRange.first);
+
+            // Ensure there is one pre-image per rank at least
+            target = std::max(target, d.mD.rows());
+
             // --- Ensure we have a small enough number of pre-images
-            if (d.mX->size() > (this->preImageRatios.second * d.mD.rows())) {
+            if (d.mX->size() > target) {
                 if (d.fs->canLinearlyCombine()) {
                     // Easy case: we can linearly combine pre-images
                     d.mX = d.fs->linearCombination(d.mX, d.mY);
@@ -388,7 +409,7 @@ namespace kqp {
                 } else {
                     // Use QP approach
                     ReducedSetWithQP<Scalar> qp_rs;
-                    qp_rs.run(this->preImageRatios.first * d.mD.rows(), d.fs, d.mX, d.mY, d.mD);
+                    qp_rs.run(target, d.fs, d.mX, d.mY, d.mD);
                     
                     // Get the decomposition
                     d.mX = std::move(qp_rs.getFeatureMatrix());
@@ -404,9 +425,11 @@ namespace kqp {
         
     private:
         /**
-         * Minimum/Maximum number of pre-images per rank
+         * Minimum/Maximum number of pre-images per rank (ratios and absolute)
+         * First value is the reset value, second value is the bound
          */
-        std::pair<float,float> preImageRatios;            
+        std::pair<float,float> m_preImageRatios;            
+        std::pair<Index,Index> m_preImagesRange;            
     };
     
     
