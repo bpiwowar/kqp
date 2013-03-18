@@ -150,13 +150,13 @@ namespace kqp {
         
         
         /// Result of a run
-        FMatrix new_mF;
+        FMatrixPtr new_mF;
         ScalarMatrix new_mY;
         RealVector new_mD;
         
         
         // 
-        const FMatrix &getFeatureMatrix() { return new_mF; }
+        const FMatrixPtr &getFeatureMatrix() { return new_mF; }
         ScalarMatrix &getMixtureMatrix() { return new_mY; }
         RealVector &getEigenValues() { return new_mD; }
         
@@ -358,10 +358,17 @@ namespace kqp {
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs->k(_new_mF).template selfadjointView<Eigen::Lower>());
             
             new_mY.swap(evd.eigenvectors());
+            
             new_mY *= evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             
             // Project onto new_mF new_mY
-            
+            KQP_HLOG_DEBUG_F("Update new_mY <- new_Y [%dx%d] * new_Y'[%dx%d] x new_F'[%dxF] x mF[Fx%d] x mY[%dx%d]",
+                %new_mY.rows() %new_mY.cols()  
+                %new_mY.cols() %new_mY.rows() 
+                %_new_mF->size() 
+                %mF->size()
+                %mY.rows() %mY.cols() 
+            ); 
             new_mY *= fs->k(_new_mF, new_mY, mF, mY);
             new_mF = std::move(_new_mF);
         }
