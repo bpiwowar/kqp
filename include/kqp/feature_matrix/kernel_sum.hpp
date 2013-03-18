@@ -171,7 +171,7 @@ namespace kqp {
 
         virtual ScalarMatrix k(const FMatrixBase &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1, 
                                const FMatrixBase &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const override {
-        	ScalarMatrix k = ScalarMatrix::Zero(mX1.size(), mX2.size());
+        	ScalarMatrix k = ScalarMatrix::Zero(mD1.rows(), mD2.rows());
 
         	for(size_t i = 0; i < m_spaces.size(); i++) {
         		k += getNormalizedWeight(i) * m_spaces[i]->k(mX1.template as<TMatrix>()[i], mY1, mD1, mX2.template as<TMatrix>()[i], mY2, mD2);
