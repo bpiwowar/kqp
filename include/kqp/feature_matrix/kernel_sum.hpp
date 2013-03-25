@@ -285,7 +285,7 @@ namespace kqp {
             pugi::xml_node self = SpaceBase<Scalar>::save(node);
             for(size_t i = 0; i < m_spaces.size(); i++) {
                 auto child = self.append_child(SUB_NAME.c_str());
-                child.append_attribute("weight") = boost::lexical_cast<std::string>(m_weights[i]).c_str();
+                child.append_attribute("weight") = boost::lexical_cast<std::string>(std::abs(m_weights[i])).c_str();
                 m_spaces[i]->save(child);
             }
             return self;

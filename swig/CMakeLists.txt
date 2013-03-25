@@ -20,7 +20,7 @@ if (JAVA_KQP OR PYTHON_KQP)
   FIND_PACKAGE(SWIG REQUIRED)
   SET(KQP_SWIG_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/generated")
   
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
   
   INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}" ${Boost_INCLUDE_DIRS} "${KQP_SWIG_GENERATED}")
   SET_SOURCE_FILES_PROPERTIES(kqp.i PROPERTIES CPLUSPLUS ON)
@@ -28,14 +28,23 @@ if (JAVA_KQP OR PYTHON_KQP)
   FILE(GLOB KQP_HEADERS kqp/include/*.hpp kqp/include/*/*.hpp)
   FILE(GLOB KQP_SWIG_DEPS */*.i *.i)
   
+  # --- Gets the list of generated files
+  set(SWIG_SCALAR_GENERATED_FILES "")
+  file(GLOB KQP_SWIG_EACH_SCALAR ${CMAKE_CURRENT_SOURCE_DIR}/for_each_scalar/*)
+  foreach(SWIG_SCALAR_GENERATED_FILE ${KQP_SWIG_EACH_SCALAR})
+      file(RELATIVE_PATH SWIG_SCALAR_GENERATED_FILE "${CMAKE_CURRENT_SOURCE_DIR}/for_each_scalar" "${SWIG_SCALAR_GENERATED_FILE}")
+      list(APPEND SWIG_SCALAR_GENERATED_FILES "${KQP_SWIG_GENERATED}/${SWIG_SCALAR_GENERATED_FILE}")
+  endforeach()
+
   # --- Command that generates the kqp_all.i (that depends on all the *.i files within the swig directory)
   SET(PRE_SWIG_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/CMakePreSWIG.txt")
   add_custom_command(
-    OUTPUT ${KQP_SWIG_GENERATED}/kqp_all.i
+    OUTPUT ${KQP_SWIG_GENERATED}/kqp_all.i ${SWIG_SCALAR_GENERATED_FILES}
     COMMAND ${CMAKE_COMMAND} -D KQP_SWIG_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" -D KQP_SWIG_GENERATED="${KQP_SWIG_GENERATED}" -P "${PRE_SWIG_SCRIPT}" SOURCES ${KQP_SWIG_DEPS} 
     DEPENDS ${KQP_SWIG_DEPS} ${PRE_SWIG_SCRIPT})
   ADD_CUSTOM_TARGET(pre_swig DEPENDS ${KQP_SWIG_GENERATED}/kqp_all.i)
-
+  
+  
   # --- Java JNI module  
   if (JAVA_KQP)
       FIND_PACKAGE(JNI REQUIRED)
@@ -77,8 +86,10 @@ if (JAVA_KQP OR PYTHON_KQP)
       SET(CMAKE_SWIG_FLAGS -c++ -package ${JAVA_KQP_PACKAGE})  
       set(CMAKE_SWIG_OUTDIR "${JAVA_KQP_OUTDIR}")
       
-     
-      set(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${CMAKE_CURRENT_BINARY_DIR}/generated/*.i)
+
+      
+      message(STATUS "Generated files ${SWIG_MODULE_kqp_jni_EXTRA_DEPS}")
+      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${SWIG_SCALAR_GENERATED_FILES})
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
       SWIG_LINK_LIBRARIES(kqp_jni kqp)

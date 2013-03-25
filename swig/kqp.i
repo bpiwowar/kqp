@@ -29,6 +29,10 @@
     #define IDENTITY_MATRIX IDENTITY
     #endif
 
+    // Disable those warnings for SWIG
+    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
     #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
     #include <kqp/space_factory.hpp>

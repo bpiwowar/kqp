@@ -17,6 +17,8 @@
 #ifndef __KQP_H__
 #define __KQP_H__
 
+// Disable warnings for non used typedefs
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
 #ifdef EIGEN_CORE_H
  #error "kqp.hpp should be included before any Eigen source"

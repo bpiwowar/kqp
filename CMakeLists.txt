@@ -52,15 +52,15 @@ MESSAGE(STATUS "Creating project KQP ${libkqp_VERSION} with build type ${CMAKE_B
 
 # - Gnu CC
 IF(CMAKE_COMPILER_IS_GNUCXX)
-	# Get the major and minor version
-	EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+  MESSAGE(STATUS "GCC version ${CMAKE_C_COMPILER_VERSION}")
     
-  IF(GCC_VERSION VERSION_GREATER "4.6.999999")
+  # Get the major and minor version
+  IF(CMAKE_C_COMPILER_VERSION VERSION_GREATER "4.6.999999")
 	SET(CXX_STD "c++11")
   ELSE()
 	SET(CXX_STD "c++0x")
   ENDIF()
-
+  
   SET (EXTRA_C_FLAGS "${EXTRA_C_FLAGS} --std=${CXX_STD} -Wno-deprecated -Wall -W -Wextra -fPIC -Werror ")
   SET (EXTRA_C_FLAGS_RELEASE "-O3 ${EXTRA_C_FLAGS}")
   SET (EXTRA_C_FLAGS_DEBUG "-O0 -g ${EXTRA_C_FLAGS}")
