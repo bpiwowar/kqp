@@ -17,8 +17,17 @@
 
 %module kqp
 
+%{
+    // Disable those warnings for SWIG
+    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #pragma GCC diagnostic ignored "-Wunused-parameter"
+%}
 
-
+#ifdef SWIGJAVA
+// Does not work - disabling
+/*%include "java/java_heap.i"*/
+#endif
 
 %{
     
@@ -29,9 +38,6 @@
     #define IDENTITY_MATRIX IDENTITY
     #endif
 
-    // Disable those warnings for SWIG
-    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
     #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
@@ -60,15 +66,7 @@
         namespace _AltMatrix { enum AltMatrixType { DENSE_MATRIX, IDENTITY_MATRIX }; }
         namespace _AltVector { enum AltVectorType { DENSE_VECTOR, CONSTANT_VECTOR }; }
         
-        template<typename Scalar>
-        struct PrimitiveRef {
-          Scalar &value;  
-          PrimitiveRef(Scalar &value) : value(value) {}
-              
-          Scalar get() { return value; }
-          void set(Scalar newValue) { value = newValue; }
-        };
-    }
+        }
     
     using Eigen::Dynamic;
     using Eigen::Matrix;
@@ -128,14 +126,6 @@
 
 
 namespace kqp {
-    
-    template<typename Scalar>
-    struct PrimitiveRef {
-        Scalar get();
-        void set(Scalar);
-    private:
-        PrimitiveRef();
-    };
 
     namespace _AltMatrix { enum AltMatrixType { DENSE_MATRIX, IDENTITY_MATRIX }; }
     namespace _AltVector { enum AltVectorType { DENSE_VECTOR, CONSTANT_VECTOR }; }

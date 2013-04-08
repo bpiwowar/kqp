@@ -70,6 +70,10 @@ AbstractSpaceCommonDefs(Space@SNAME@, kqp::SpaceBase< @STYPE@ >)
   void add(@STYPE@ inner, @STYPE@ innerX, @STYPE@ innerY) {
     self->push_back(kqp::KernelValues< @STYPE@ >(inner, innerX, innerY));
   }
+  
+  void updatePartials(const kqp::SpaceBase< @STYPE@ > &space, @RTYPE@ alpha, std::vector< @RTYPE@ > &partials, int mode) {
+      space.updatePartials(alpha, partials, *self, mode);
+  }
 
   @STYPE@ inner(size_t i = 0) {
     return (*self)[i].inner();

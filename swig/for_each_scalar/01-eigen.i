@@ -17,8 +17,6 @@
 %enddef
 
 
-%template(@SNAME@Ref) kqp::PrimitiveRef< @STYPE@ >;
-
 namespace Eigen {
 template<> struct NumTraits< @STYPE@ > {
   typedef @RTYPE@ Real;
@@ -95,8 +93,8 @@ private:
     INNERITERATOR();
 };
 %extend INNERITERATOR {
-    kqp::PrimitiveRef< @STYPE@ > valueRef() { 
-        return $self->valueRef();
+    void set(@STYPE@ newValue) {
+        $self->valueRef() = newValue;
     }
 
     void next() { ++*$self; }
@@ -107,10 +105,6 @@ private:
 
 %template(Eigen ## NAME ## SparseMatrix@SNAME@) Eigen::SparseMatrix< @STYPE@, MODE >;
 %extend Eigen::SparseMatrix< @STYPE@, MODE > {
-
-    kqp::PrimitiveRef< @STYPE@ > coeffRef(Index i, Index j) { 
-        return self->coeffRef(i,j);
-    }
 
     Index rows() const { return self->rows(); }; 
     Index cols() const { return self->cols(); };
