@@ -17,36 +17,59 @@
 
 
 import sys
+import json
 
-keys = {}
-table = []
 
-tableKeys = ["dimension", "updates", "lc", "scalar", "seed"]
-for key in tableKeys:
-    keys[key] = len(keys)
+out = sys.stdout
 
+times = ['kevd', 'orthonormalizing', 'cleaning', 'total']
+errors = [u'rank', u'pre_images', u's_error', u'o_error']
+
+out.write("""<html>
+    <head>
+    <title>KQP benchmark</title>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+    <script type="text/javascript">
+$(document).ready(function() {
+});""")
+
+
+out.write("""</script>
+</head>
+<body>
+<h1>KQP benchmark results</h1>
+""")
+
+perfs = {}
 for path in sys.argv[1:]:
-    row = ["na"] * len(keys)
-
-    for line in file(path):
-        fields = line.strip().split("\t")
-        if len(fields) != 2:
-            sys.stderr.write("Skipping line\n")
-            continue
-        [key, value] = fields
-
-        idKey = keys.get(key, -1)
-        if idKey != -1:
-            row[idKey] = value
+    with open(path, 'r') as content_file:
+        r = json.load(content_file)
+        x = r["name"]
+        if x in perfs:
+            perfs[x].append(r)
         else:
-            idKey = len(keys)
-            keys[key] = idKey
-            tableKeys.append(key)
-            row.append(value)
+            perfs[x] = [r]
 
-    table.append(row)
+for k, v in perfs.iteritems():
+    out.write("<h2>%s</h2>" % k)
+    out.write("<table><thead>")
+    for t in times:
+        out.write("<th>%s</th>" % t)
+    for e in errors:
+        out.write("<th>%s</th>" % e)
+    out.write("<th>Description</th>")
+    out.write("</thead>")
 
-print "\t".join(tableKeys)
-for row in table:
-    row += ["na"] * (len(keys) - len(row))
-    print "\t".join(row)
+    for r in v:
+        out.write("<tr>")
+        for t in times:
+            out.write("<td>%s</td>" % r["time"][t])
+        for e in errors:
+            out.write("<td>%s</td>" % r["error"][e])
+    
+        out.write("<td>%s</td>" % r)
+        out.write("</tr>")
+    out.write("</table>")
+
+out.write("""
+<body></html>""")

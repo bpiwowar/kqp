@@ -19,6 +19,7 @@ import sys
 from subprocess import Popen
 import hashlib
 import os.path
+import json
 
 # === Argument checking ===
 if len(sys.argv) != 3:
@@ -42,11 +43,12 @@ def addPrefix(prefix, d):
 
 
 def problems():
-    yield {"dimension": 100, "updates": 100, "no-lc": False, "rank": 100, "max_rank": 100, "pre_images": 1, "max_pre_images": 1}
-    yield {"dimension": 100, "updates": 200, "no-lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2}
-    yield {"dimension": 1000, "updates": 1000, "no-lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2}
-    yield {"dimension": 10000, "updates": 10000, "no-lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2}
-    yield {"dimension": 10000, "updates": 10000, "no-lc": False, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2}
+    yield {"name": "small (LC)", "dimension": 100, "updates": 100, "lc": False, "" "rank": 100, "max_rank": 100, "pre_images": 1, "max_pre_images": 1.0}
+    yield {"name": "small (K)", "dimension": 100, "updates": 200, "lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2.0}
+    yield {"name": "medium (LC)", "dimension": 1000, "updates": 1000, "lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2.0}
+    yield {"name": "medium (K)", "dimension": 1000, "updates": 1000, "lc": False, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2.0}
+    yield {"name": "big (LC)", "dimension": 10000, "updates": 10000, "lc": True, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2.0}
+    yield {"name": "big (K)", "dimension": 10000, "updates": 10000, "lc": False, "rank": 80, "max_rank": 120, "pre_images": 1.5, "max_pre_images": 2.0}
 
 # EVD classes define a process method that
 # 1. Takes the problem definition + builder parameters in input
@@ -65,6 +67,41 @@ def remove(keys, map):
     return r
 
 
+def cleaner(problem, imageCleaner):
+    c = [
+        {
+            "name": "rank",
+            "selector": [
+                    {
+                        "name": "rank",
+                        "max": problem["max_rank"],
+                        "reset": problem["rank"]
+                    }
+            ]
+        },
+        {
+            "name": "unused"
+        },
+        imageCleaner(problem)
+    ]
+    return c
+
+
+def qpImageCleaner(problem):
+    return {
+        "name": "qp",
+        "max": problem["max_pre_images"],
+        "reset": problem["pre_images"]
+    }
+
+
+def nullImageCleaner(problem):
+    return {
+        "name": "null",
+        "max": problem["max_pre_images"],
+    }
+
+
 def select(keys, map):
     r = {}
     for key in keys:
@@ -75,40 +112,44 @@ def select(keys, map):
 
 class Base:
     def process(self, problem):
-        return addPrefix("-", select(["rank", "pre_images", "max_rank", "max_pre_images"], problem))
+        p = select(["name", "dimension", "updates", "lc"], problem)
+        p["cleaner"] = cleaner(problem, qpImageCleaner)
+        return p
 
 
 class Direct(Base):
     def process(self, problem):
         if problem["dimension"] > 1000:
             return None
-        if problem["no-lc"]:
+        if not problem["lc"]:
             return None
-        return union({"": "direct"}, Base.process(self, problem))
+        return union({"builder": {"name": "direct"}}, Base.process(self, problem))
 
 
 class Accumulator(Base):
     def process(self, problem):
-        # Skip to big problems
+        # Skip problems with large number of updates
         if problem["updates"] > 1000:
             return None
-        return union({"": "accumulator"}, Base.process(self, problem))
+        return union({"builder": {"name": "accumulator"}}, Base.process(self, problem))
 
 
 class DivideAndConquer(Base):
-    def __init__(self):
+    def __init__(self, imageCleaner):
         self.builder = Accumulator()
         self.merger = Accumulator()
+        self.imageCleaner = imageCleaner
 
     def process(self, problem):
-        b = addPrefix("-builder", self.builder.process(remove(["rank", "pre_images", "max_rank", "max_pre_images"], problem)))
-        m = addPrefix("-merger", self.merger.process(problem))
-        batch_size = problem["rank"]
-        return union({"": "divide-and-conquer", "-batch_size": batch_size}, b, m, Base.process(self, problem))
+        builder = {"name": "divide-and-conquer", "batch": problem["rank"]}
+        builder["builder"] = {"name": "accumulator"}
+        builder["merger"] = {"name": "accumulator", "cleaner": cleaner(problem, self.imageCleaner)}
+        model = {"builder": builder}
+        return union(model, Base.process(self, problem))
 
 
 def builders():
-    return [Direct(), Accumulator(), DivideAndConquer()]
+    return [Direct(), Accumulator(), DivideAndConquer(qpImageCleaner), DivideAndConquer(nullImageCleaner)]
 
 # === Main loop ===
 
@@ -134,16 +175,18 @@ for problem in problems():
         args = builder.process(problem)
         if args is None:
             continue
-        args = addPrefix("builder", args)
 
         # Build the command line
-        mArgs = [bmPath, "kernel-evd", "--dimension", str(problem["dimension"]), "--updates", str(problem["updates"])]
-        if problem["no-lc"]:
-            mArgs += ["--no-lc"]
-        mArgs += commandLine(args)
-        key = hashlib.sha512("@@".join(mArgs)).hexdigest()
+        jsonString = json.dumps(args)
+        key = hashlib.sha512("@@".join(jsonString)).hexdigest()
+        print jsonString
 
         outpath = os.path.join(outdir, key + ".dat")
+        jsonpath = os.path.join(outdir, key + ".json")
+        with open(jsonpath, "w") as text_file:
+            text_file.write(jsonString)
+
+        mArgs = [bmPath, "kernel-evd", jsonpath]
 
         if (os.path.exists(outpath)):
             print "[Skipping %s/%s]" % (outpath, args["builder"])
@@ -155,3 +198,5 @@ for problem in problems():
                 os.rename("%s.out" % outpath, outpath)
             else:
                 sys.stderr.write("[Failure]\nCheck file %s\n" % ("%s.err" % outpath))
+
+        print

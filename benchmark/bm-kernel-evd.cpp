@@ -14,9 +14,11 @@
  You should have received a copy of the GNU General Public License
  along with KQP.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <iostream>
+
+#include <fstream>
 #include <ctime>
 #include <deque>
+#include <iterator>
 
 #include <boost/random/inversive_congruential.hpp>
 #include <boost/random/uniform_01.hpp>
@@ -26,6 +28,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include <kqp/picojson.h>
 
 #include <kqp/kqp.hpp>
 #include <kqp/cleanup.hpp>
@@ -37,8 +41,73 @@
 
 DEFINE_LOGGER(logger,  "kqp.benchmark.kernel-evd");
 
-namespace kqp {
 
+
+namespace kqp {
+	namespace {
+
+		template<typename type>
+		type get(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
+			if (o.find(key) == o.end()) {
+				o[key] = picojson::value(_default);
+				return _default;
+			}
+			
+			if (!o[key].is<type>())
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+			return o[key].get<type>();
+		}
+
+		
+		template<typename type>
+		type get(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
+			if (!d.is<picojson::object>())
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
+			
+			picojson::object o = d.get<picojson::object>();
+			return get(context, o, key, _default);
+		}
+		
+		template<typename type>
+		type get(const std::string &context, picojson::object &o, const std::string &key) {
+			if (o.find(key) == o.end()) {
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: no key [%s]", %context %key );
+			}
+			
+			if (!o[key].is<type>())
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+			return o[key].get<type>();
+		}
+
+		template<typename type>
+		type get(const std::string &context, picojson::value &d, const std::string &key) {
+			if (!d.is<picojson::object>())
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
+			
+			picojson::object o = d.get<picojson::object>();
+			return get<type>(context, o, key);
+		}
+		
+		template<>
+		int get(const std::string &context, picojson::value &d, const std::string &key, const int & _default) {
+			return boost::lexical_cast<int>(get<double>(context, d, key, (double)_default));
+		}
+		template<>
+		int get(const std::string &context, picojson::object &o, const std::string &key, const int & _default) {
+			return boost::lexical_cast<int>(get<double>(context, o, key, (double)_default));
+		}
+		
+		template<>
+		int get(const std::string &context, picojson::value &d, const std::string &key) {
+			return boost::lexical_cast<int>(get<double>(context, d, key));
+		}
+		template<>
+		int get(const std::string &context, picojson::object &o, const std::string &key) {
+			return boost::lexical_cast<int>(get<double>(context, o, key));
+		}
+		
+	}
+	
     // FIXME: use boost program options library instead
     
     
@@ -63,12 +132,11 @@ namespace kqp {
         
         // Number of vectors use to generate new ones (uniform distribution for each component)
         Index nbVectors;
-               
+		
         // Noise ratio for generated vector components
         float noise;
         
         // --- Settings for the generation
-        
         // Range for the number of pre-images at each update
         Index min_preimages;
         Index max_preimages;
@@ -76,9 +144,9 @@ namespace kqp {
         // Range for the number of vectors at each update
         Index min_lc;
         Index max_lc;
-        
+		
         KernelEVDBenchmark() :
-        seed(0), 
+        seed(0),
         dimension(100),
         updates(1000),
         useLC(true),
@@ -91,91 +159,50 @@ namespace kqp {
         {}
         
         
-          
+		
         
         
-        // --- 
+        // ---
         
         struct BuilderConfiguratorBase {
-            Index targetRank;
-            Index maxRank;
-
-            float targetPreImageRatio;
-            float maxPreImageRatio;
             
-            BuilderConfiguratorBase() :
-                targetRank(std::numeric_limits<Index>::max()),
-                maxRank(std::numeric_limits<Index>::max()),
-                targetPreImageRatio(std::numeric_limits<float>::infinity()),
-                maxPreImageRatio(std::numeric_limits<float>::infinity())
+            BuilderConfiguratorBase()
             {
                 
             }
             
-            virtual void print(const KernelEVDBenchmark &bm, const std::string & prefix = "") const {
-                std::cout << prefix << "\t" << this->getName() << std::endl;
-                std::cout << prefix << ".rank\t" << targetRank << std::endl;
-                std::cout << prefix << ".max_rank\t" << maxRank << std::endl;
-
-                if (!bm.useLC) {
-                    std::cout << prefix << ".pre_images\t" << targetPreImageRatio << std::endl;
-                    std::cout << prefix << ".max_pre_images\t" << maxPreImageRatio << std::endl;
-                }
-            }
-            
             virtual std::string getName() const = 0;
-            virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) {
-                if (options.size() == 1 && options[0] == "rank" && args.size() >= 2) {
-                    args.pop_front();
-                    targetRank = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                    return true;
-                }
-                
-                if (options.size() == 1 && options[0] == "pre_images" && args.size() >= 2) {
-                    args.pop_front();
-                    targetPreImageRatio = boost::lexical_cast<float>(args[0]);
-                    args.pop_front();
-                    return true;
-                }
-
-                if (options[0] == "max_rank" && args.size() >= 2) {
-                    args.pop_front();
-                    maxRank = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                    return true;
-                }
-                
-                if (options[0] == "max_pre_images" && args.size() >= 2) {
-                    args.pop_front();
-                    maxPreImageRatio = boost::lexical_cast<float>(args[0]);
-                    args.pop_front();
-                    return true;
-                }
-
-
-                return false;
+			
+            virtual void configure(const KernelEVDBenchmark &bm, const std::string &context, picojson::object &json) {
+				(void)bm; (void)context; (void)json;
             }
+			
+			virtual void setCleaner(const std::string &context, picojson::value &json) = 0;
             
-            virtual int run(const KernelEVDBenchmark &) = 0;
+            virtual int run(picojson::object &value, const KernelEVDBenchmark &bm) = 0;
         };
         
         template<typename _Scalar>
         struct BuilderConfigurator : public BuilderConfiguratorBase {
             typedef _Scalar Scalar;
             KQP_SCALAR_TYPEDEFS(Scalar);
-            
+			
+            typedef boost::shared_ptr<Selector<Real>> SelectorPtr;
+			typedef boost::shared_ptr<Cleaner<Scalar>> CleanerPtr;
+			
             typedef Dense<Scalar> KQPMatrix;
             typedef DenseSpace<Scalar> KQPSpace;
-            typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
-
+			
+			CleanerPtr m_cleaner;
+			
             virtual KernelEVD<Scalar>  *getBuilder(const FSpaceCPtr &, const KernelEVDBenchmark &) = 0;
-
+			
             ScalarMatrix m_genVectors;
             
             boost::hellekalek1995 generator;
-            boost::uniform_01<double> uniformGenerator; 
+            boost::uniform_01<double> uniformGenerator;
             
+			
             //! Initialise
             void init(const KernelEVDBenchmark &bm) {
                 generator.seed(bm.seed);
@@ -189,14 +216,14 @@ namespace kqp {
             //! Get the next feature matrix + mixture matrix
             void getNext(const KernelEVDBenchmark &bm, Real &alpha, ScalarMatrix &m, ScalarMatrix &mA) const {
                 alpha = Eigen::internal::abs(Eigen::internal::random_impl<Real>::run()) + 1e-3;
-            
+				
                 int k = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_preimages-bm.min_preimages)) + bm.min_preimages;
                 int p = (int)std::abs(Eigen::internal::random_impl<double>::run() * (double)(bm.max_lc-bm.min_lc)) + bm.min_lc;
                 KQP_LOG_DEBUG(logger, boost::format("Pre-images (%dx%d) and linear combination (%dx%d)") % bm.dimension % k % k % p);
-            
+				
                 // Generate the linear combination matrix
                 mA = ScalarMatrix::Random(k, p);
-            
+				
                 // Generate k pre-images
                 if (bm.nbVectors > 0) {
                     // TODO: weights should be generated according to some distribution
@@ -204,12 +231,80 @@ namespace kqp {
                     
                     m = m_genVectors * weights.asDiagonal() * ScalarMatrix::Random(bm.nbVectors,k) + bm.noise * ScalarMatrix::Random(bm.dimension, k);
                 } else {
-                    m = ScalarMatrix::Random(bm.dimension, k);         
+                    m = ScalarMatrix::Random(bm.dimension, k);
                 }
             }
-
-            
-            int run(const KernelEVDBenchmark &bm) {
+			
+			/** Sets the cleaner */
+			virtual void setCleaner(const std::string &context, picojson::value &json) override {
+				m_cleaner = getCleaner(context, json);
+			}
+			
+			virtual SelectorPtr getSelector(const std::string &context, picojson::value &json) {
+				boost::shared_ptr<ChainSelector<Real>> chain(new ChainSelector<Real>());
+				if (json.is<picojson::null>())
+					return chain;
+				if (!json.is<picojson::array>())
+					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Error in JSON [%s]: should be an array", %context);
+				
+				picojson::array array = json.get<picojson::array>();
+				for(int i = 0; i < array.size(); i++) {
+					auto &jsonSel = array[i];
+					std::string contextSel = context + "[" + boost::lexical_cast<std::string>(i) + "]";
+					std::string name = get<std::string>(contextSel, jsonSel, "name");
+					if (name == "rank") {
+						int maxRank = get<int>(contextSel, jsonSel, "max");
+						int resetRank = get<int>(contextSel, jsonSel, "reset");
+						chain->add(SelectorPtr(new RankSelector<Real,true>(maxRank, resetRank)));
+					} else if (name == "ratio") {
+						typename RatioSelector<Real>::AggregatorPtr aggregator(new Mean<Real>());
+						Real ratio = (Real)get<double>(contextSel, jsonSel, "ratio", Eigen::NumTraits<Real>::epsilon());
+						chain->add(SelectorPtr(new RatioSelector<Real>(ratio, aggregator)));
+					} else KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Unknown selector [%s] in [%s]", %name %context);
+				}
+				
+				return chain;
+			}
+			
+			virtual boost::shared_ptr<Cleaner<Scalar>> getCleaner(const std::string &context, picojson::value &json) override {
+				boost::shared_ptr<CleanerList<Real>> cleaner(new CleanerList<Real>());
+				if (json.is<picojson::null>())
+					return cleaner;
+				
+				if (!json.is<picojson::array>())
+					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Error in JSON [%s]: should be an array", %context);
+				
+				picojson::array array = json.get<picojson::array>();
+				
+				for(int i = 0; i < array.size(); i++) {
+					auto &jsonCleaner = array[i];
+					std::string contextCleaner = context + "[" + boost::lexical_cast<std::string>(i) + "]";
+					std::string name = get<std::string>(contextCleaner, jsonCleaner, "name");
+					if (name == "rank") {
+						auto rankSelector = getSelector(contextCleaner + ".selector", jsonCleaner.get<picojson::object>()["selector"]);
+						cleaner->add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
+					} else if (name == "unused") {
+						cleaner->add(CleanerPtr(new CleanerUnused<Scalar>()));
+					} else if (name == "null") {
+						boost::shared_ptr<CleanerNullSpace<Scalar>> nullCleaner(new CleanerNullSpace<Scalar>());
+						nullCleaner->epsilon(get<double>(contextCleaner, jsonCleaner, "epsilon"));
+						nullCleaner->maxRank(get<int>(contextCleaner, jsonCleaner, "max-rank"));
+						cleaner->add(nullCleaner);
+					} else if (name == "qp") {
+						double maxPreImages = get<double>(contextCleaner, jsonCleaner, "max");
+						double resetPreImages = get<double>(contextCleaner, jsonCleaner, "reset");
+						
+						boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
+						qpCleaner->setPreImagesPerRank(resetPreImages, maxPreImages);
+						cleaner->add(qpCleaner);
+					} else KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Unknown cleaner [%s] in [%s]", %name %context);
+					
+				}
+                
+				return cleaner;
+			}
+			
+            int run(picojson::object &value, const KernelEVDBenchmark &bm) override {
                 
                 FSpace fs = KQPSpace::create(bm.dimension);
                 fs->setUseLinearCombination(bm.useLC);
@@ -231,38 +326,28 @@ namespace kqp {
                 for(int i = 0; i < bm.updates; i++) {
                     getNext(bm, alpha, mU, mA);
                     builder->add(alpha, KQPMatrix::create(mU), mA);
-                }        
+                }
                 
+
+				picojson::object &times = (value["time"] = picojson::value(picojson::object())).get<picojson::object>();
+				picojson::object &errors = (value["error"] = picojson::value(picojson::object())).get<picojson::object>();
+				
                 Decomposition<Scalar> result = builder->getDecomposition();
                 std::clock_t c_end = std::clock();
                 total_time += c_end-c_start;
-                std::cout << "kevd\t" << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << std::endl;
+				times["kevd"] = picojson::value(1000.0 * (c_end-c_start) / CLOCKS_PER_SEC);
                 KQP_LOG_INFO_F(logger, "Decomposition result: %d pre-images and rank %d", %result.mX->size() %result.mY.cols());
                 
                 // --- Cleaning up
                 
                 KQP_LOG_INFO(logger, "Cleaning up");
                 c_start = std::clock();
-                CleanerList<Real> cleaner;
                 
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
-                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
-                boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
-                selector->add(minSelector);
-                selector->add(rankSelector);
-                
-                cleaner.add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
-                cleaner.add(CleanerPtr(new CleanerUnused<Scalar>()));
-                
-                boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
-                qpCleaner->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
-                cleaner.add(qpCleaner);
-                
-                cleaner.cleanup(result);
+                m_cleaner->cleanup(result);
                 
                 c_end = std::clock();
                 total_time += c_end-c_start;
-                std::cout << "cleaning\t" << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << std::endl;
+				times["cleaning"] = picojson::value(1000.0 * (c_end-c_start) / CLOCKS_PER_SEC);
                 
                 if (!result.orthonormal) {
                     KQP_LOG_INFO(logger, "Re-orthonormalizing");
@@ -271,17 +356,17 @@ namespace kqp {
                     
                     c_end = std::clock();
                     total_time += c_end-c_start;
-                    std::cout << "orthonormalizing\t" << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << std::endl;
+                    times["orthonormalizing"] = picojson::value(1000.0 * (c_end-c_start) / CLOCKS_PER_SEC);
                 } else {
-                    std::cout << "orthonormalizing\t" << 0 << std::endl;
+                    times["orthonormalizing"] = picojson::value(0.);
                 }
                 
-                std::cout << "time\t" << 1000.0 * (total_time) / CLOCKS_PER_SEC << std::endl;
+                times["total"] = picojson::value(1000.0 * (total_time) / CLOCKS_PER_SEC);
                 
                 // --- Computing the error
                 KQP_LOG_INFO(logger, "Computing the error");
                 
-                double orthogononal_error = 0;            
+                double orthogononal_error = 0;
                 ScalarMatrix sumWWT(result.mY.cols(), result.mY.cols());
                 sumWWT.setZero();
                 
@@ -296,13 +381,14 @@ namespace kqp {
                     ScalarMatrix mW = mYTXT * mU * mA;
                     sumWWT.template selfadjointView<Eigen::Lower>().rankUpdate(mW, alpha);
                     orthogononal_error += Eigen::internal::abs(alpha) * (mA.adjoint() * mU.adjoint() * mU * mA - mW.adjoint() * mW).squaredNorm();
-                }   
-                
-                std::cout << "o_error\t" << orthogononal_error << std::endl;
-                std::cout << "s_error\t" << (ScalarMatrix(sumWWT.template selfadjointView<Eigen::Lower>()) - ScalarMatrix(result.mD.asDiagonal())).squaredNorm() << std::endl;
-                
-                std::cout << "pre_images\t" << result.mX->size() << std::endl;
-                std::cout << "rank\t" << result.mY.cols() << std::endl;
+                }
+				
+                errors["o_error"] = picojson::value(orthogononal_error);
+                errors["s_error"] = picojson::value((ScalarMatrix(sumWWT.template selfadjointView<Eigen::Lower>()) - ScalarMatrix(result.mD.asDiagonal())).squaredNorm());
+                errors["pre_images"] = picojson::value((double)result.mX->size());
+                errors["rank"] = picojson::value((double)result.mY.cols());
+				
+
                 return 0;
                 
             }
@@ -319,12 +405,12 @@ namespace kqp {
             virtual std::string getName() const { return "direct"; }
         };
         
-        template<typename Scalar> 
+        template<typename Scalar>
         struct AccumulatorConfigurator : public BuilderConfigurator<Scalar> {
             KQP_SCALAR_TYPEDEFS(Scalar);
             
             virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
-                if (fs->canLinearlyCombine()) 
+                if (fs->canLinearlyCombine())
                     return new AccumulatorKernelEVD<Scalar,true>(fs);
                 
                 KQP_LOG_INFO(logger, "Accumulator without linear combination selected");
@@ -335,26 +421,35 @@ namespace kqp {
                 return "accumulator";
             }
         };
-  
+		
         
-        template<typename Scalar> 
+        template<typename Scalar>
         struct IncrementalConfigurator : public BuilderConfigurator<Scalar> {
             KQP_SCALAR_TYPEDEFS(Scalar);
-            
-            IncrementalConfigurator()  {}
+			boost::shared_ptr<Selector<Real>> m_selector;
+            float targetPreImageRatio, maxPreImageRatio;
+			
+            IncrementalConfigurator() :
+			targetPreImageRatio(std::numeric_limits<float>::infinity()),
+			maxPreImageRatio(std::numeric_limits<float>::infinity())
+			{}
             
             virtual std::string getName() const { return "incremental"; }
-            
+			
+			
+			virtual void configure(const KernelEVDBenchmark &bm, const std::string &context, picojson::object &json) override {
+				BuilderConfigurator<Scalar>::configure(bm, context, json);
+				m_selector = this->getSelector(context + ".selector", json["selector"]);
+				
+				if (!bm.useLC) {
+					targetPreImageRatio = get<int>(context, json, "pre-images");
+					maxPreImageRatio = get<int>(context, json, "max-pre-images", targetPreImageRatio);
+				}
+			}
+			
             virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
-                // Construct the rank selector
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
-                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
-                boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
-                selector->add(minSelector);
-                selector->add(rankSelector);
-                
-                IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(fs); 
-                builder->setSelector(selector);
+                IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(fs);
+                builder->setSelector(m_selector);
                 builder->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
                 
                 return builder;
@@ -366,232 +461,122 @@ namespace kqp {
         
         
         /** Configurator for "Divide and Conquer" KEVD */
-        template<typename Scalar> 
+        template<typename Scalar>
         struct DivideAndConquerConfigurator : public BuilderConfigurator<Scalar> {
             KQP_SCALAR_TYPEDEFS(Scalar);
             typedef boost::shared_ptr<KernelEVD<Scalar>> KEVDPtr;
             typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
-
-            boost::scoped_ptr<BuilderConfigurator<Scalar>> builder, merger;
+			
+			typedef boost::shared_ptr<BuilderConfigurator<Scalar>> BuilderPtr;
+            BuilderPtr builder, merger;
+			CleanerPtr builderCleaner, mergerCleaner;
+			
             Index batchSize;
             
             virtual std::string getName() const { return "divide-and-conquer"; }
-
+			
             DivideAndConquerConfigurator() : batchSize(100) {}
             
-            virtual bool processOption(std::deque<std::string> &options, std::deque<std::string> &args) override {
-                
-                if (options.size() == 1 && options[0] == "batch_size" && args.size() >= 2) {
-                    batchSize = boost::lexical_cast<Index>(args[1]);
-                    args.pop_front();
-                    args.pop_front();
-                    return true;
-                }
-                
-                if (options[0] != "merger" && options[0] != "builder")
-                    return BuilderConfigurator<Scalar>::processOption(options, args);
-
-                boost::scoped_ptr<BuilderConfigurator<Scalar>> &cf = options[0] == "builder" ? builder : merger;
-
-                
-                if (options.size() == 1) {
-                    if (args.size() >= 2) {
-                        args.pop_front();
-                        cf.reset(BuilderChooser<Scalar>().getBuilder(args[0]));
-                        KQP_LOG_INFO_F(logger, "%s for D&C is %s", %options[0] %args[0]);
-                        args.pop_front();
-                        return true;
-                    }
-                } else {
-                    options.pop_front();
-                    return cf->processOption(options, args);
-                }
-                
-                return false;
-            }
+            virtual void configure(const KernelEVDBenchmark &bm, const std::string &context, picojson::object &json) override {
+				BuilderConfigurator<Scalar>::configure(bm, context, json);
+				
+                batchSize = get<int>(context, json, "batch-size", batchSize);
+				
+				builder.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".builder", json["builder"]));
+				merger.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".merger", json["merger"]));
+				
+				builderCleaner = this->getCleaner(context + ".builder-cleaner", json["builder-cleaner"]);
+				mergerCleaner = this->getCleaner(context + ".merger-cleaner", json["merger-cleaner"]);
+			}
             
-            virtual void print(const KernelEVDBenchmark &bm, const std::string & prefix = "") const override {
-                BuilderConfigurator<Scalar>::print(bm, prefix);
-                std::cout << prefix << ".batch_size\t" << batchSize << std::endl;
-                builder->print(bm, prefix + ".builder");
-                merger->print(bm, prefix + ".merger");
-            }
-
-            boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &, const BuilderConfigurator<Scalar> &bc) {
-                // Construct the rank selector
-                boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.maxRank, bc.targetRank));
-                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
-                boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
-                selector->add(minSelector);
-                selector->add(rankSelector);
-                
-                // Construct the cleaner
-                boost::shared_ptr<CleanerList<Scalar>> cleaner(new CleanerList<Scalar>());
-                
-                cleaner->add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
-                cleaner->add(CleanerPtr(new CleanerUnused<Scalar>()));
-                
-                boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
-                qpCleaner->setPreImagesPerRank(bc.targetPreImageRatio, bc.maxPreImageRatio);
-                cleaner->add(qpCleaner);
-                
-                return cleaner;
-
-            }
-            
-            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &bm) override {                
+            virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &bm) override {
                 DivideAndConquerBuilder<Scalar> *dc = new DivideAndConquerBuilder<Scalar>(fs);
                 dc->setBatchSize(batchSize);
+				
                 
                 dc->setBuilder(KEVDPtr(builder->getBuilder(fs, bm)));
-                dc->setBuilderCleaner(getCleaner(bm, *builder));
+                dc->setBuilderCleaner(builderCleaner);
                 
                 dc->setMerger(KEVDPtr(merger->getBuilder(fs,bm)));
-                dc->setMergerCleaner(getCleaner(bm, *merger));
+                dc->setMergerCleaner(mergerCleaner);
                 return dc;
             }
         };
-
+		
         
         
         // Builder chooser (scalar dependent)
         struct BuilderChooserBase {
-            virtual BuilderConfiguratorBase * getBuilder(std::string &name) = 0;
-            
+            virtual BuilderConfiguratorBase * getBuilder(const KernelEVDBenchmark &bm, const std::string &context, picojson::value &json) = 0;
         };
         
         /** Chooser for the Kernel EVD algorithm */
         template<typename Scalar>
         struct BuilderChooser : public BuilderChooserBase {
-            BuilderConfigurator<Scalar> * getBuilder(std::string &kevdName) override {
+            BuilderConfigurator<Scalar> * getBuilder(const KernelEVDBenchmark &bm, const std::string &context, picojson::value &json) override {
+				if (json.is<picojson::null>())
+					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "No builder defined [%s]", %context);
+				if (!json.is<picojson::object>())
+					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Builder is not a JSON object", %context);
+				
+				std::string kevdName = get<std::string>(context, json, "name");
+				
                 typedef typename Eigen::NumTraits<Scalar>::Real Real;
                 
-                if (kevdName == "direct") 
-                    return new DirectConfigurator<Scalar>();
-                
-                if (kevdName == "incremetal")
-                    return new IncrementalConfigurator<Scalar>();
-                
-                if (kevdName == "accumulator") 
-                    return new AccumulatorConfigurator<Scalar>();
-                
-                if (kevdName == "incremental") 
-                    return new IncrementalConfigurator<Scalar>();
+				BuilderConfigurator<Scalar> *builderFactory;
+				
+                if (kevdName == "incremental")
+                    builderFactory = new IncrementalConfigurator<Scalar>();
 
-                if (kevdName == "divide-and-conquer") 
-                    return new DivideAndConquerConfigurator<Scalar>();
-
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown kernel-evd builder type [%s]", %kevdName);
+                else if (kevdName == "direct")
+                    builderFactory = new DirectConfigurator<Scalar>();
                 
+                
+                else if (kevdName == "accumulator")
+                    builderFactory = new AccumulatorConfigurator<Scalar>();
+                
+                else if (kevdName == "incremental")
+                    builderFactory = new IncrementalConfigurator<Scalar>();
+				
+                else if (kevdName == "divide-and-conquer")
+                    builderFactory = new DivideAndConquerConfigurator<Scalar>();
+				
+                else KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown kernel-evd builder type [%s]", %kevdName);
+				
+				builderFactory->configure(bm, context, json.get<picojson::object>());
+				return builderFactory;
             }
         };
         
-        int process(std::deque<std::string> &args) {
-           
-            const std::string builderPrefix = "--builder-";
-            
+        int process(picojson::value &d) {
+			
             boost::scoped_ptr<BuilderChooserBase> builderChooser;
             boost::scoped_ptr<BuilderConfiguratorBase> builderConfigurator;
-            std::string scalarName = "double";
-            
-            // Read the arguments
-            while (args.size() > 0) {
-                
-                if (args[0] == "--seed" && args.size() >= 2) {
-                    args.pop_front();
-                    seed = std::atol(args[0].c_str());
-                    args.pop_front();
-                } 
-
-                else if (args[0] == "--no-lc") {
-                    args.pop_front();
-                    useLC = false;
-                } 
-
-                else if (args[0] == "--noise" && args.size() >= 2) {
-                    args.pop_front();
-                    noise = boost::lexical_cast<double>(args[0]);
-                    args.pop_front();
-                } 
-
-                else if (args[0] == "--nb-vectors" && args.size() >= 2) {
-                    args.pop_front();
-                    nbVectors = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                } 
-
-                
-                else if (args[0] == "--scalar" && args.size() >= 2) {
-                    args.pop_front();
-                     scalarName = args[0];
-                    args.pop_front();
-                    
-                    if (scalarName == "double") builderChooser.reset(new BuilderChooser<double>());
-                    
-                    else KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown scalar type [%s]", %scalarName);
-                    
-                }
-                
-                else if (args[0] == "--dimension" && args.size() >= 2) {
-                    args.pop_front();
-                    dimension = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                }
-                
-                else if (args[0] == "--updates" && args.size() >= 2) {
-                    args.pop_front();
-                    updates = boost::lexical_cast<Index>(args[0]);
-                    args.pop_front();
-                }
-                
-                
-                else if (args[0] == "--builder" && args.size() >= 2) {
-                    args.pop_front();
-                    if (!builderChooser) {
-                        KQP_LOG_INFO(logger, "Choosing default scalar: double");
-                        builderChooser.reset(new BuilderChooser<double>());   
-                    }                   
-                    builderConfigurator.reset(builderChooser->getBuilder(args[0]));
-                    args.pop_front();
-                }
-                
-                else if (boost::starts_with(args[0], builderPrefix)) {
-                    if (!builderConfigurator) 
-                        KQP_THROW_EXCEPTION(illegal_argument_exception, "The builder was not given before a --builder... option");
-                    
-                    std::deque<std::string> options;
-                    std::string optionName = args[0].substr(builderPrefix.size());
-                    boost::split(options, optionName, boost::is_any_of("-"), boost::token_compress_off);
-                    if (!builderConfigurator->processOption(options, args))
-                        break;
-                    
-                }
-                
-                else break;
-            }
-            
-            
-          
-            if (args.size() > 0) 
-                KQP_THROW_EXCEPTION_F(illegal_argument_exception, "There are %d unprocessed command line arguments, starting with [%s]", %args.size() %args[0]);
-            
+			
+			std::string name = get<std::string>("", d, "name", "na");
+			
+			seed = get<double>("", d, "seed", seed);
+			useLC = get<bool>("", d, "lc", useLC);
+			noise = get<double>("", d, "noise", noise);
+			nbVectors = get<int>("", d, "nb-vectors", nbVectors);
+			
+			std::string scalarName = get<std::string>("", d, "scalar", "double");
+			if (scalarName == "double") builderChooser.reset(new BuilderChooser<double>());
+			else KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown scalar type [%s]", %scalarName);
+			
+			dimension = get<int>("", d, "dimension", dimension);
+			updates = get<int>("", d, "updates", updates);
+			
+			auto &o = d.get<picojson::object>();
+			builderConfigurator.reset(builderChooser->getBuilder(*this, "builder", o["builder"]));
+			
+			if (o.find("cleaner") != o.end())
+				builderConfigurator->setCleaner("cleaner", o["cleaner"]);
+			
             // Outputs the paramaters
-            std::cout << "dimension\t" << dimension << std::endl;
-            std::cout << "updates\t" << updates << std::endl;
-            std::cout << "lc\t" << (useLC ? "true" : "false")  << std::endl;
-            std::cout << "seed\t" << seed << std::endl;
-            std::cout << "scalar\t" << scalarName << std::endl;
-            std::cout << "nb_v\t" << nbVectors << std::endl;
-            std::cout << "noise\t" << noise << std::endl;
-
-            if (!builderConfigurator.get()) 
-                KQP_THROW_EXCEPTION(illegal_argument_exception, "No builder was given (with --builder)");
-                
-            builderConfigurator->print(*this, "builder");
+            return builderConfigurator->run(d.get<picojson::object>(), *this);
             
-            return builderConfigurator->run(*this);
-            
-
+			
         }
         
         
@@ -599,7 +584,27 @@ namespace kqp {
         
     };
     
+    // One argument
     int bm_kernel_evd(std::deque<std::string> &args) {
-        return KernelEVDBenchmark().process(args);
+        if (args.size() != 1)
+            KQP_THROW_EXCEPTION(illegal_argument_exception, "Expected one argument: a JSON file");
+		
+		std::ifstream file(args[0].c_str());
+		picojson::value v;
+		file >> v;
+		
+		std::string err = picojson::get_last_error();
+		if (! err.empty()) {
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON parsing error: %s (offset %d)", %err);
+		}
+		
+        int code =  KernelEVDBenchmark().process(v);
+		
+		v.serialize(std::ostream_iterator<char>(std::cout));
+		std::cout << std::endl;
+		
+		return code;
     }
 }
+
+
