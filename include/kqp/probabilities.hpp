@@ -65,6 +65,19 @@ namespace kqp {
             m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
         }
         
+        /**
+         * Creates an object given a decomposition
+         * 
+         * @param evd The decomposition (in orthonomormal form)
+         * @param takeSqrt Takes the square root of the eigen values
+        */
+        KernelOperator(const Decomposition<Scalar> & d, bool takeSqrt) : m_operator(d) {
+            if (takeSqrt) { 
+                this->orthonormalize();
+                m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
+            }
+        }
+        
         
         /**
          * \brief Creates a new kernel operator
@@ -239,6 +252,9 @@ namespace kqp {
         : KernelOperator<Scalar>(fs, mX, mY, RealVector::Ones(mX->size()), orthonormal) {
         }
         
+        Event(const Decomposition<Scalar> & d, bool takeSqrt) : KernelOperator<Scalar>(d, takeSqrt) {
+        }
+        
         //! (debug) Manually sets the linear combination
         void setUseLinearCombination(bool b) {
             this->useLinearCombination = b;
@@ -353,6 +369,10 @@ namespace kqp {
         Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) 
             : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
+        
+        Density(const Decomposition<Scalar> & d, bool takeSqrt) : KernelOperator<Scalar>(d, takeSqrt) {
+        }
+        
         
         //! Normalise the density
         void normalize() {

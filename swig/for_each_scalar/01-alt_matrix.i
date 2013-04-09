@@ -21,6 +21,8 @@
     kqp::_AltMatrix::AltMatrixType getType() {
         return self->isT1() ? kqp::_AltMatrix::DENSE_MATRIX : kqp::_AltMatrix::IDENTITY_MATRIX;
     }
+
+    @STYPE@ get(Index i, Index j) const { return $self->operator()(i, j);} 
     
     Index rows() const { return $self->rows(); }
     Index cols() const { return $self->cols(); }

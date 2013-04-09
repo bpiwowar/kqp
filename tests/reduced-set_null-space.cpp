@@ -26,7 +26,11 @@ namespace kqp {
         Eigen::MatrixXd mY = _mY;
         Dense<double>::SelfPtr mF(new Dense<double>(_mF));
         
-        ReducedSetNullSpace<double>::run(fs, mF, mY);
+        ReducedSetNullSpace<double> nullSpace;
+        auto result = nullSpace.run(fs, mF, mY);
+        mF = boost::dynamic_pointer_cast<Dense<double>>(result.mX);
+        mY = result.mY;
+        
         
         Eigen::MatrixXd m1 = mF->as<Dense<double>>().getMatrix() * mY;
         Eigen::MatrixXd m2 = _mF * _mY;

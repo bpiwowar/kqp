@@ -212,7 +212,8 @@ namespace kqp {
                     RealVector weights = _mY.rowwise().squaredNorm().array() * fs->k(_mF).diagonal().array().abs();
                     
                     // kernel will contain a matrix such that *kernel * mP * mY
-                    new_mF = ReducedSetNullSpace<Scalar>::remove(_mF, *kernel, mP, weights);
+                    ReducedSetNullSpace<Scalar> nullSpaceCleaner;
+                    new_mF = nullSpaceCleaner.remove(_mF, *kernel, mP, weights);
                     
                     // Y <- (Id A) P Y
                     ScalarMatrix mY2(_mY); // FIXME: .topRows() should be defined in AltMatrix expressions

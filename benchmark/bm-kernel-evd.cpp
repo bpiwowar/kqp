@@ -246,7 +246,7 @@ namespace kqp {
                 CleanerList<Real> cleaner;
                 
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
+                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
@@ -348,7 +348,7 @@ namespace kqp {
             virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &) override {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(this->maxRank, this->targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Real>::epsilon()));
+                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);
@@ -420,7 +420,7 @@ namespace kqp {
             boost::shared_ptr<Cleaner<Real>>  getCleaner(const KernelEVDBenchmark &, const BuilderConfigurator<Scalar> &bc) {
                 // Construct the rank selector
                 boost::shared_ptr<RankSelector<Real, true>> rankSelector(new RankSelector<Real,true>(bc.maxRank, bc.targetRank));
-                boost::shared_ptr<MinimumSelector<Real>> minSelector(new MinimumSelector<Real>(Eigen::NumTraits<Scalar>::epsilon()));
+                boost::shared_ptr<RatioSelector<Real>> minSelector(new RatioSelector<Real>(Eigen::NumTraits<Real>::epsilon(), typename RatioSelector<Real>::AggregatorPtr(new Mean<Real>())));
                 boost::shared_ptr<ChainSelector<Real>> selector(new ChainSelector<Real>());
                 selector->add(minSelector);
                 selector->add(rankSelector);

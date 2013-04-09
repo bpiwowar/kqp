@@ -21,7 +21,7 @@
 #include <algorithm> // sort
 
 #include <kqp/kqp.hpp>
-#include <Eigen/LU> // LU decomposition
+#include <Eigen/Eigenvalues>
 
 #include <kqp/feature_matrix.hpp>
 #include <kqp/subset.hpp>
@@ -38,10 +38,34 @@ namespace kqp {
         IndirectSort(const ComparableArray &array) : array(array) {}
         bool operator() (int i,int j) { return (array[i] < array[j]);}
     };
+
+
+    template <class ComparableArray, typename Index = int>
+    struct AbsIndirectSort {
+        const ComparableArray &array;
+        AbsIndirectSort(const ComparableArray &array) : array(array) {}
+        bool operator() (int i,int j) { return std::abs(array[i]) < std::abs(array[j]);}
+    };
+
+    template<typename Scalar>
+    struct ReducedSetNullSpaceResult {
+        KQP_SCALAR_TYPEDEFS(Scalar);
+        FMatrixPtr mX;
+        ScalarAltMatrix mY;
+    };
     
     template<typename Scalar>
-    struct ReducedSetNullSpace {
+    class ReducedSetNullSpace {
+    public:
         KQP_SCALAR_TYPEDEFS(Scalar);
+    private:
+        double m_epsilon;
+        Index m_maxRank;
+    public:
+        ReducedSetNullSpace() : m_epsilon(Eigen::NumTraits<Real>::epsilon()), m_maxRank(std::numeric_limits<Index>::max()) {}
+        
+        ReducedSetNullSpace & epsilon(double _epsilon) { this->m_epsilon = _epsilon; return *this; }
+        ReducedSetNullSpace & maxRank(Index _maxRank) { this->m_maxRank = _maxRank; return *this; }
         
         /**
          * @brief Removes pre-images with the null space method
@@ -56,9 +80,12 @@ namespace kqp {
          * @param weights give an order to the different pre-images
          * @param delta
          */
-        static FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights, double delta = 1e-4) {
+        FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights) const {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
 
+            // FIXME: should be wiser
+            double delta = 1e-4;
+            
             // --- Check if we have something to do
             if (mF->size() == 0)
                 return mF;
@@ -166,7 +193,7 @@ namespace kqp {
             
             return mF->subset(selection.begin(), selection.end());
         }
-        
+                
         /**
          * @brief Removes unuseful pre-images 
          *
@@ -174,61 +201,82 @@ namespace kqp {
          * 2. Computes a \f$LDL^\dagger\f$ decomposition of the Gram matrix to find redundant pre-images
          * 3. Removes newly unused pre-images
          */
-        static void run(const FSpace &fs, const FMatrixPtr &mF, ScalarAltMatrix &mY, Real epsilon = Eigen::NumTraits<Real>::epsilon()) {
+        ReducedSetNullSpaceResult<Scalar> run(const FSpaceCPtr &fs, const FMatrixCPtr &mF, const ScalarAltMatrix &mY) const {
+            ReducedSetNullSpaceResult<Scalar> result;
+            result.mX = mF;
+            result.mY = mY;
+
+            auto & _mX = result.mX;
+            auto & _mY = result.mY;
             
             // Removes unused pre-images
-            CleanerUnused<Scalar>::run(mF, mY);
+            CleanerUnused<Scalar>::run(_mX, _mY);
             
             // Dimension of the problem
-            Index N = mY.rows();
-            assert(N == mF->size());
+            Index N = _mY.rows();
+            assert(N == _mX->size());
             
-            // LDL decomposition (stores the L^T matrix)
-            Eigen::FullPivLU<ScalarMatrix> lu_decomposition(fs->k(mF));
+            // EVD
+            Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs->k(_mX)); 
+            const Eigen::Matrix<Real,Dynamic,1> &d = evd.eigenvalues();
 
-            // Set the thresholds according to the same heuristic than Eigen
-            lu_decomposition.setThreshold(epsilon * lu_decomposition.matrixLU().diagonalSize());
-            
-            // Stop if full rank
-            Index rank = lu_decomposition.rank();
-            KQP_HLOG_DEBUG_F("Rank of LU decomposition is %d/%d [epsilon=%g]", %rank %N %epsilon);
-            if (rank == N) 
-                return;
-            
+            std::vector<Index> list(N);
+            for(Index i = 0; i < N; i++)
+                list[i] = i;
+            std::sort(list.begin(), list.end(), AbsIndirectSort< Eigen::Matrix<Real,Dynamic,1>, Index >(d));
+                
+            // Select with max rank and threshold
+            Real threshold = m_epsilon * (Real)d.size() *  std::abs(d[list.back()]);
+            Index nullSize = list.size() - std::min(m_maxRank, (Index)list.size()); 
+            while (nullSize < list.size() && std::abs(d[nullSize]) < threshold) {
+                nullSize++;
+            }
+                    
+            KQP_HLOG_DEBUG_F("Rank of null space is %d (image %d)", %nullSize %(N-nullSize));
+            if (nullSize == 0)
+                return std::move(result);
+
+            // Compute the kernel
+            ScalarMatrix kernel(_mX->size(), nullSize);
+            for(Index i = 0; i < nullSize; i++)
+                kernel.col(i) = evd.eigenvectors().col(list[i]);
+
             // Remove pre-images using the kernel
-            ScalarMatrix kernel = lu_decomposition.kernel();
-            RealVector weights = mY.rowwise().squaredNorm().array() * fs->k(mF).diagonal().array().abs();
+            RealVector weights = _mY.rowwise().squaredNorm().array() * fs->k(_mX).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            *mF = std::move(*remove(mF, kernel, mP, weights));
+            *_mX = std::move(*remove(_mX, kernel, mP, weights));
             
             // Y <- (Id A) P Y
-            ScalarMatrix mY2(mY);
-            mY2= (mP * mY2).topRows(mF->size()) + kernel * (mP * mY2).bottomRows(mY.rows() - mF->size());
-            mY.swap(mY2);
+            ScalarMatrix mY2(_mY);
+            mY2= (mP * mY2).topRows(_mX->size()) + kernel * (mP * mY2).bottomRows(_mY.rows() - _mX->size());
+            
+            _mY.swap(mY2);
             
             // Removes unused pre-images
-            CleanerUnused<Scalar>::run(mF, mY);
+
+            CleanerUnused<Scalar>::run(_mX, _mY);
+            return std::move(result);
         }
-        
-        static void run(const FSpacePtr &fs, const FMatrixPtr &mF, ScalarMatrix &mY) {
-            ScalarAltMatrix _mY;
-            _mY.swap(mY);
-            run(fs, mF, _mY);
-            _mY.swap(mY);
-        }
-        
+                
     };
 
 #endif
 
     template<typename Scalar> class CleanerNullSpace: public Cleaner<Scalar> {
+        ReducedSetNullSpace<Scalar> m_cleaner;
     public:
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
-        CleanerNullSpace(Real epsilon = Eigen::NumTraits<Scalar>::epsilon()) : m_epsilon(epsilon) {
-
+        
+        CleanerNullSpace() {
         }
+        
+        CleanerNullSpace & epsilon(double _epsilon) { m_cleaner.epsilon(_epsilon); return *this; }
+        CleanerNullSpace & maxRank(Index _maxRank) { m_cleaner.maxRank(_maxRank); return *this; }
+        
         virtual void cleanup(Decomposition<Scalar> &d) const {
-           ReducedSetNullSpace<Scalar>::run(d.fs, d.mX, d.mY, m_epsilon); 
+           auto result = m_cleaner.run(d.fs, d.mX, d.mY); 
+           d.mX = std::move(result.mX);
+           d.mY = std::move(result.mY);
         }        
     private:
         Real m_epsilon;
@@ -236,7 +284,7 @@ namespace kqp {
     
     
 # ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template struct ReducedSetNullSpace<Scalar>;
+# define KQP_SCALAR_GEN(Scalar) extern template class ReducedSetNullSpace<Scalar>;
 # include <kqp/for_all_scalar_gen.h.inc>
 # endif 
 }

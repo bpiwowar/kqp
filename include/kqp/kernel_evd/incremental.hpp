@@ -192,7 +192,10 @@ namespace kqp {
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after unused pre-images algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 // Try to remove null space pre-images
-                ReducedSetNullSpace<Scalar>::run(getFSpace(), mX, mY);
+                ReducedSetNullSpace<Scalar> nullSpace;
+                auto result = nullSpace.run(getFSpace(), mX, mY);
+                mX = result.mX;
+                mY = std::move(result.mY);
                 KQP_LOG_DEBUG_F(KQP_HLOGGER, "Rank after null space algorithm: %d [%d]", %mY.rows() %maxRank);
 
                 if (mX->size() > maxRank) {
