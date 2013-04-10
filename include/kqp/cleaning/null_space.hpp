@@ -221,13 +221,26 @@ namespace kqp {
 
             auto & _mX = result.mX;
             auto & _mY = result.mY;
-            
+
+			// Dimension of the problem
+            const Index N = _mY.rows();
+			const Index rank = _mY.cols();
+            assert(N == _mX->size());
+
+			// Select with max rank and threshold
+            Index target = N;
+            if (N > this->m_preImageRatios.second * (Real)rank)
+                target = std::min(target, (Index)(this->m_preImageRatios.first * (Real)rank));
+			
+            if (N > this->m_preImagesRange.second)
+                target = std::min(target, this->m_preImagesRange.first);
+
+			// Don't run the EVD if possible
+			if (N == target && m_epsilon == 0)
+				return std::move(result);
+			
             // Removes unused pre-images
             CleanerUnused<Scalar>::run(_mX, _mY);
-            
-            // Dimension of the problem
-            Index N = _mY.rows();
-            assert(N == _mX->size());
             
             // EVD
             Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs->k(_mX)); 
@@ -238,23 +251,22 @@ namespace kqp {
                 list[i] = i;
             std::sort(list.begin(), list.end(), AbsIndirectSort< Eigen::Matrix<Real,Dynamic,1>, Index >(d));
                 
-            // Select with max rank and threshold
-            Index target = (Index)list.size();
-            if (_mX->size() > this->m_preImageRatios.second * (Real)N)
-                target = std::min(target, (Index)(this->m_preImageRatios.first * (Real)N));
-
-            if (_mX->size() > this->m_preImagesRange.second)
-                target = std::min(target, this->m_preImagesRange.first);
 
             Real threshold = m_epsilon * (Real)d.size() *  std::abs(d[list.back()]);
-            Index nullSize = (Index)list.size() - target;
-            while (nullSize < (Index)list.size() && std::abs(d[nullSize]) < threshold) {
+            Index nullSize = N - target;
+            while (nullSize < N && std::abs(d[nullSize]) < threshold) {
                 nullSize++;
             }
-                    
-            KQP_HLOG_DEBUG_F("Rank of null space is %d (image %d)", %nullSize %(N-nullSize));
-            if (nullSize == 0)
+			
+            KQP_HLOG_DEBUG_F("Rank of used null space is %d (image %d)", %nullSize %(N-nullSize));
+			
+			assert(nullSize >= 0);
+            if (nullSize <= 0)
                 return std::move(result);
+
+			// True if the null space is not really null
+			bool forced = std::abs(d[nullSize-1]) > threshold;
+			KQP_HLOG_DEBUG_F("Last eigenvalue is %g (threshold %g): forced %d", %std::abs(d[nullSize-1]) %threshold %forced);
 
             // Compute the kernel
             ScalarMatrix kernel(_mX->size(), nullSize);
@@ -264,17 +276,26 @@ namespace kqp {
             // Remove pre-images using the kernel
             RealVector weights = _mY.rowwise().squaredNorm().array() * fs->k(_mX).diagonal().array().abs();
             Eigen::PermutationMatrix<Dynamic, Dynamic, Index> mP;
-            *_mX = std::move(*remove(_mX, kernel, mP, weights));
+            _mX = remove(_mX, kernel, mP, weights);
             
-            // Y <- (Id A) P Y
-            ScalarMatrix mY2(_mY);
-            mY2= (mP * mY2).topRows(_mX->size()) + kernel * (mP * mY2).bottomRows(_mY.rows() - _mX->size());
-            
-            _mY.swap(mY2);
-            
+			if (forced) {
+				// Compute _mY so that _mX * _mY is orthonormal, ie _mY' _mX' _mX _mY is the identity
+				Eigen::SelfAdjointEigenSolver<ScalarMatrix> evd(fs->k(_mX).template selfadjointView<Eigen::Lower>());
+				ScalarMatrix __mY = std::move(evd.eigenvectors());
+				__mY *= evd.eigenvalues().cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
+				__mY *= fs->k(_mX, __mY, mF, mY);
+				_mY = __mY;
+			} else {
+				// Y <- (Id A) P Y
+				ScalarMatrix mY2(_mY);
+				mY2= (mP * mY2).topRows(_mX->size()) + kernel * (mP * mY2).bottomRows(_mY.rows() - _mX->size());
+				
+				_mY.swap(mY2);
+            }
             // Removes unused pre-images
 
             CleanerUnused<Scalar>::run(_mX, _mY);
+			KQP_HLOG_DEBUG_F("Finished null space cleaning: number of pre-images is %d", %_mX->size());
             return std::move(result);
         }
                 
@@ -295,10 +316,18 @@ namespace kqp {
 		}
 
         void setPreImagesPerRank(float reset, float maximum) {
+			if (reset < 0)
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Reset rank (%g) is below 0", %reset);
+			if (maximum < reset)
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Maximum rank (%g) is out of bounds (should be greater than reset %g)", %maximum %reset);
             m_cleaner.setPreImagesPerRank(reset, maximum);
         }
 
         void setRankRange(Index reset, Index maximum) {
+			if (reset < 0)
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Reset rank (%d) is below 0", %reset);
+			if (maximum < reset)
+				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Maximum rank (%d) is out of bounds (should be greater than reset %d)", %maximum %reset);
             m_cleaner.setRankRange(reset, maximum);
         }        
         
