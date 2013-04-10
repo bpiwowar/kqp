@@ -287,7 +287,7 @@ namespace kqp {
 						list->add(CleanerPtr(new CleanerUnused<Scalar>()));
 					} else if (name == "null") {
 						boost::shared_ptr<CleanerNullSpace<Scalar>> cleaner(new CleanerNullSpace<Scalar>());
-						cleaner->epsilon(get<double>(contextCleaner, jsonCleaner, "epsilon"));
+						cleaner->epsilon(get<double>(contextCleaner, jsonCleaner, "epsilon", Eigen::NumTraits<Real>::epsilon()));
 						
 						double maxRatio = get<double>(contextCleaner, jsonCleaner, "max-ratio",  std::numeric_limits<Real>::infinity());
 						double resetRatio = get<double>(contextCleaner, jsonCleaner, "reset-ratio", 0);
@@ -498,8 +498,8 @@ namespace kqp {
 				builder.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".builder", json["builder"]));
 				merger.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".merger", json["merger"]));
 				
-				builderCleaner = this->getCleaner(context + ".builder-cleaner", json["builder-cleaner"]);
-				mergerCleaner = this->getCleaner(context + ".merger-cleaner", json["merger-cleaner"]);
+				builderCleaner = this->getCleaner(context + ".builder.cleaner", json["builder"].get<picojson::object>()["cleaner"]);
+				mergerCleaner = this->getCleaner(context + ".merger.cleaner", json["merger"].get<picojson::object>()["cleaner"]);
 			}
             
             virtual KernelEVD<Scalar> *getBuilder(const FSpaceCPtr &fs, const KernelEVDBenchmark &bm) override {
