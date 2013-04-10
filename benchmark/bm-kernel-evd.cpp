@@ -248,7 +248,7 @@ namespace kqp {
 					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Error in JSON [%s]: should be an array", %context);
 				
 				picojson::array array = json.get<picojson::array>();
-				for(int i = 0; i < array.size(); i++) {
+				for(size_t i = 0; i < array.size(); i++) {
 					auto &jsonSel = array[i];
 					std::string contextSel = context + "[" + boost::lexical_cast<std::string>(i) + "]";
 					std::string name = get<std::string>(contextSel, jsonSel, "name");
@@ -267,41 +267,54 @@ namespace kqp {
 			}
 			
 			virtual boost::shared_ptr<Cleaner<Scalar>> getCleaner(const std::string &context, picojson::value &json) override {
-				boost::shared_ptr<CleanerList<Real>> cleaner(new CleanerList<Real>());
+				boost::shared_ptr<CleanerList<Real>> list(new CleanerList<Real>());
 				if (json.is<picojson::null>())
-					return cleaner;
+					return list;
 				
 				if (!json.is<picojson::array>())
 					KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Error in JSON [%s]: should be an array", %context);
 				
 				picojson::array array = json.get<picojson::array>();
 				
-				for(int i = 0; i < array.size(); i++) {
+				for(size_t i = 0; i < array.size(); i++) {
 					auto &jsonCleaner = array[i];
 					std::string contextCleaner = context + "[" + boost::lexical_cast<std::string>(i) + "]";
 					std::string name = get<std::string>(contextCleaner, jsonCleaner, "name");
 					if (name == "rank") {
 						auto rankSelector = getSelector(contextCleaner + ".selector", jsonCleaner.get<picojson::object>()["selector"]);
-						cleaner->add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
+						list->add(CleanerPtr(new CleanerRank<Scalar>(rankSelector)));
 					} else if (name == "unused") {
-						cleaner->add(CleanerPtr(new CleanerUnused<Scalar>()));
+						list->add(CleanerPtr(new CleanerUnused<Scalar>()));
 					} else if (name == "null") {
-						boost::shared_ptr<CleanerNullSpace<Scalar>> nullCleaner(new CleanerNullSpace<Scalar>());
-						nullCleaner->epsilon(get<double>(contextCleaner, jsonCleaner, "epsilon"));
-						nullCleaner->maxRank(get<int>(contextCleaner, jsonCleaner, "max-rank"));
-						cleaner->add(nullCleaner);
-					} else if (name == "qp") {
-						double maxPreImages = get<double>(contextCleaner, jsonCleaner, "max");
-						double resetPreImages = get<double>(contextCleaner, jsonCleaner, "reset");
+						boost::shared_ptr<CleanerNullSpace<Scalar>> cleaner(new CleanerNullSpace<Scalar>());
+						cleaner->epsilon(get<double>(contextCleaner, jsonCleaner, "epsilon"));
 						
-						boost::shared_ptr<CleanerQP<Real>> qpCleaner(new CleanerQP<Scalar>());
-						qpCleaner->setPreImagesPerRank(resetPreImages, maxPreImages);
-						cleaner->add(qpCleaner);
+						double maxRatio = get<double>(contextCleaner, jsonCleaner, "max-ratio",  std::numeric_limits<Real>::infinity());
+						double resetRatio = get<double>(contextCleaner, jsonCleaner, "reset-ratio", 0);
+						cleaner->setPreImagesPerRank(resetRatio, maxRatio);
+
+						int maxRank = get<int>(contextCleaner, jsonCleaner, "max-rank", std::numeric_limits<Index>::max());
+						int resetRank = get<int>(contextCleaner, jsonCleaner, "reset-rank", 0);
+						cleaner->setRankRange(resetRank, maxRank);
+						
+						list->add(cleaner);
+					} else if (name == "qp") {
+						boost::shared_ptr<CleanerQP<Real>> cleaner(new CleanerQP<Scalar>());
+
+						double maxRatio = get<double>(contextCleaner, jsonCleaner, "max-ratio",  std::numeric_limits<Real>::infinity());
+						double resetRatio = get<double>(contextCleaner, jsonCleaner, "reset-ratio", 0);
+						cleaner->setPreImagesPerRank(resetRatio, maxRatio);
+						
+						int maxRank = get<int>(contextCleaner, jsonCleaner, "max-rank", std::numeric_limits<Index>::max());
+						int resetRank = get<int>(contextCleaner, jsonCleaner, "reset-rank", 0);
+						cleaner->setRankRange(resetRank, maxRank);
+						
+						list->add(cleaner);
 					} else KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Unknown cleaner [%s] in [%s]", %name %context);
 					
 				}
                 
-				return cleaner;
+				return list;
 			}
 			
             int run(picojson::object &value, const KernelEVDBenchmark &bm) override {

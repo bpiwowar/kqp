@@ -40,6 +40,25 @@ out.write("""</script>
 <h1>KQP benchmark results</h1>
 """)
 
+
+def json2html(out, r):
+    if type(r) == dict:
+        out.write("<dl>")
+        for k, v in r.iteritems():
+            out.write("<dt>%s</dt><dd>" % k)
+            json2html(out, v)
+            out.write("</dd>")
+        out.write("</dl>\n")
+    elif type(r) == list:
+        out.write("<ul>")
+        for v in r:
+            out.write("<li>")
+            json2html(out, v)
+            out.write("</li>")
+        out.write("</ul>\n")
+    else:
+        out.write("%s" % r)
+
 perfs = {}
 for path in sys.argv[1:]:
     with open(path, 'r') as content_file:
@@ -66,9 +85,10 @@ for k, v in perfs.iteritems():
             out.write("<td>%s</td>" % r["time"][t])
         for e in errors:
             out.write("<td>%s</td>" % r["error"][e])
-    
-        out.write("<td>%s</td>" % r)
-        out.write("</tr>")
+
+        out.write("<td>")
+        json2html(out, r)
+        out.write("</td></tr>")
     out.write("</table>")
 
 out.write("""

@@ -90,15 +90,16 @@ def cleaner(problem, imageCleaner):
 def qpImageCleaner(problem):
     return {
         "name": "qp",
-        "max": problem["max_pre_images"],
-        "reset": problem["pre_images"]
+        "max-ratio": problem["max_pre_images"],
+        "reset-ratio": problem["pre_images"]
     }
 
 
 def nullImageCleaner(problem):
     return {
         "name": "null",
-        "max": problem["max_pre_images"],
+        "max-ratio": problem["max_pre_images"],
+        "reset-ratio": problem["pre_images"]
     }
 
 
@@ -141,7 +142,10 @@ class DivideAndConquer(Base):
         self.imageCleaner = imageCleaner
 
     def process(self, problem):
-        builder = {"name": "divide-and-conquer", "batch": problem["rank"]}
+        # Batches are 250 maximum
+        batch_size = min(problem["updates"] / 4, 250)
+
+        builder = {"name": "divide-and-conquer", "batch": batch_size}
         builder["builder"] = {"name": "accumulator"}
         builder["merger"] = {"name": "accumulator", "cleaner": cleaner(problem, self.imageCleaner)}
         model = {"builder": builder}

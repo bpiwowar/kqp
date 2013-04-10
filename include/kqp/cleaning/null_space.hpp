@@ -60,13 +60,26 @@ namespace kqp {
         KQP_SCALAR_TYPEDEFS(Scalar);
     private:
         double m_epsilon;
-        Index m_maxRank;
+        std::pair<float,float> m_preImageRatios;            
+        std::pair<Index,Index> m_preImagesRange;            
+            
     public:
-        ReducedSetNullSpace() : m_epsilon(Eigen::NumTraits<Real>::epsilon()), m_maxRank(std::numeric_limits<Index>::max()) {}
+        ReducedSetNullSpace() : 
+            m_epsilon(Eigen::NumTraits<Real>::epsilon()),
+            m_preImageRatios(std::make_pair(0, std::numeric_limits<Real>::infinity())),
+            m_preImagesRange(std::make_pair(0, std::numeric_limits<Index>::max()))
+        {}
         
         ReducedSetNullSpace & epsilon(double _epsilon) { this->m_epsilon = _epsilon; return *this; }
-        ReducedSetNullSpace & maxRank(Index _maxRank) { this->m_maxRank = _maxRank; return *this; }
         
+        //! Set constraints on the number of pre-images
+        void setPreImagesPerRank(float reset, float maximum) {
+            this->m_preImageRatios = std::make_pair(reset, maximum);
+        }
+
+        void setRankRange(Index reset, Index maximum) {
+            this->m_preImagesRange = std::make_pair(reset, maximum);
+        }        
         /**
          * @brief Removes pre-images with the null space method
          * 
@@ -226,9 +239,16 @@ namespace kqp {
             std::sort(list.begin(), list.end(), AbsIndirectSort< Eigen::Matrix<Real,Dynamic,1>, Index >(d));
                 
             // Select with max rank and threshold
+            Index target = (Index)list.size();
+            if (_mX->size() > this->m_preImageRatios.second * (Real)N)
+                target = std::min(target, (Index)(this->m_preImageRatios.first * (Real)N));
+
+            if (_mX->size() > this->m_preImagesRange.second)
+                target = std::min(target, this->m_preImagesRange.first);
+
             Real threshold = m_epsilon * (Real)d.size() *  std::abs(d[list.back()]);
-            Index nullSize = list.size() - std::min(m_maxRank, (Index)list.size()); 
-            while (nullSize < list.size() && std::abs(d[nullSize]) < threshold) {
+            Index nullSize = (Index)list.size() - target;
+            while (nullSize < (Index)list.size() && std::abs(d[nullSize]) < threshold) {
                 nullSize++;
             }
                     
@@ -270,8 +290,17 @@ namespace kqp {
         CleanerNullSpace() {
         }
         
-        CleanerNullSpace & epsilon(double _epsilon) { m_cleaner.epsilon(_epsilon); return *this; }
-        CleanerNullSpace & maxRank(Index _maxRank) { m_cleaner.maxRank(_maxRank); return *this; }
+        void epsilon(double _epsilon) {
+			m_cleaner.epsilon(_epsilon);
+		}
+
+        void setPreImagesPerRank(float reset, float maximum) {
+            m_cleaner.setPreImagesPerRank(reset, maximum);
+        }
+
+        void setRankRange(Index reset, Index maximum) {
+            m_cleaner.setRankRange(reset, maximum);
+        }        
         
         virtual void cleanup(Decomposition<Scalar> &d) const {
            auto result = m_cleaner.run(d.fs, d.mX, d.mY); 
