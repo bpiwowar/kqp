@@ -87,23 +87,23 @@ namespace kqp {
 			picojson::object o = d.get<picojson::object>();
 			return get<type>(context, o, key);
 		}
+
+		template<typename type>
+		type getNumeric(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
+			return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
+		}
+		template<typename type>
+		int getNumeric(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
+			return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
+		}
 		
-		template<>
-		int get(const std::string &context, picojson::value &d, const std::string &key, const int & _default) {
-			return boost::lexical_cast<int>(get<double>(context, d, key, (double)_default));
+		template<typename type>
+		int getNumeric(const std::string &context, picojson::value &d, const std::string &key) {
+			return boost::lexical_cast<type>(get<double>(context, d, key));
 		}
-		template<>
-		int get(const std::string &context, picojson::object &o, const std::string &key, const int & _default) {
-			return boost::lexical_cast<int>(get<double>(context, o, key, (double)_default));
-		}
-		
-		template<>
-		int get(const std::string &context, picojson::value &d, const std::string &key) {
-			return boost::lexical_cast<int>(get<double>(context, d, key));
-		}
-		template<>
-		int get(const std::string &context, picojson::object &o, const std::string &key) {
-			return boost::lexical_cast<int>(get<double>(context, o, key));
+		template<typename type>
+		int getNumeric(const std::string &context, picojson::object &o, const std::string &key) {
+			return boost::lexical_cast<type>(get<double>(context, o, key));
 		}
 		
 	}
@@ -253,8 +253,8 @@ namespace kqp {
 					std::string contextSel = context + "[" + boost::lexical_cast<std::string>(i) + "]";
 					std::string name = get<std::string>(contextSel, jsonSel, "name");
 					if (name == "rank") {
-						int maxRank = get<int>(contextSel, jsonSel, "max");
-						int resetRank = get<int>(contextSel, jsonSel, "reset");
+						Index maxRank = getNumeric<Index>(contextSel, jsonSel, "max");
+						Index resetRank = getNumeric<Index>(contextSel, jsonSel, "reset");
 						chain->add(SelectorPtr(new RankSelector<Real,true>(maxRank, resetRank)));
 					} else if (name == "ratio") {
 						typename RatioSelector<Real>::AggregatorPtr aggregator(new Mean<Real>());
@@ -293,8 +293,10 @@ namespace kqp {
 						double resetRatio = get<double>(contextCleaner, jsonCleaner, "reset-ratio", 0);
 						cleaner->setPreImagesPerRank(resetRatio, maxRatio);
 
-						int maxRank = get<int>(contextCleaner, jsonCleaner, "max-rank", std::numeric_limits<Index>::max());
-						int resetRank = get<int>(contextCleaner, jsonCleaner, "reset-rank", 0);
+						Index maxRank = getNumeric<Index>(contextCleaner, jsonCleaner, "max-rank", -1);
+						if (maxRank < 0)
+							maxRank = std::numeric_limits<Index>::max();
+						Index resetRank = getNumeric<Index>(contextCleaner, jsonCleaner, "reset-rank", 0);
 						cleaner->setRankRange(resetRank, maxRank);
 						
 						list->add(cleaner);
@@ -305,8 +307,10 @@ namespace kqp {
 						double resetRatio = get<double>(contextCleaner, jsonCleaner, "reset-ratio", 0);
 						cleaner->setPreImagesPerRank(resetRatio, maxRatio);
 						
-						int maxRank = get<int>(contextCleaner, jsonCleaner, "max-rank", std::numeric_limits<Index>::max());
-						int resetRank = get<int>(contextCleaner, jsonCleaner, "reset-rank", 0);
+						Index maxRank = getNumeric<Index>(contextCleaner, jsonCleaner, "max-rank", -1);
+						if (maxRank < 0)
+							maxRank = std::numeric_limits<Index>::max();
+						Index resetRank = getNumeric<Index>(contextCleaner, jsonCleaner, "reset-rank", 0);
 						cleaner->setRankRange(resetRank, maxRank);
 						
 						list->add(cleaner);
@@ -395,9 +399,16 @@ namespace kqp {
                     sumWWT.template selfadjointView<Eigen::Lower>().rankUpdate(mW, alpha);
                     orthogononal_error += Eigen::internal::abs(alpha) * (mA.adjoint() * mU.adjoint() * mU * mA - mW.adjoint() * mW).squaredNorm();
                 }
+
+				double dnorm = ScalarMatrix(result.mD.asDiagonal()).squaredNorm();
+				double s_error = (ScalarMatrix(sumWWT.template selfadjointView<Eigen::Lower>()) - ScalarMatrix(result.mD.asDiagonal())).squaredNorm();
 				
                 errors["o_error"] = picojson::value(orthogononal_error);
-                errors["s_error"] = picojson::value((ScalarMatrix(sumWWT.template selfadjointView<Eigen::Lower>()) - ScalarMatrix(result.mD.asDiagonal())).squaredNorm());
+                errors["s_error"] = picojson::value(s_error);
+				
+                errors["o_error_rel"] = picojson::value(orthogononal_error / dnorm);
+                errors["s_error_rel"] = picojson::value(s_error / dnorm);
+				
                 errors["pre_images"] = picojson::value((double)result.mX->size());
                 errors["rank"] = picojson::value((double)result.mY.cols());
 				
@@ -455,8 +466,8 @@ namespace kqp {
 				m_selector = this->getSelector(context + ".selector", json["selector"]);
 				
 				if (!bm.useLC) {
-					targetPreImageRatio = get<int>(context, json, "pre-images");
-					maxPreImageRatio = get<int>(context, json, "max-pre-images", targetPreImageRatio);
+					targetPreImageRatio = get<double>(context, json, "pre-images");
+					maxPreImageRatio = get<double>(context, json, "max-pre-images", targetPreImageRatio);
 				}
 			}
 			
@@ -493,7 +504,7 @@ namespace kqp {
             virtual void configure(const KernelEVDBenchmark &bm, const std::string &context, picojson::object &json) override {
 				BuilderConfigurator<Scalar>::configure(bm, context, json);
 				
-                batchSize = get<int>(context, json, "batch-size", batchSize);
+                batchSize = getNumeric<int>(context, json, "batch", batchSize);
 				
 				builder.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".builder", json["builder"]));
 				merger.reset(BuilderChooser<Scalar>().getBuilder(bm, context + ".merger", json["merger"]));
@@ -571,14 +582,14 @@ namespace kqp {
 			seed = get<double>("", d, "seed", seed);
 			useLC = get<bool>("", d, "lc", useLC);
 			noise = get<double>("", d, "noise", noise);
-			nbVectors = get<int>("", d, "nb-vectors", nbVectors);
+			nbVectors = getNumeric<int>("", d, "nb-vectors", nbVectors);
 			
 			std::string scalarName = get<std::string>("", d, "scalar", "double");
 			if (scalarName == "double") builderChooser.reset(new BuilderChooser<double>());
 			else KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown scalar type [%s]", %scalarName);
 			
-			dimension = get<int>("", d, "dimension", dimension);
-			updates = get<int>("", d, "updates", updates);
+			dimension = getNumeric<int>("", d, "dimension", dimension);
+			updates = getNumeric<int>("", d, "updates", updates);
 			
 			auto &o = d.get<picojson::object>();
 			builderConfigurator.reset(builderChooser->getBuilder(*this, "builder", o["builder"]));

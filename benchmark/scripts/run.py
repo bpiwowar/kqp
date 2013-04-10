@@ -99,7 +99,8 @@ def nullImageCleaner(problem):
     return {
         "name": "null",
         "max-ratio": problem["max_pre_images"],
-        "reset-ratio": problem["pre_images"]
+        "reset-ratio": problem["pre_images"],
+        "epsilon": 0
     }
 
 

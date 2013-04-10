@@ -25,7 +25,7 @@ out = sys.stdout
 basedir = os.path.dirname(os.path.realpath(__file__))
 
 times = ['kevd', 'orthonormalizing', 'cleaning', 'total']
-errors = [u'rank', u'pre_images', u's_error', u'o_error']
+errors = [u'rank', u'pre_images', u's_error', u'o_error', u's_error_rel', u'o_error_rel']
 
 out.write("""<html>
     <head>
@@ -98,12 +98,14 @@ for k, v in perfs.iteritems():
     for e in errors:
         out.write("<th>%s</th>" % e)
     out.write("<th>builder</th>")
+    out.write("<th>desc</th>")
     out.write("</thead>")
+    nbUpdates = float(v[0]["updates"])
 
     for r in v:
         out.write("<tr>")
         for t in times:
-            out.write("<td>%s</td>" % r["time"][t])
+            out.write("<td>%s</td>" % (float(r["time"][t]) / nbUpdates))
         for e in errors:
             out.write("<td>%s</td>" % r["error"][e])
 
