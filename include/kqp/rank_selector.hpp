@@ -173,6 +173,7 @@ namespace kqp {
     class Aggregator {
     public:
         Aggregator() { }
+        virtual ~Aggregator() {}
 
         virtual void reset() = 0;
         virtual void add(Scalar value) = 0;
