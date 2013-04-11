@@ -52,7 +52,7 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
             for(auto i = list.begin(); i != list.end(); ++i) {
                 (*i)->cleanup(d);
 
-                KQP_HLOG_DEBUG_F("After cleaner %s: pre-images=%d, rank=%d", %KQP_DEMANGLE(**i) %d.mX->size() %d.mD.rows());
+                KQP_HLOG_DEBUG_F("After cleaner %s: pre-images=%d, rank=%d (%d, %dx%d, %d)", %KQP_DEMANGLE(**i) %d.mX->size() %d.mD.rows() %d.mX->size() %d.mY.rows() %d.mY.cols() %d.mD.rows());
 
                 // Sanity check
                 if (!d.check())

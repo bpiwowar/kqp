@@ -13,7 +13,6 @@ namespace kqp {
             if (*i) rank++;
         
         // Prepare the destination
-        KQP_LOG_DEBUG_F(logger, "Rank is %d", %rank);
         mover.prepare(rank);
         
         // Set i on the first eigenvalue
