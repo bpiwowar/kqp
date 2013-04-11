@@ -99,7 +99,7 @@ struct Decomposition
     Decomposition &operator=(const Decomposition &other)
     {
         fs = other.fs;
-        mX = other.mX;
+        mX = other.mX->copy();
         mY = other.mY;
         mD = other.mD;
         orthonormal = other.orthonormal;
