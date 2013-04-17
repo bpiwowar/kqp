@@ -25,77 +25,9 @@
 #include <kqp/kernel_evd/incremental.hpp>
 #include <kqp/kernel_evd/divide_and_conquer.hpp>
 
-#include <kqp/picojson.h>
+#include <kqp/picojson.hpp>
 
 namespace kqp {
-	template<typename type>
-	type get(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
-		if (o.find(key) == o.end()) {
-			o[key] = picojson::value(_default);
-			return _default;
-		}
-		
-		if (!o[key].is<type>())
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
-		return o[key].get<type>();
-	}
-	
-	
-	template<typename type>
-	type get(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
-		if (!d.is<picojson::object>())
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
-		
-		picojson::object o = d.get<picojson::object>();
-		return get(context, o, key, _default);
-	}
-	
-	template<typename type>
-	type get(const std::string &context, picojson::object &o, const std::string &key) {
-		if (o.find(key) == o.end()) {
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: no key [%s]", %context %key );
-		}
-		
-		if (!o[key].is<type>())
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
-		return o[key].get<type>();
-	}
-	
-	template<typename type>
-	type get(const std::string &context, picojson::value &d, const std::string &key) {
-		if (!d.is<picojson::object>())
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
-		
-		picojson::object o = d.get<picojson::object>();
-		return get<type>(context, o, key);
-	}
-	
-	template<typename type>
-	type getNumeric(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
-	}
-	template<typename type>
-	int getNumeric(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
-	}
-	
-	template<typename type>
-	int getNumeric(const std::string &context, picojson::value &d, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, d, key));
-	}
-	template<typename type>
-	int getNumeric(const std::string &context, picojson::object &o, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, o, key));
-	}
-	
-	
-	// ---
-	
-	struct BuilderFactoryOptions {
-		bool useLC;
-		Index dimension;
-	};
-	
 	template<typename _Scalar> struct BuilderFactory;
 	
 	/**
@@ -103,20 +35,30 @@ namespace kqp {
 	 */
 	struct BuilderFactoryBase {
 		typedef boost::shared_ptr<BuilderFactoryBase> Ptr;
-		
-		BuilderFactoryBase() {
-		}
-		
+
 		virtual ~BuilderFactoryBase() {}
 		
-		virtual void configure(const BuilderFactoryOptions &bm, const std::string &context, picojson::object &json) {
-			(void)bm; (void)context; (void)json;
+		//! Get a new builder
+		virtual boost::shared_ptr< KernelEVDBase > getBuilder() = 0;
+
+#ifndef SWIG
+		//! Get a factory
+		inline static Ptr getFactory(const boost::shared_ptr<AbstractSpace> &space, picojson::value &json);
+
+		/**
+		* Get a cleaner from JSON
+		* @param context A context string for error messages
+		*
+		*/
+		inline static boost::shared_ptr<CleanerBase> getCleaner(picojson::value &json, const std::string &context = "");
+
+		virtual void configure(const std::string &context, picojson::object &json) {
+			(void)context; (void)json;
 		}
-		
-		//! Get a Builder
-		inline static Ptr getBuilder(const BuilderFactoryOptions &options, picojson::value &json);
+#endif
 	};
-	
+
+#ifndef SWIG	
 	template<typename Scalar> class IncrementalFactory;
 	template<typename Scalar> class DirectFactory;
 	template<typename Scalar> class DivideAndConquerFactory;
@@ -126,23 +68,32 @@ namespace kqp {
 	struct BuilderFactory : public BuilderFactoryBase {
 		typedef _Scalar Scalar;
 		KQP_SCALAR_TYPEDEFS(Scalar);
+
+		FSpaceCPtr m_space;
+		
+		BuilderFactory() {}
+
+		void setSpace(const FSpaceCPtr &space) {
+			this->m_space = space;
+		}
+		
 		virtual ~BuilderFactory() {}
 		
 		typedef boost::shared_ptr<Selector<Real>> SelectorPtr;
 		typedef boost::shared_ptr<Cleaner<Real>> CleanerPtr;
 		
-		virtual boost::shared_ptr<KernelEVD<Scalar>> getBuilder(const FSpaceCPtr &, const BuilderFactoryOptions &o) = 0;
+		virtual boost::shared_ptr<KernelEVDBase> getBuilder() = 0;
 		
-		static boost::shared_ptr<BuilderFactory<Scalar>> getBuilder(const BuilderFactoryOptions &bm, picojson::value &json, const std::string &context = "") {
+		static boost::shared_ptr<BuilderFactory<Scalar>> getFactory(const boost::shared_ptr<const AbstractSpace> &space, picojson::value &json, const std::string &context = "") {
 			if (json.is<picojson::null>())
 				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "No builder defined [%s]", %context);
 			if (!json.is<picojson::object>())
 				KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "Builder is not a JSON object", %context);
 			
-			return BuilderFactory<Scalar>::getBuilder(bm, json.get<picojson::object>(), context);
+			return BuilderFactory<Scalar>::getFactory(space, json.get<picojson::object>(), context);
 		}
 		
-		static boost::shared_ptr<BuilderFactory<Scalar>> getBuilder(const BuilderFactoryOptions &bm, picojson::object &json, const std::string &context = "") {
+		static boost::shared_ptr<BuilderFactory<Scalar>> getFactory(const boost::shared_ptr<const AbstractSpace> &space, picojson::object &json, const std::string &context = "") {
 			
 			std::string kevdName = get<std::string>(context, json, "name");
 			
@@ -164,7 +115,8 @@ namespace kqp {
 			
 			else KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown kernel-evd builder type [%s]", %kevdName);
 			
-			builderFactory->configure(bm, context, json);
+			builderFactory->setSpace(our_dynamic_cast<const SpaceBase<Scalar>>(space));
+			builderFactory->configure(context, json);
 			return builderFactory;
 		}
 		
@@ -253,11 +205,18 @@ namespace kqp {
 		
 	};
 	
-	inline typename BuilderFactoryBase::Ptr BuilderFactoryBase::getBuilder(const BuilderFactoryOptions &options, picojson::value &json) {
+	inline typename BuilderFactoryBase::Ptr BuilderFactoryBase::getFactory(const boost::shared_ptr<AbstractSpace> &space, picojson::value &json) {
 		std::string scalarName = get<std::string>("", json, "scalar", "double");
-		if (scalarName == "double") return Ptr(BuilderFactory<double>::getBuilder(options, json));
+		if (scalarName == "double") return Ptr(BuilderFactory<double>::getFactory(space, json));
 		KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown scalar type [%s]", %scalarName);
 	}
+
+	inline typename boost::shared_ptr<CleanerBase> BuilderFactoryBase::getCleaner(picojson::value &json, const std::string &context) {
+		std::string scalarName = get<std::string>("", json, "scalar", "double");
+		if (scalarName == "double") return boost::shared_ptr<CleanerBase>(BuilderFactory<double>::getCleaner(context, json.get<picojson::object>()["list"]));
+		KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Unknown scalar type [%s]", %scalarName);
+	}
+
 	
 	
 	template<typename Scalar>
@@ -265,8 +224,8 @@ namespace kqp {
 	public:
 		KQP_SCALAR_TYPEDEFS(Scalar);
 		virtual ~DirectFactory() {}
-		virtual boost::shared_ptr<KernelEVD<Scalar>> getBuilder(const FSpaceCPtr &, const BuilderFactoryOptions &o) override {
-			return boost::shared_ptr<KernelEVD<Scalar>>(new DenseDirectBuilder<Scalar>(o.dimension));
+		virtual boost::shared_ptr<KernelEVDBase> getBuilder() override {
+			return boost::shared_ptr<KernelEVDBase>(new DenseDirectBuilder<Scalar>(this->m_space->dimension()));
 		};
 		virtual std::string getName() const { return "direct"; }
 	};
@@ -277,11 +236,11 @@ namespace kqp {
 		KQP_SCALAR_TYPEDEFS(Scalar);
 		virtual ~AccumulatorFactory() {}
 		
-		virtual boost::shared_ptr<KernelEVD<Scalar>> getBuilder(const FSpaceCPtr &fs, const BuilderFactoryOptions &) override {
-			if (fs->canLinearlyCombine())
-				return boost::shared_ptr<KernelEVD<Scalar>>(new AccumulatorKernelEVD<Scalar,true>(fs));
+		virtual boost::shared_ptr<KernelEVDBase> getBuilder() {
+			if (this->m_space->canLinearlyCombine())
+				return boost::shared_ptr<KernelEVD<Scalar>>(new AccumulatorKernelEVD<Scalar,true>(this->m_space));
 			
-			return boost::shared_ptr<KernelEVD<Scalar>>(new AccumulatorKernelEVD<Scalar,false>(fs));
+			return boost::shared_ptr<KernelEVDBase>(new AccumulatorKernelEVD<Scalar,false>(this->m_space));
 		}
 		
 		virtual std::string getName() const {
@@ -307,18 +266,18 @@ namespace kqp {
 		virtual std::string getName() const { return "incremental"; }
 		
 		
-		virtual void configure(const BuilderFactoryOptions &bm, const std::string &context, picojson::object &json) override {
-			BuilderFactory<Scalar>::configure(bm, context, json);
+		virtual void configure(const std::string &context, picojson::object &json) override {
+			BuilderFactory<Scalar>::configure(context, json);
 			m_selector = this->getSelector(context + ".selector", json["selector"]);
 			
-			if (!bm.useLC) {
+			if (!this->m_space->canLinearlyCombine()) {
 				targetPreImageRatio = get<double>(context, json, "pre-images");
 				maxPreImageRatio = get<double>(context, json, "max-pre-images", targetPreImageRatio);
 			}
 		}
 		
-		virtual boost::shared_ptr<KernelEVD<Scalar>> getBuilder(const FSpaceCPtr &fs, const BuilderFactoryOptions &) override {
-			IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(fs);
+		virtual boost::shared_ptr<KernelEVDBase> getBuilder() {
+			IncrementalKernelEVD<Scalar> * builder  = new IncrementalKernelEVD<Scalar>(this->m_space);
 			builder->setSelector(m_selector);
 			builder->setPreImagesPerRank(this->targetPreImageRatio, this->maxPreImageRatio);
 			
@@ -349,33 +308,34 @@ namespace kqp {
 		DivideAndConquerFactory() : batchSize(100) {}
 		virtual ~DivideAndConquerFactory() {}
 		
-		virtual void configure(const BuilderFactoryOptions &bm, const std::string &context, picojson::object &json) override {
-			BuilderFactory<Scalar>::configure(bm, context, json);
+		virtual void configure(const std::string &context, picojson::object &json) override {
+			BuilderFactory<Scalar>::configure(context, json);
 			
 			batchSize = getNumeric<int>(context, json, "batch", batchSize);
 			
-			builder = BuilderFactory<Scalar>::getBuilder(bm, json["builder"], context + ".builder");
-			merger = BuilderFactory<Scalar>::getBuilder(bm, json["merger"], context + ".merger");
+			builder = BuilderFactory<Scalar>::getFactory(this->m_space, json["builder"], context + ".builder");
+			merger = BuilderFactory<Scalar>::getFactory(this->m_space, json["merger"], context + ".merger");
 			
 			builderCleaner = this->getCleaner(context + ".builder.cleaner", json["builder"].get<picojson::object>()["cleaner"]);
 			mergerCleaner = this->getCleaner(context + ".merger.cleaner", json["merger"].get<picojson::object>()["cleaner"]);
 		}
 		
-		virtual boost::shared_ptr<KernelEVD<Scalar>> getBuilder(const FSpaceCPtr &fs, const BuilderFactoryOptions &bm) override {
-			boost::shared_ptr<DivideAndConquerBuilder<Scalar>> dc(new DivideAndConquerBuilder<Scalar>(fs));
+		virtual boost::shared_ptr<KernelEVDBase> getBuilder() override {
+			boost::shared_ptr<DivideAndConquerBuilder<Scalar>> dc(new DivideAndConquerBuilder<Scalar>(this->m_space));
 			dc->setBatchSize(batchSize);
 			
 			
-			dc->setBuilder(KEVDPtr(builder->getBuilder(fs, bm)));
+			dc->setBuilder(our_dynamic_cast<KernelEVD<Scalar>>(builder->getBuilder()));
 			dc->setBuilderCleaner(builderCleaner);
 			
-			dc->setMerger(KEVDPtr(merger->getBuilder(fs,bm)));
+			dc->setMerger(our_dynamic_cast<KernelEVD<Scalar>>(merger->getBuilder()));
 			dc->setMergerCleaner(mergerCleaner);
 			return dc;
 		}
 	};
 	
-	
+#endif // SWIG
+
 }
 
 

@@ -46,7 +46,7 @@ namespace kqp {
         KernelSumMatrix(const Self &other) : m_matrices(other.m_matrices) {
         }
 
-        KernelSumMatrix(const std::vector<FMatrix> &matrices) : m_matrices(matrices) {
+        KernelSumMatrix(const std::vector<FMatrixPtr> &matrices) : m_matrices(matrices) {
         }
 
 #       ifndef SWIG
@@ -59,7 +59,7 @@ namespace kqp {
 		}
 #       endif
 
-        const FMatrix &operator[](size_t i) const {
+        const FMatrixCPtr operator[](size_t i) const {
         	return m_matrices[i];
         }
 
@@ -78,7 +78,7 @@ namespace kqp {
         	boost::shared_ptr<Self> matrix = boost::shared_ptr<Self>(new Self());
 
 			for(size_t i = 0; i < m_matrices.size(); i++) {
-				matrix->m_matrices.push_back(FMatrix(m_matrices[i]->subset(begin, end)));
+				matrix->m_matrices.push_back(FMatrixPtr(m_matrices[i]->subset(begin, end)));
 			}
 			return matrix;
         }
@@ -98,7 +98,7 @@ namespace kqp {
 
         private:
         	KernelSumMatrix() {}
-        	std::vector<FMatrix> m_matrices;
+        	std::vector<FMatrixPtr> m_matrices;
     };
 
     /**
@@ -118,7 +118,7 @@ namespace kqp {
 		friend class KernelSumMatrix<Scalar>;
 
 		/** Add a new space */
-		void addSpace(Real weight, const FSpace &space) {
+		void addSpace(Real weight, const FSpacePtr &space) {
 			m_weights.push_back(weight);
             m_sum += weight * weight;
 			m_spaces.push_back(space);
@@ -128,7 +128,7 @@ namespace kqp {
         KernelSumSpace(const KernelSumSpace &other) : m_spaces(other.m_spaces),  m_weights(other.m_weights), m_sum(other.m_sum)  {}
         ~KernelSumSpace() {}
 
-        static FSpace create() { return FSpace(new KernelSumSpace()); }
+        static FSpacePtr create() { return FSpacePtr(new KernelSumSpace()); }
 
         virtual Index dimension() const override { 
         	Index n = 1;
@@ -249,53 +249,53 @@ namespace kqp {
         Real weight(size_t i) const { return m_weights[i]; }
         size_t size() const { return m_spaces.size(); }
 
-        virtual void load(const pugi::xml_node &node) {
-            static const std::string SUB_NAME("sub");
-
+        virtual void load(const picojson::object &json) {
             m_sum = 0;
             m_spaces.clear();
             m_weights.clear();
 
-            for(auto child: node) {
-                if (child.type() == pugi::xml_node_type::node_element && child.name() == SUB_NAME) {
-                    Real weight = kqp::attribute<Real>(child, "weight", 1.);
+            auto p = json.find("list");
+            if (p == json.end())
+                KQP_THROW_EXCEPTION(exception, "No 'list' field in kernel sum"); 
+            if (!p->second.is<picojson::array>())
+                KQP_THROW_EXCEPTION(exception, "'list' field in kernel sum is not an array"); 
 
-                    pugi::xml_node selected;
-                    for(auto grandchild: child) {
-                        if (grandchild.type() == pugi::xml_node_type::node_element) {
-                            if (selected.empty()) {
-                                selected = grandchild;
-                            } else { 
-                                KQP_THROW_EXCEPTION(exception, "A unary kernel element should have no more than one child"); 
-                            }
-                        }
-                    }
-                    if (selected.empty())
-                        KQP_THROW_EXCEPTION(exception, "A unary kernel element should have one child");
+            for(auto child: p->second.get<picojson::array>()) {
+                if (!child.is<picojson::object>()) 
+                    KQP_THROW_EXCEPTION(exception, "'list' field in kernel sum is not an array of objets");
 
-                    auto space = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
+                auto list = child.get<picojson::object>();
 
-                    addSpace(weight, space);
-                }
+                Real weight = getNumeric<Real>("", list, "weight", 1.);
+                auto spaceJson = list.find("space");
+                if (spaceJson == list.end()) 
+                    KQP_THROW_EXCEPTION(exception, "objet in 'list' does not contain a space");
+
+
+                auto space = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(spaceJson->second.get<picojson::object>()));
+
+                addSpace(weight, space);
             }
         }
 
-        virtual pugi::xml_node save(pugi::xml_node &node) const override {
-            static const std::string SUB_NAME("sub");
-            pugi::xml_node self = SpaceBase<Scalar>::save(node);
+        virtual picojson::object save() const override {
+            picojson::object json;
+            picojson::array array;
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                auto child = self.append_child(SUB_NAME.c_str());
-                child.append_attribute("weight") = boost::lexical_cast<std::string>(std::abs(m_weights[i])).c_str();
-                m_spaces[i]->save(child);
+                picojson::object listSpace;
+                listSpace["weight"] = picojson::value(m_weights[i]);
+                listSpace["space"] = picojson::value(m_spaces[i]->save());
+                array.push_back(picojson::value(listSpace));
             }
-            return self;
+            json["list"] = picojson::value(array);
+            return json;
         }
 
         inline Real getNormalizedWeight(size_t i) const {
             return m_weights[i] * m_weights[i] / m_sum;
         }
     private:
-    	std::vector<FSpace> m_spaces;
+    	std::vector<FSpacePtr> m_spaces;
     	std::vector<Real> m_weights;
         mutable Real m_sum;
 	};

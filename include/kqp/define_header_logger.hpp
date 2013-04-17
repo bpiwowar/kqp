@@ -69,6 +69,12 @@
 #   elif (KQP_HLOGGER_N == 9) 
 #     undef  KQP_HLOGGER_N
 #     define KQP_HLOGGER_N 10
+#   elif (KQP_HLOGGER_N == 10) 
+#     undef  KQP_HLOGGER_N
+#     define KQP_HLOGGER_N 11
+#   elif (KQP_HLOGGER_N == 11) 
+#     undef  KQP_HLOGGER_N
+#     define KQP_HLOGGER_N 12
 #   else
 #     error "No more header loggers available"
 #   endif

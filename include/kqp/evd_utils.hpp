@@ -110,7 +110,7 @@ namespace kqp {
         KQP_SCALAR_TYPEDEFS(Scalar);
         
         //! Orthonormalization with Alt matrices (generic method)
-        static void run(const FSpace &fs, const FMatrix &mX,
+        static void run(const FSpaceCPtr &fs, const FMatrixCPtr &mX,
                         ScalarAltMatrix &mY,
                         RealAltVector &mD) {
             // FIXME: should swap if dense types
@@ -121,8 +121,8 @@ namespace kqp {
             mD.swap(_mD);
         }    
         
-        static void run(const FSpace &fs, 
-                        const FMatrix &mX,
+        static void run(const FSpaceCPtr &fs, 
+                        const FMatrixCPtr &mX,
                         ScalarMatrix &mY,
                         RealVector &mD) {
             
@@ -172,10 +172,5 @@ namespace kqp {
         
     };
 }
-
-#define KQP_SCALAR_GEN(scalar) \
-extern template struct kqp::Orthonormalize<scalar>; \
-extern template struct kqp::ThinEVD<Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>>
-#include <kqp/for_all_scalar_gen.h.inc>
 
 #endif

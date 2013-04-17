@@ -28,7 +28,13 @@ namespace kqp {
 #   include <kqp/define_header_logger.hpp>
 DEFINE_KQP_HLOGGER("kqp.cleaner");
 
-    template<typename Scalar> class Cleaner {
+    class CleanerBase {
+    public:
+        CleanerBase() {}
+        virtual ~CleanerBase() {}
+    };
+
+    template<typename Scalar> class Cleaner : public CleanerBase {
     public:
         virtual ~Cleaner() {}
         
@@ -105,16 +111,6 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
     
 
 }
-
-#define KQP_CLEANUP_H_GEN(extern, type)  \
-    extern template class kqp::Cleaner<type>; \
-    extern template class kqp::CleanerList<type>; \
-    extern template class kqp::CleanerRank<type>; 
-
-#define KQP_SCALAR_GEN(type)  KQP_CLEANUP_H_GEN(extern, type)
-
-#include <kqp/for_all_scalar_gen.h.inc>
-#undef KQP_SCALAR_GEN
 
 #endif
 

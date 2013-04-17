@@ -8,9 +8,11 @@
 #include <complex>
 
 #include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
 #include <kqp/evd_update.hpp>
 
-DEFINE_LOGGER(logger, "kqp.evd-update");
+#include <kqp/define_header_logger.hpp>
+DEFINE_KQP_HLOGGER("kqp.evd-update");
 
 namespace kqp {
     
@@ -250,7 +252,7 @@ namespace kqp {
         
         // ensures the norm of zi is the same as newz
         Scalar new_z = vi.z * (Scalar)( sqrt(normZ) / sqrt(kqp::norm(vi.z)));
-        KQP_LOG_DEBUG(logger, "New z" << convert(i) << " = " << convert(new_z) << " / old was " << convert(vi.z));
+        KQP_HLOG_DEBUG( "New z" << convert(i) << " = " << convert(new_z) << " / old was " << convert(vi.z));
         //        newz = kqp::real(vi.z) >= 0 ? sqrt(newz) : -sqrt(newz);
         
         return new_z;
@@ -298,7 +300,7 @@ namespace kqp {
         Index N = z.size();
         Index rankD = D.rows();
         
-        KQP_LOG_DEBUG_F(logger, "EVD rank-one update in dimension %d", %std::max(rankD,N));
+        KQP_HLOG_DEBUG_F( "EVD rank-one update in dimension %d", %std::max(rankD,N));
         if (rankD > N)
             KQP_THROW_EXCEPTION_F(illegal_argument_exception, "D and z are of incompatible dimensions (%d and %d)", %rankD %N);
         
@@ -380,7 +382,7 @@ namespace kqp {
         // M is the dimension of the deflated diagonal matrix
         int M = 0;
         
-        double tau = gamma * EPSILON;
+        double tau = gamma * epsilon();
         double tauM2 = tau * normD;
         double mzNorm = 0;
         
@@ -436,8 +438,8 @@ namespace kqp {
         // ---
         
         // For the stopping criterion
-        double e = gamma * EPSILON * M;
-        KQP_LOG_DEBUG(logger, "Computing " << convert(M) << " eigenvalues");
+        double e = gamma * epsilon() * M;
+        KQP_HLOG_DEBUG( "Computing " << convert(M) << " eigenvalues");
         for (int j = 0; j < M; j++) {
             IndexedValue<Scalar> &svj = *v[j];
             double diagj = svj.d;
@@ -490,7 +492,7 @@ namespace kqp {
                      || std::abs(f) > (1 + std::abs(psi) + std::abs(phi)) * e);
             
             // Done, store the eigen value
-            KQP_LOG_DEBUG(logger, "Eigenvalue: old = " << convert(svj.lambda) << ", computed = " << convert(middle + nu));
+            KQP_HLOG_DEBUG( "Eigenvalue: old = " << convert(svj.lambda) << ", computed = " << convert(middle + nu));
             svj.lambda = middle + nu;
             
             // Because of rounding errors, that can happen
@@ -558,7 +560,7 @@ namespace kqp {
         // then store them,
         int nbSelected = 0;
         int nbNaN = 0;
-        KQP_LOG_DEBUG_F(logger, "Final rank is %d", %rank);
+        KQP_HLOG_DEBUG_F( "Final rank is %d", %rank);
         result.mD = RealVector(rank);
         for (Index i = 0; i < rank; i++) {
             v[i]->newPosition = i;

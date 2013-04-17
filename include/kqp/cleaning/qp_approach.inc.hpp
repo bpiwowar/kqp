@@ -4,8 +4,8 @@
 
 #include <Eigen/Cholesky> 
 
-
-DEFINE_LOGGER(logger, "kqp.qp-approach");
+#include <kqp/define_header_logger.hpp>
+DEFINE_KQP_HLOGGER("kqp.qp-approach");
 
 namespace kqp {
     
@@ -40,7 +40,7 @@ namespace kqp {
         : cholK(cholK), B(B), BBT(BBT), nu(nu), n(B.cols()), r(w.d.size() / n / 2) , Wd(w.d)
         {
             // The scaling matrix has dimension r * n * 2
-            KQP_LOG_DEBUG(logger, "Preparing the KKT solver of dimension r=" << convert(r) << " and n=" << convert(n));
+            KQP_HLOG_DEBUG( "Preparing the KKT solver of dimension r=" << convert(r) << " and n=" << convert(n));
             
             // Gets U and V
             KQP_VECTOR(Scalar) U = w.d.topRows(r*n);
@@ -239,7 +239,7 @@ namespace kqp {
     
     template<typename Scalar>
     cvxopt::KKTSolver<typename KQP_KKTPreSolver<Scalar>::Real> *KQP_KKTPreSolver<Scalar>::get(const cvxopt::ScalingMatrix<typename KQP_KKTPreSolver<Scalar>::Real> &w) {
-        KQP_LOG_DEBUG(logger, "Creating a new KKT solver");
+        KQP_HLOG_DEBUG( "Creating a new KKT solver");
         return new KQP_KKTSolver<Real>(lltOfK, B, BBT, w, nu);
     }
     
@@ -400,9 +400,9 @@ namespace kqp {
         typedef typename Eigen::NumTraits<Scalar>::Real Real;
         const bool isComplex = boost::is_complex<Scalar>::value; 
         
-        KQP_LOG_DEBUG(logger, "Gram matrix:\n" << gramMatrix);
-        KQP_LOG_DEBUG(logger,  "Alpha:\n" << alpha);
-        KQP_LOG_DEBUG(logger,  "nu:\n" << nu);
+        KQP_HLOG_DEBUG( "Gram matrix:\n" << gramMatrix);
+        KQP_HLOG_DEBUG(  "Alpha:\n" << alpha);
+        KQP_HLOG_DEBUG(  "nu:\n" << nu);
         
         Index rp = isComplex ? 2 * r : r;
         
@@ -424,7 +424,7 @@ namespace kqp {
         QPConstraints<Scalar> G(n, r, nu);
         KQP_KKTPreSolver<Scalar> kkt_presolver(gramMatrix, nu);
         
-        KQP_LOG_DEBUG(logger,  "c:\n" << c.adjoint());
+        KQP_HLOG_DEBUG(  "c:\n" << c.adjoint());
 
         cvxopt::coneqp<Real>(KMult<Scalar>(n,r, gramMatrix), c, result, 
                                false /* No initial value */, 
@@ -434,15 +434,5 @@ namespace kqp {
                                options
                                );
         
-    }    
-    
-    
-    
-# define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(, scalar) \
- template void solve_qp<scalar>(int r, KQP_REAL_OF(scalar) lambda, const KQP_MATRIX(scalar) &gramMatrix, \
-    const KQP_MATRIX(scalar) &alpha, const KQP_VECTOR(KQP_REAL_OF(scalar)) &nu, kqp::cvxopt::ConeQPReturn<KQP_REAL_OF(scalar)> &result,\
-    const cvxopt::ConeQPOptions<KQP_REAL_OF(scalar)>& options);
-
-# include <kqp/for_all_scalar_gen.h.inc>
-   
+    }       
 }

@@ -24,7 +24,7 @@ namespace kqp {
         double error = (m1 - m2).norm();
         
         Index delta = (_mY.rows() - mY.rows());
-        double threshold = (EPSILON*delta);
+        double threshold = (epsilon()*delta);
         KQP_LOG_INFO_F(logger, "Error is %g [threshold=%g] and row difference is %d", %error %threshold %delta);
         
         

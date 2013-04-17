@@ -46,19 +46,19 @@ namespace kqp{
         
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
+        AccumulatorKernelEVD(const FSpaceCPtr &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
         }
         
         virtual ~AccumulatorKernelEVD() {
         }
         
         
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
+        virtual void _add(Real alpha, const FMatrixCPtr &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
             if(alpha < 0)
                 KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
             
-            FMatrix fm = this->getFSpace()->linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
+            FMatrixPtr fm = this->getFSpace()->linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
             fMatrix->add(*fm);
         }
         
@@ -85,7 +85,7 @@ namespace kqp{
         
     private:
         //! concatenation of pre-image matrices
-        FMatrix fMatrix;        
+        FMatrixPtr fMatrix;
     };
     
     
@@ -97,7 +97,7 @@ namespace kqp{
 
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        AccumulatorKernelEVD(const FSpace &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
+        AccumulatorKernelEVD(const FSpaceCPtr &fs) : KernelEVD<Scalar>(fs), fMatrix(fs->newMatrix()) {
             offsets_X.push_back(0);
             offsets_A.push_back(0);
         }
@@ -105,7 +105,7 @@ namespace kqp{
         virtual ~AccumulatorKernelEVD() {}
         
     protected:
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {           
+        virtual void _add(Real alpha, const FMatrixCPtr &mX, const ScalarAltMatrix &mA) override {
             if(alpha < 0)
                 KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
 
@@ -193,7 +193,7 @@ namespace kqp{
         }
         
         //! Pre-images matrices
-        FMatrix fMatrix;        
+        FMatrixPtr fMatrix;
         
         //! Linear combination matrices
         std::vector<ScalarAltMatrix> combination_matrices;
@@ -209,12 +209,5 @@ namespace kqp{
     };
     
 }
-
-#ifndef SWIG
-#define KQP_SCALAR_GEN(type) \
-  extern template class kqp::AccumulatorKernelEVD<type, true>; \
-  extern template class kqp::AccumulatorKernelEVD<type, false>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
 
 #endif

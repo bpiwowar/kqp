@@ -32,7 +32,7 @@ namespace kqp {
             double error = (a - b).squaredNorm();
             double rel_error = error / b.squaredNorm(); 
             KQP_LOG_INFO_F(logger, "Error and relative errors for %s are %g and %g", %name %error %rel_error);
-            if (rel_error > EPSILON) {
+            if (rel_error > epsilon()) {
                 KQP_LOG_ERROR_F(logger, "Relative error for %s is too big (%g)", %name %rel_error);
                 return 1;
             }
@@ -58,7 +58,7 @@ namespace kqp {
         
         Index dimension = 100;
         
-        FSpace fs(new DenseSpace<double>(2));
+        FSpacePtr fs(new DenseSpace<double>(2));
         
         DenseDirectBuilder<double> kevd(dimension);
         
@@ -82,10 +82,10 @@ namespace kqp {
         Density<double> v2_p = subspace.project(v2, false, false);
         
         // Check that v = v1 + v2
-        return  inners.squaredNorm() < EPSILON 
-        && getMatrix(v1_p).squaredNorm() < EPSILON
-        && getMatrix(v2_p).squaredNorm() < EPSILON
-        && (getMatrix(v1) + getMatrix(v2) - v->as<Dense<double>>().getMatrix()).squaredNorm() < EPSILON 
+        return  inners.squaredNorm() < epsilon() 
+        && getMatrix(v1_p).squaredNorm() < epsilon()
+        && getMatrix(v2_p).squaredNorm() < epsilon()
+        && (getMatrix(v1) + getMatrix(v2) - v->as<Dense<double>>().getMatrix()).squaredNorm() < epsilon() 
         ? 0 : 1;
         
     }

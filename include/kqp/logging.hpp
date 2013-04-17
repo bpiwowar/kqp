@@ -22,27 +22,57 @@
 
 #include <map>
 
+#include <kqp/kqp.hpp>
+#include "log4cxx/logger.h"
+#include "log4cxx/basicconfigurator.h"
+#include "log4cxx/consoleappender.h"
+#include "log4cxx/patternlayout.h"
+#include "log4cxx/propertyconfigurator.h"
+#include "log4cxx/helpers/exception.h"
+
 namespace kqp {
-    class LoggerConfig {
-    public:
-        //! Default constructor
-        LoggerConfig();
-                
-        //! Set the level for one logger
-        void setLevel(const std::string &loggerId, const std::string &level);
-
-        //! Set the root logger default level
-        void setDefaultLevel(const std::string &level);
-
-        //! Prepare logger
-        void prepareLogger();
+    inline log4cxx::LoggerPtr &main_logger() { 
+        static log4cxx::LoggerPtr MAIN_LOGGER = log4cxx::Logger::getLogger("kqp") ;
+        return MAIN_LOGGER;
+    };
+    
+    class Logger {
+    protected:
+        static bool& initialized() {
+            static bool INITIALIZED = false;
+            return INITIALIZED;
+        }
         
-    private:
-        bool initialized;
+    public:
+        //! Set the level for one logger
+        static void setLevel(const std::string &loggerId, const std::string &level) {
+            // By default, use info
+            log4cxx::Logger::getLogger(loggerId)->setLevel(log4cxx::Level::toLevel(level, log4cxx::Level::getInfo()));
+        }
+        
+        //! Set the root logger default level
+        static void setDefaultLevel(const std::string &level) {
+            log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::toLevel(level, log4cxx::Level::getInfo()));
+        }
+        
+        //! Prepare logger
+        static void prepare() {
+            if (initialized()) return;  
+        
+            log4cxx::PatternLayoutPtr layout = new log4cxx::PatternLayout("%5p [%r] (%F:%L) - %m%n");
+        
+            log4cxx::ConsoleAppenderPtr appender = new log4cxx::ConsoleAppender(layout, log4cxx::ConsoleAppender::getSystemErr());
+            appender->setName("kqp-appender");
+            log4cxx::BasicConfigurator::configure(appender);
+            log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getInfo());
+            initialized() = true;
+        
+            KQP_LOG_DEBUG(kqp::main_logger(), "Initialised the logging system");
+        }
+        
     };
 
-    //! The global logger configurator
-    extern LoggerConfig LOGGER_CONFIG;
+
 }
 
 #endif

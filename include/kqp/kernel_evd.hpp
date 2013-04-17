@@ -29,6 +29,13 @@
 
 namespace kqp {
 
+	/** Base class for all kernel EVD */
+	class KernelEVDBase {
+	public:
+		KernelEVDBase() {}
+		virtual ~KernelEVDBase() {}
+	};
+	
     /**
      * @brief Builds a compact representation of an hermitian operator. 
      *
@@ -43,11 +50,11 @@ namespace kqp {
      *            The type of the base vectors in the original space
      * @ingroup OperatorBuilder
      */
-    template <class Scalar> class KernelEVD {        
+    template <class Scalar> class KernelEVD : public KernelEVDBase {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
         
-        KernelEVD(const FSpace &featureSpace) : nbUpdates(0), m_featureSpace(featureSpace)  {
+        KernelEVD(const FSpaceCPtr &featureSpace) : nbUpdates(0), m_featureSpace(featureSpace)  {
         }
         
 
@@ -64,7 +71,7 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) {
+        virtual void add(Real alpha, const FMatrixCPtr &mX, const ScalarAltMatrix &mA) {
             // Check consistency
             if (mX->size() != mA.rows())
                 KQP_THROW_EXCEPTION_F(illegal_argument_exception, "Cannot combine %d pre-images with a %d rows matrix", %mX->size() %mA.rows());
@@ -77,7 +84,7 @@ namespace kqp {
          * 
          * Updates the current decomposition to \f$A^\prime \approx A + X  X^\top\f$
          */
-        inline void add(const FMatrix &mU) {
+        inline void add(const FMatrixCPtr &mU) {
             add(1., mU, Eigen::Identity<Scalar>(mU->size(),mU->size()));
             nbUpdates += mU->size();
         }
@@ -109,7 +116,7 @@ namespace kqp {
             return nbUpdates;
         }
     
-        const FSpace &getFSpace() const { return m_featureSpace; }
+        const FSpaceCPtr &getFSpace() const { return m_featureSpace; }
         
     protected:
         /**
@@ -122,14 +129,14 @@ namespace kqp {
          * @param mX  The feature matrix X with n feature vectors.
          * @param mA  The mixture matrix (of dimensions n x k).
          */
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) = 0;
+        virtual void _add(Real alpha, const FMatrixCPtr &mU, const ScalarAltMatrix &mA) = 0;
 
         /** Get the decomposition */
         virtual Decomposition<Scalar> _getDecomposition() const = 0;
     
     private:
         Index nbUpdates;
-        FSpace m_featureSpace;
+        FSpaceCPtr m_featureSpace;
     };
 
     

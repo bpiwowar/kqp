@@ -28,7 +28,7 @@ namespace kqp {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);
 
-        UnaryKernelSpace(const FSpace &base) :  m_base(base) {}
+        UnaryKernelSpace(const FSpacePtr &base) :  m_base(base) {}
 
         ~UnaryKernelSpace() {}
         
@@ -61,23 +61,22 @@ namespace kqp {
             return gram;
         }
         
-        virtual void load(const pugi::xml_node &node) {
-            pugi::xml_node selected;
-            for(auto child: node) {
-                if (child.type() == pugi::xml_node_type::node_element) {
-                    if (selected.empty()) {
-                        selected = child;
-                    } else { 
-                        KQP_THROW_EXCEPTION(exception, "A unary kernel element should have no more than one child"); 
-                    }
-                }
-            }
+        virtual void load(const picojson::object &json) {
+			auto p = json.find("base");
+			if (p == json.end())
+				KQP_THROW_EXCEPTION(exception, "A unary kernel element should contain a base kernel");
 
-            if (selected.empty())
-                KQP_THROW_EXCEPTION(exception, "A unary kernel element should have one child");
-            m_base = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(selected));
+            m_base = kqp::our_dynamic_cast< SpaceBase<Scalar> >(SpaceFactory::load(p->second.get<picojson::object>()));
         }
-
+        
+		virtual picojson::object save() const override {
+			auto json = SpaceBase<Scalar>::save();
+            if (m_base)
+                json["base"] = picojson::value(m_base->save());
+			return json;
+		}
+		
+		
         FSpaceCPtr base() const {
             return m_base;
         }
@@ -97,7 +96,7 @@ namespace kqp {
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const = 0;
 
         //! The base feature space 
-        FSpaceCPtr m_base;
+        FSpacePtr m_base;
 
     private:              
         //! Gram matrices
@@ -115,8 +114,8 @@ namespace kqp {
         using UnaryKernelSpace<Scalar>::m_base;
         using UnaryKernelSpace<Scalar>::k;
 #endif
-        GaussianSpace(Real sigma, const FSpaceCPtr &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
-        GaussianSpace() :  UnaryKernelSpace<Scalar>(FSpace()), m_sigma(1) {}
+        GaussianSpace(Real sigma, const FSpacePtr &base) : UnaryKernelSpace<Scalar>(base), m_sigma(sigma) {}
+        GaussianSpace() :  UnaryKernelSpace<Scalar>(FSpacePtr()), m_sigma(1) {}
 
         virtual FSpacePtr copy() const override { return FSpacePtr(new GaussianSpace<Scalar>(m_sigma, m_base)); }        
 
@@ -173,21 +172,19 @@ namespace kqp {
         virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
             m_sigma = parameters[offset];
             if (m_sigma < 0) m_sigma = -m_sigma;
-            if (m_sigma < EPSILON) m_sigma = kqp::EPSILON;
+            if (m_sigma < epsilon()) m_sigma = kqp::epsilon();
             m_base->setParameters(parameters, offset + 1);
         }
 
-        virtual void load(const pugi::xml_node &node) override {
-            m_sigma = kqp::attribute(node, "sigma", 1.);
-            UnaryKernelSpace<Scalar>::load(node);
+        virtual void load(const picojson::object &json) override {
+            UnaryKernelSpace<Scalar>::load(json);
+            m_sigma = getNumeric<Real>("", json, "sigma", 1.);
         }
 
-        virtual pugi::xml_node save(pugi::xml_node &node) const override {
-            pugi::xml_node self = UnaryKernelSpace<Scalar>::save(node);
-            self.append_attribute("sigma") = boost::lexical_cast<std::string>(m_sigma).c_str();
-            if (m_base)
-                m_base->save(self);
-            return self;
+        virtual picojson::object save() const override {
+            picojson::object json = UnaryKernelSpace<Scalar>::save();
+			json["sigma"] = picojson::value(m_sigma);
+            return json;
         }
     protected:
         virtual void fillGram(ScalarMatrix &gram, Index tofill, const FMatrixBase &mX) const override {
@@ -221,8 +218,8 @@ namespace kqp {
 #endif
         virtual FSpacePtr copy() const override { return FSpacePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
 
-        PolynomialSpace(Real bias, int degree, const FSpace &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
-        PolynomialSpace() : UnaryKernelSpace<Scalar>(FSpace()), m_bias(0), m_degree(1) {}
+        PolynomialSpace(Real bias, int degree, const FSpacePtr &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
+        PolynomialSpace() : UnaryKernelSpace<Scalar>(FSpacePtr()), m_bias(0), m_degree(1) {}
 
         virtual Index dimension() const override { return -1; }
         virtual bool _canLinearlyCombine() const override { return false; }
@@ -264,19 +261,17 @@ namespace kqp {
         }
 
         
-        virtual void load(const pugi::xml_node &node) {
-            m_bias = kqp::attribute(node, "bias", 1.);
-            m_degree = kqp::attribute(node, "degree", 2);
-            UnaryKernelSpace<Scalar>::load(node);
+        virtual void load(const picojson::object &json) {
+            UnaryKernelSpace<Scalar>::load(json);
+            m_bias = getNumeric<Real>("", json, "bias", 1.);
+            m_degree = getNumeric<int>("", json, "degree", 2);
         }
 
-        virtual pugi::xml_node save(pugi::xml_node &node) const override {
-            pugi::xml_node self = UnaryKernelSpace<Scalar>::save(node);
-            self.append_attribute("degree") = boost::lexical_cast<std::string>(m_degree).c_str();
-            self.append_attribute("bias") = boost::lexical_cast<std::string>(m_bias).c_str();
-            if (m_base)
-                m_base->save(self);
-            return self;
+        virtual picojson::object save() const override {
+            picojson::object json = UnaryKernelSpace<Scalar>::save();
+			json["degree"] = picojson::value((double)m_degree);
+			json["bias"] = picojson::value(m_bias);
+            return json;
         }
 
     protected:
@@ -296,11 +291,5 @@ namespace kqp {
     };
     
 }
-
-#define KQP_SCALAR_GEN(scalar) \
-    extern template class kqp::GaussianSpace<scalar>; \
-    extern template class kqp::PolynomialSpace<scalar>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#undef KQP_SCALAR_GEN
 
 #endif

@@ -48,7 +48,7 @@ namespace kqp {
         double error2 = (x * x.adjoint() - y * y.adjoint()).squaredNorm();
         std::cerr << "Orthonormalization [2] error is " << error2 << std::endl;
 
-        double threshold = mD.squaredNorm() * EPSILON;
+        double threshold = mD.squaredNorm() * epsilon();
         std::cerr << "Threshold is " << threshold << std::endl;
         return error > threshold || error2 > threshold ? 1 : 0;
     }

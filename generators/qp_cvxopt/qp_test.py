@@ -100,7 +100,7 @@ def doit(name, n,r, g, a, nu, Lambda):
 
     print """
             double error_x = (result.x - s_x).norm() / s_x.rows();
-            // const double threshold = std::max(EPSILON * s_x.norm() / s_x.rows(), EPSILON);
+            // const double threshold = std::max(epsilon() * s_x.norm() / s_x.rows(), epsilon());
             const double threshold = 1e-10;
             KQP_LOG_INFO_F(logger, "Average error (x) = %g [threshold %g]", %error_x % threshold);
             KQP_LOG_ASSERT(logger, error_x < threshold, "Error for x is too high");

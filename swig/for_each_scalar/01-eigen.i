@@ -9,7 +9,7 @@
     @STYPE@ sum() const { return $self->sum(); }
     
     // Component wise nullary operations
-    void cwiseSqrt () { $self->cwiseSqrt(); }
+    void cwiseSqrt () { *$self = $self->cwiseSqrt(); }
     
     // Component wise unary operations
     void cwiseMultBy(const @STYPE@& scalar) { *$self *= scalar; }

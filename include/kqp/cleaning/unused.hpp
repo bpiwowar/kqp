@@ -70,10 +70,6 @@ namespace kqp {
         }
     };
     
-# ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template class CleanerUnused<Scalar>;
-# include <kqp/for_all_scalar_gen.h.inc>
-# endif 
 }
 
 #endif

@@ -5,6 +5,7 @@
 
 
 #include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
 #include <kqp/evd_update.hpp>
 #include <Eigen/Eigenvalues>
 

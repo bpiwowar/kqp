@@ -7,7 +7,7 @@ LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 ADD_EXECUTABLE(kqp_benchmark ${kqp_benchmark_SRC} ${kqp_benchmark_kevd_SRC})
 
-TARGET_LINK_LIBRARIES(kqp_benchmark kqp)
+TARGET_LINK_LIBRARIES(kqp_benchmark ${LIBKQP_LIBRARIES})
 
 FUNCTION(do_benchmark id taskname)
    ADD_TEST(${id} ${EXECUTABLE_OUTPUT_PATH}/kqp_benchmark "${taskname}" ${ARGN})

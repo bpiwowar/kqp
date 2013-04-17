@@ -138,18 +138,16 @@ namespace kqp {
 			updates = getNumeric<int>("", value, "updates", updates);
 			
 			
-			FSpace fs = DenseSpace<Scalar>::create(dimension);
+			FSpacePtr fs = DenseSpace<Scalar>::create(dimension);
 			fs->setUseLinearCombination(useLC);
 			init();
 			
-			BuilderFactoryOptions options = { useLC, dimension };
-			
-			boost::shared_ptr<BuilderFactory<Scalar>> factory = BuilderFactory<Scalar>::getBuilder(options, value["builder"]);
+			boost::shared_ptr<BuilderFactory<Scalar>> factory = our_dynamic_cast<BuilderFactory<Scalar>>(BuilderFactory<Scalar>::getFactory(fs, value["builder"]));
 			
 			if (value.find("cleaner") != value.end())
 				m_cleaner = BuilderFactory<Scalar>::getCleaner("", value["cleaner"]);
 			
-			boost::shared_ptr<KernelEVD<Scalar>> builder = factory->getBuilder(fs, options);
+			boost::shared_ptr<KernelEVD<Scalar>> builder = our_dynamic_cast<KernelEVD<Scalar>>(factory->getBuilder());
 			
 			std::clock_t total_time = 0;
 			
@@ -253,13 +251,8 @@ namespace kqp {
 		if (args.size() != 1)
 			KQP_THROW_EXCEPTION(illegal_argument_exception, "Expected one argument: a JSON file");
 		
-		std::ifstream file(args[0].c_str());
-		picojson::value v;
-		file >> v;
-		std::string err = picojson::get_last_error();
-		if (! err.empty()) {
-			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON parsing error: %s (offset %d)", %err);
-		}
+
+		picojson::value v = readJsonFromFile(args[0]);
 		
 		std::string scalarName = get<std::string>("", v, "scalar", "double");
 		int code;

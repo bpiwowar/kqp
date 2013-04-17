@@ -94,18 +94,6 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 FIND_PACKAGE(log4cxx)
 INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
-# -- Find pugixml
-
-FIND_PACKAGE(LibPugixml REQUIRED)
-if(NOT(PUGIXML_FOUND))
-    MESSAGE(STATUS "Building PUGIXML")
-    ADD_SUBDIRECTORY("pugixml/scripts")
-    INCLUDE_DIRECTORIES("pugixml/src")
-    SET(PUGIXML_LIBRARIES pugixml)
-else()
-    INCLUDE_DIRECTORIES(${PUGIXML_INCLUDES})
-endif()
-
 # --- Check for openmp
 
 IF(OPEN_MP MATCHES "ON")
@@ -142,28 +130,17 @@ file(GLOB kqp_fmatrix_H "ADD_CUSTOM_COMMAND/kqp/feature_matrix/*.hpp"  "include/
 file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
 file(GLOB kqp_cleaning_H "include/kqp/cleaning/*.hpp" "include/kqp/cleaning.hpp")
 
-file(GLOB kqp_kqp_CPP  "src/*.cpp")
-file(GLOB kqp_fmatrix_CPP "src/feature_matrix/*.cpp"  "src/feature_matrix.cpp")
-file(GLOB kqp_kernel_evd_CPP "src/kernel_evd/*.cpp" "src/kernel_evd.cpp")
-file(GLOB kqp_cleaning_CPP "src/cleaning/*.cpp" "src/cleaning.cpp")
-
 FOREACH(name kqp fmatrix cleaning kernel_evd)
-	SET(kqp_${name}_SRC ${kqp_${name}_H} ${kqp_${name}_CPP})
+	SET(kqp_${name}_SRC ${kqp_${name}_H})
 ENDFOREACH(name)
 
-SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_SRC})
-SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_SRC})
-SOURCE_GROUP("Cleaning" FILES ${kqp_cleaning_SRC})
+SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_H})
+SOURCE_GROUP("Kernel EVD" FILES ${kqp_kernel_evd_H})
+SOURCE_GROUP("Cleaning" FILES ${kqp_cleaning_H})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-ADD_LIBRARY (kqp ${kqp_kqp_SRC} ${kqp_fmatrix_SRC} ${kqp_kernel_evd_SRC} ${kqp_cleaning_SRC} "${CMAKE_CURRENT_SOURCE_DIR}/include/Eigen")
-
-SET(LIBKQP_LIBRARIES ${LIBLOG4CXX_LIBRARY} ${PUGIXML_LIBRARIES})
-TARGET_LINK_LIBRARIES(kqp ${LIBLOG4CXX_LIBRARY} ${PUGIXML_LIBRARIES})
-if(NOT(PUGIXML_FOUND))
-    ADD_DEPENDENCIES(kqp DEPENDS pugixml)
-endif()
+SET(LIBKQP_LIBRARIES ${LIBLOG4CXX_LIBRARY})
 
 # --- Doxygen
 
@@ -199,5 +176,4 @@ add_subdirectory(examples)
 
 INSTALL(DIRECTORY include/kqp  DESTINATION include)
 INSTALL(DIRECTORY include/Eigen  DESTINATION include/kqp)
-INSTALL(TARGETS kqp LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 

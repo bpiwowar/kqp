@@ -6,6 +6,7 @@
 #include <boost/format.hpp>
 
 #include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
 #include <kqp/coneprog.hpp>
 #include <kqp/cleaning/qp_approach.hpp>
 

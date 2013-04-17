@@ -47,6 +47,7 @@ namespace kqp {
         bool operator() (int i,int j) { return std::abs(array[i]) < std::abs(array[j]);}
     };
 
+    
     template<typename Scalar>
     struct ReducedSetNullSpaceResult {
         KQP_SCALAR_TYPEDEFS(Scalar);
@@ -93,7 +94,7 @@ namespace kqp {
          * @param weights give an order to the different pre-images
          * @param delta
          */
-        FMatrix remove(const FMatrix &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights) const {
+        FMatrixPtr remove(const FMatrixCPtr &mF, ScalarMatrix &kernel, Eigen::PermutationMatrix<Dynamic, Dynamic, Index>& mP, const RealVector &weights) const {
             typedef typename Eigen::PermutationMatrix<Dynamic, Dynamic, Index> Permutation;
 
             // FIXME: should be wiser
@@ -101,7 +102,7 @@ namespace kqp {
             
             // --- Check if we have something to do
             if (mF->size() == 0)
-                return mF;
+                return mF->copy();
             
             // --- Look up at the indices to remove
             
@@ -216,7 +217,7 @@ namespace kqp {
          */
         ReducedSetNullSpaceResult<Scalar> run(const FSpaceCPtr &fs, const FMatrixCPtr &mF, const ScalarAltMatrix &mY) const {
             ReducedSetNullSpaceResult<Scalar> result;
-            result.mX = mF;
+            result.mX = mF->copy();
             result.mY = mY;
 
             auto & _mX = result.mX;
@@ -340,11 +341,6 @@ namespace kqp {
         Real m_epsilon;
     };
     
-    
-# ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template class ReducedSetNullSpace<Scalar>;
-# include <kqp/for_all_scalar_gen.h.inc>
-# endif 
 }
 
 #endif

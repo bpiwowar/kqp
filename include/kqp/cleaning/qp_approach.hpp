@@ -81,7 +81,7 @@ namespace kqp {
         
         struct Comparator {
             bool operator() (const LambdaError &e1, const LambdaError &e2) { 
-                if (e1.maxa < EPSILON) 
+                if (e1.maxa < epsilon()) 
                     return e1.maxa < e2.maxa;
                 return e1.delta() * e2.maxa < e2.delta() * e1.maxa; 
             }
@@ -171,8 +171,8 @@ namespace kqp {
          * @param mF The matrix of pre-images
          * @param mY the 
          */
-        void run(Index target, const FSpace &fs, const FMatrix &_mF, const ScalarAltMatrix &_mY, const RealVector &mD) {            
-            KQP_LOG_ASSERT_F(main_logger, _mY.rows() == _mF->size(), "Incompatible dimensions (%d vs %d)", %_mY.rows() %_mF->size());
+        void run(Index target, const FSpaceCPtr &fs, const FMatrixCPtr &_mF, const ScalarAltMatrix &_mY, const RealVector &mD) {
+            KQP_LOG_ASSERT_F(main_logger(), _mY.rows() == _mF->size(), "Incompatible dimensions (%d vs %d)", %_mY.rows() %_mF->size());
             
             // Diagonal won't change
             new_mD = mD;
@@ -180,7 +180,7 @@ namespace kqp {
             // Early stop
             if (target >= _mF->size()) {
                 new_mY = _mY;
-                new_mF = _mF;
+                new_mF = _mF->copy();
                 return;
             }
             
@@ -232,7 +232,7 @@ namespace kqp {
                 // --- Set some variables before next operations
                 
             }
-            const FMatrix &mF = useNew ? new_mF : _mF;
+            const FMatrixCPtr &mF = useNew ? new_mF : _mF;
             const ScalarAltMatrix &mY = useNew ? new_alt_mY : _mY;
             const ScalarMatrix &gram = fs->k(mF);
             
@@ -269,11 +269,11 @@ namespace kqp {
             // std::cerr << boost::format("delta=(%g,%g)  and maxa=%g\n") %acc_lambda.deltaMin %acc_lambda.deltaMax % acc_lambda.maxa;
             
             // Check for a trivial solution
-            if (acc_lambda.maxa <= EPSILON * acc_lambda.delta()) {
+            if (acc_lambda.maxa <= epsilon() * acc_lambda.delta()) {
                 KQP_HLOG_WARN("There are only trivial solutions, calling cleanUnused");
                 if (!useNew) {
                     new_mY = mY;
-                    new_mF = mF;   
+                    new_mF = mF->copy();
                 }
                 new_mD = mD;
                 CleanerUnused<Scalar>::run(new_mF, new_mY);
@@ -347,7 +347,7 @@ namespace kqp {
             for(Index i = n-target; i < n; i++) {
                 to_keep[indices[i]] = true;
             }
-            FMatrix _new_mF = mF->subset(to_keep.begin(), to_keep.end());
+            FMatrixPtr _new_mF = mF->subset(to_keep.begin(), to_keep.end());
             
             
             //
@@ -461,19 +461,10 @@ namespace kqp {
         
     };
     
-#define KQP_CLEANING__QP_APPROACH_H_GEN(extern,scalar) \
-extern template class KQP_KKTPreSolver<scalar>; \
-extern template struct LambdaError<scalar>; \
-extern template struct ReducedSetWithQP<scalar>; \
-extern template class CleanerQP<scalar>;
-    
-#define KQP_SCALAR_GEN(scalar) KQP_CLEANING__QP_APPROACH_H_GEN(extern, scalar)
-#include <kqp/for_all_scalar_gen.h.inc>
-#undef KQP_SCALAR_GEN
-#endif
 
+#endif
 }
 
+#include <kqp/cleaning/qp_approach.inc.hpp>
 
 #endif
-

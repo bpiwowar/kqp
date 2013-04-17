@@ -30,6 +30,8 @@
 #ifndef picojson_h
 #define picojson_h
 
+#include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -49,6 +51,7 @@
 #else
     #define SNPRINTF snprintf
 #endif
+
 
 namespace picojson {
   
@@ -82,6 +85,7 @@ namespace picojson {
     value(int type, bool);
     explicit value(bool b);
     explicit value(double n);
+	explicit value(float n);
     explicit value(const std::string& s);
     explicit value(const array& a);
     explicit value(const object& o);
@@ -131,7 +135,11 @@ namespace picojson {
   inline value::value(double n) : type_(number_type) {
     u_.number_ = n;
   }
-  
+	
+  inline value::value(float n) : type_(number_type) {
+	u_.number_ = n;
+  }
+	
   inline value::value(const std::string& s) : type_(string_type) {
     u_.string_ = new std::string(s);
   }
@@ -798,6 +806,156 @@ inline std::ostream& operator<<(std::ostream& os, const picojson::value& x)
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
+namespace kqp {
+
+  inline picojson::value readJsonFromFile(const std::string &jsonFile) {
+    std::ifstream in(jsonFile.c_str());
+    picojson::value v;
+    in >> v;
+    std::string err = picojson::get_last_error();
+    if (! err.empty()) {
+      KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON parsing error: %s (offset %d)", %err);
+    }
+    return v;
+  }
+
+  inline picojson::value readJsonFromString(const std::string &jsonString) {
+    std::istringstream in(jsonString);
+    picojson::value v;
+    in >> v;
+    std::string err = picojson::get_last_error();
+    if (! err.empty()) {
+      KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON parsing error: %s (offset %d)", %err);
+    }
+    return v;
+  }
+
+
+
+	template<typename type>
+	type get(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
+		if (o.find(key) == o.end()) {
+			o[key] = picojson::value(_default);
+			return _default;
+		}
+		
+		if (!o[key].is<type>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+		return o[key].get<type>();
+	}
+	
+	
+	template<typename type>
+	type get(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
+		if (!d.is<picojson::object>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object [looking for key %s]", %context %key);
+		
+		picojson::object &o = d.get<picojson::object>();
+		return get(context, o, key, _default);
+	}
+	
+	template<typename type>
+	type get(const std::string &context, picojson::object &o, const std::string &key) {
+		if (o.find(key) == o.end()) {
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: no key [%s]", %context %key );
+		}
+		
+		if (!o[key].is<type>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+		return o[key].get<type>();
+	}
+	
+	template<typename type>
+	type get(const std::string &context, picojson::value &d, const std::string &key) {
+		if (!d.is<picojson::object>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object [looking for key %s]", %context %key);
+		
+		picojson::object &o = d.get<picojson::object>();
+		return get<type>(context, o, key);
+	}
+	
+	template<typename type>
+	type getNumeric(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
+		return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
+	}
+	template<typename type>
+	int getNumeric(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
+		return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
+	}
+	
+	template<typename type>
+	int getNumeric(const std::string &context, picojson::value &d, const std::string &key) {
+		return boost::lexical_cast<type>(get<double>(context, d, key));
+	}
+	template<typename type>
+	int getNumeric(const std::string &context, picojson::object &o, const std::string &key) {
+		return boost::lexical_cast<type>(get<double>(context, o, key));
+	}
+	
+	
+	template<typename type>
+	type get(const std::string &context, const picojson::object &o, const std::string &key, const type & _default) {
+		auto p = o.find(key);
+		if (p == o.end()) {
+			return _default;
+		}
+		
+		if (!p->second.is<type>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+		return p->second.get<type>();
+	}
+	
+	
+	template<typename type>
+	type get(const std::string &context, const picojson::value &d, const std::string &key, const type & _default) {
+		if (!d.is<picojson::object>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
+		
+		const picojson::object &o = d.get<picojson::object>();
+		return get(context, o, key, _default);
+	}
+	
+	template<typename type>
+	type get(const std::string &context, const picojson::object &o, const std::string &key) {
+		auto p = o.find(key);
+		if (p == o.end()) {
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: no key [%s]", %context %key );
+		}
+		
+		if (!p->second.is<type>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: [%s] is not of type %s", %context %key %KQP_STRING_IT(TYPE));
+		return p->second.get<type>();
+	}
+
+	template<typename type>
+	type get(const std::string &context, const picojson::value &d, const std::string &key) {
+		if (!d.is<picojson::object>())
+			KQP_THROW_EXCEPTION_F(kqp::illegal_argument_exception, "JSON error [%s]: not an object", %context);
+		
+		const picojson::object &o = d.get<picojson::object>();
+		return get<type>(context, o, key);
+	}
+	
+	template<typename type>
+	type getNumeric(const std::string &context, const picojson::value &d, const std::string &key, const type & _default) {
+		return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
+	}
+	template<typename type>
+	int getNumeric(const std::string &context, const picojson::object &o, const std::string &key, const type & _default) {
+		return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
+	}
+	
+	template<typename type>
+	int getNumeric(const std::string &context, const picojson::value &d, const std::string &key) {
+		return boost::lexical_cast<type>(get<double>(context, d, key));
+	}
+	template<typename type>
+	int getNumeric(const std::string &context, const picojson::object &o, const std::string &key) {
+		return boost::lexical_cast<type>(get<double>(context, o, key));
+	}
+}
+
+
 
 #endif
 #ifdef TEST_PICOJSON

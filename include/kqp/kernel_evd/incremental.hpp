@@ -59,7 +59,7 @@ namespace kqp {
         };
 #endif
         
-        IncrementalKernelEVD(const FSpace &fs) 
+        IncrementalKernelEVD(const FSpaceCPtr &fs)
             : KernelEVD<Scalar>(fs), mX(fs->newMatrix()), 
               preImageRatios(std::numeric_limits<Scalar>::infinity(), std::numeric_limits<Scalar>::infinity()) {}
         virtual ~IncrementalKernelEVD() {}
@@ -82,7 +82,7 @@ namespace kqp {
         }
         
                
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
+        virtual void _add(Real alpha, const FMatrixCPtr &mU, const ScalarAltMatrix &mA) override {
             // --- Info
             
 //            KQP_LOG_DEBUG_F(KQP_HLOGGER, "Dimensions: X [%d], Y [%dx%d], Z [%dx%d], D [%d], U [%d], A [%dx%d]", 
@@ -244,7 +244,7 @@ namespace kqp {
         
     private:
         //! The feature matrix with n pre-images
-        FMatrix mX;
+        FMatrixPtr mX;
         
         //! The n x r matrix such that \f$X Y\f$ is orthonormal
         ScalarMatrix mY;
@@ -268,11 +268,6 @@ namespace kqp {
         std::pair<float,float> preImageRatios;            
         
     };
-
-#ifndef SWIG    
-#define KQP_SCALAR_GEN(type)  extern template class kqp::IncrementalKernelEVD<type>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
 
 }
 

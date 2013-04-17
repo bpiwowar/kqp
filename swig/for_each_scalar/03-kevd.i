@@ -34,31 +34,36 @@ shared_template(ChainSelector@SNAME@, kqp::ChainSelector< @STYPE@ >);
 %include "kqp/decomposition.hpp"
 %template(Decomposition@SNAME@) kqp::Decomposition< @STYPE@ >;
 
+
 // --- Decomposition cleaner
 
-%include "kqp/cleanup.hpp"
-%shared_ptr(kqp::Cleaner< @STYPE@ >);
-%shared_ptr(kqp::CleanerList< @STYPE@ >);
-%shared_ptr(kqp::CleanerRank< @STYPE@ >);
 
-%template(Cleaner@SNAME@) kqp::Cleaner< @STYPE@ >;
-%template(CleanerList@SNAME@) kqp::CleanerList< @STYPE@ >;
-%template(CleanerRank@SNAME@) kqp::CleanerRank< @STYPE@ >;
+%define DefineCleaner(NAME, TYPE)
+DefineTemplateClass(NAME, TYPE, kqp::CleanerBase)
+%enddef
+
+%include "kqp/cleanup.hpp"
+DefineCleaner(Cleaner@SNAME@, kqp::Cleaner< @STYPE@ >);
+DefineCleaner(CleanerList@SNAME@, kqp::CleanerList< @STYPE@ >);
+DefineCleaner(CleanerRank@SNAME@, kqp::CleanerRank< @STYPE@ >);
 
 %include "kqp/cleaning/qp_approach.hpp"
-%shared_ptr(kqp::CleanerQP< @STYPE@ >)
-%template(CleanerQP@SNAME@) kqp::CleanerQP< @STYPE@ >;
+DefineCleaner(CleanerQP@SNAME@, kqp::CleanerQP< @STYPE@ >);
 
 %include "kqp/cleaning/unused.hpp"
-%shared_ptr(kqp::CleanerUnused< @STYPE@ >);
-%template(CleanerUnused@SNAME@) kqp::CleanerUnused< @STYPE@ >;
+DefineCleaner(CleanerUnused@SNAME@, kqp::CleanerUnused< @STYPE@ >);
 
 %include "kqp/cleaning/null_space.hpp"
-shared_template(CleanerNullSpace@SNAME@, kqp::CleanerNullSpace< @STYPE@ >);
+DefineCleaner(CleanerNullSpace@SNAME@, kqp::CleanerNullSpace< @STYPE@ >);
 
-
+%include "kqp/cleaning/collapse.hpp"
+DefineCleaner(CleanerCollapse@SNAME@, kqp::CleanerCollapse< @STYPE@ >);
 
 // ---- Kernel EVD
+
+%define DefineKernelEVD(NAME, TYPE)
+DefineTemplateClass(NAME, %kqparg(TYPE), kqp::KernelEVDBase)
+%enddef
 
 %shared_ptr(kqp::KernelEVD< @STYPE@ >);
 %shared_ptr(kqp::DenseDirectBuilder< @STYPE@ >);
@@ -68,19 +73,19 @@ shared_template(CleanerNullSpace@SNAME@, kqp::CleanerNullSpace< @STYPE@ >);
 %shared_ptr(kqp::IncrementalKernelEVD< @STYPE@ >)
 
 %include "kqp/kernel_evd.hpp"
-%template(KEVD@SNAME@) kqp::KernelEVD< @STYPE@ >;
+DefineKernelEVD(KEVD@SNAME@, kqp::KernelEVD< @STYPE@ >);
 
 %include "kqp/kernel_evd/dense_direct.hpp"
-%template(KEVDDirect@SNAME@) kqp::DenseDirectBuilder< @STYPE@ >;
+DefineKernelEVD(KEVDDirect@SNAME@, kqp::DenseDirectBuilder< @STYPE@ >);
 
 %include "kqp/kernel_evd/accumulator.hpp"
-%template(KEVDLCAccumulator@SNAME@) kqp::AccumulatorKernelEVD< @STYPE@, true >;
+DefineKernelEVD(KEVDLCAccumulator@SNAME@, %kqparg(kqp::AccumulatorKernelEVD< @STYPE@, true >));
 
 %include "kqp/kernel_evd/accumulator.hpp"
-%template(KEVDAccumulator@SNAME@) kqp::AccumulatorKernelEVD< @STYPE@, false >;
+DefineKernelEVD(KEVDAccumulator@SNAME@, %kqparg(kqp::AccumulatorKernelEVD< @STYPE@, false >));
 
 %include "kqp/kernel_evd/incremental.hpp"
-%template(KEVDIncremental@SNAME@) kqp::IncrementalKernelEVD< @STYPE@ >;
+DefineKernelEVD(KEVDIncremental@SNAME@, kqp::IncrementalKernelEVD< @STYPE@ >);
 
 %include "kqp/kernel_evd/divide_and_conquer.hpp"
-%template(KEVDDivideAndConquer@SNAME@) kqp::DivideAndConquerBuilder< @STYPE@ >;
+DefineKernelEVD(KEVDDivideAndConquer@SNAME@, kqp::DivideAndConquerBuilder< @STYPE@ >);

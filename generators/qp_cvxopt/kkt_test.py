@@ -57,8 +57,8 @@ def doit(name, n,r, g,W, x,z):
 
             KQP_LOG_INFO(logger, "Average error (x): " << convert(error_x));
             KQP_LOG_INFO(logger, "Average error (z): " << convert(error_z));
-            KQP_LOG_ASSERT(logger, error_x < EPSILON, "Error for x is too high");
-            KQP_LOG_ASSERT(logger, error_z < EPSILON, "Error for z is too high");
+            KQP_LOG_ASSERT(logger, error_x < epsilon(), "Error for x is too high");
+            KQP_LOG_ASSERT(logger, error_z < epsilon(), "Error for z is too high");
             return 0;
         }
 """

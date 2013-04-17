@@ -94,7 +94,7 @@ if (JAVA_KQP OR PYTHON_KQP)
       SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${SWIG_SCALAR_GENERATED_FILES})
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
-      SWIG_LINK_LIBRARIES(kqp_jni kqp)
+      SWIG_LINK_LIBRARIES(kqp_jni ${LIBKQP_LIBRARIES})
       
       
       # --- Build archives using NAR (target kqp_jni_maven)
@@ -141,7 +141,7 @@ if (JAVA_KQP OR PYTHON_KQP)
       SET(CMAKE_SWIG_FLAGS -c++)
       set(CMAKE_SWIG_OUTDIR "python")
       SWIG_ADD_MODULE(kqp_python python kqp.i)
-      SWIG_LINK_LIBRARIES(kqp_python kqp ${PYTHON_LIBRARIES}) 
+      SWIG_LINK_LIBRARIES(kqp_python ${LIBKQP_LIBRARIES} ${PYTHON_LIBRARIES}) 
       
       # Set output name and path
       SET_TARGET_PROPERTIES(_kqp_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SWIG_OUTDIR}" LIBRARY_OUTPUT_NAME _kqp)

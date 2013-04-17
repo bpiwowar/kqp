@@ -18,16 +18,18 @@
 #ifndef __KQP_FEATURE_MATRIX_H__
 #define __KQP_FEATURE_MATRIX_H__
 
-#include <pugixml.hpp>
 #include <kqp/kqp.hpp>
+#include <kqp/logging.hpp>
+#include <kqp/picojson.hpp>
 #include <boost/shared_ptr.hpp>
 #include <kqp/alt_matrix.hpp>
 
 
-namespace kqp
-{
 #   include <kqp/define_header_logger.hpp>
     DEFINE_KQP_HLOGGER("kqp.feature_matrix");
+
+namespace kqp
+{
 
 #ifndef SWIG
 template <typename Scalar>
@@ -36,6 +38,20 @@ struct ScalarDefinitions
     typedef typename Eigen::NumTraits<Scalar>::Real Real;
     typedef kqp::AltMatrix< typename kqp::AltDense<Scalar>::DenseType, typename kqp::AltDense<Scalar>::IdentityType >  ScalarAltMatrix;
     typedef kqp::AltMatrix< typename kqp::AltVector<Real>::VectorType,  typename kqp::AltVector<Real>::ConstantVectorType >   RealAltVector;
+
+    static inline bool isDense(const ScalarAltMatrix &m) {
+        return m.isT1();
+    }
+    static inline bool isIdentity(const ScalarAltMatrix &m) {
+        return m.isT2();
+    }
+
+    static inline bool isDense(const RealAltVector &m) {
+        return m.isT1();
+    }
+    static inline bool isConstant(const RealAltVector &m) {
+        return m.isT2();
+    }
 };
 #endif
 
@@ -52,16 +68,14 @@ struct ScalarDefinitions
     typedef typename AltDense<Scalar>::IdentityType IdentityScalarMatrix; \
     /* Feature matrices */ \
     typedef FeatureMatrixBase<Scalar> FMatrixBase; \
-    typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrix; /* FIXME: remove  */ \
     typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixPtr; \
-    typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixCPtr; \
+    typedef boost::shared_ptr< const FeatureMatrixBase<Scalar> > FMatrixCPtr; \
     /* Feature spaces */ \
     typedef SpaceBase<Scalar> FSpaceBase; \
-    typedef boost::shared_ptr< SpaceBase<Scalar> > FSpace; /* FIXME: remove */ \
     typedef boost::shared_ptr< SpaceBase<Scalar> > FSpacePtr; \
-    typedef boost::shared_ptr< SpaceBase<Scalar> > FSpaceCPtr; \
+    typedef boost::shared_ptr< const SpaceBase<Scalar> > FSpaceCPtr; \
     typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixBasePtr; \
-    typedef boost::shared_ptr< FeatureMatrixBase<Scalar> > FMatrixBaseCPtr; 
+    typedef boost::shared_ptr< const FeatureMatrixBase<Scalar> > FMatrixBaseCPtr; 
 
 //! Defines types for a matrix (Self should be defined before calling the macro)
 #define KQP_MATRIX_TYPEDEFS(Scalar) \
@@ -191,7 +205,7 @@ public:
     }
 
     /** Add pre-images vectors */
-    inline void add(const FMatrix &f, const std::vector<bool> *which = NULL)
+    inline void add(const FMatrixCPtr &f, const std::vector<bool> *which = NULL)
     {
         return add(*f, which);
     }
@@ -211,13 +225,13 @@ class AbstractSpace
 public:
     virtual ~AbstractSpace() {}
     /**
-     * Load from XML
+     * Load from JSON
      * \param node The node to load
      */
-    virtual void load(const pugi::xml_node &node) = 0;
+    virtual void load(const picojson::object &json) = 0;
 
-    //! Save in XML
-    virtual pugi::xml_node save(pugi::xml_node &node) const = 0;
+    //! Save in JSON
+    virtual picojson::object save() const = 0;
 
     //! Name of the space
     virtual const std::string & name() const = 0;
@@ -325,10 +339,11 @@ public:
     {
     }
 
-    virtual pugi::xml_node save(pugi::xml_node &node) const override {
-        pugi::xml_node self = node.append_child(name().c_str());
-        self.append_attribute("scalar") = ScalarInfo<Scalar>::name().c_str();
-        return self;
+    virtual picojson::object save() const override {
+		picojson::object json;
+        json["name"] = picojson::value(name());
+		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+		return json;
     }
 
     //! Creates a new feature matrix
@@ -359,19 +374,19 @@ public:
 
 #ifndef SWIG
     //! Gram matrix
-    inline const ScalarMatrix &k(const FMatrix &mX) const
+    inline const ScalarMatrix &k(const FMatrixCPtr &mX) const
     {
         return k(*mX);
     }
 
     //! Inner products \f$D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2\f$
-    inline ScalarMatrix k(const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD) const
+    inline ScalarMatrix k(const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealAltVector &mD) const
     {
         return k(*mX, mY, mD);
     }
 
     //! Inner products \f$D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2\f$
-    inline ScalarMatrix k(const FMatrix &mX, const ScalarAltMatrix &mY) const
+    inline ScalarMatrix k(const FMatrixCPtr &mX, const ScalarAltMatrix &mY) const
     {
         return k(*mX, mY, RealVector::Ones(mY.cols()));
     }
@@ -383,21 +398,21 @@ public:
     }
 
     //! Inner products \f$D_1^\dagger Y_1^\dagger X_1^\dagger X_2 Y_2 D_2\f$
-    inline ScalarMatrix k(const FMatrix &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
-                          const FMatrix &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const
+    inline ScalarMatrix k(const FMatrixCPtr &mX1, const ScalarAltMatrix &mY1, const RealAltVector &mD1,
+                          const FMatrixCPtr &mX2, const ScalarAltMatrix &mY2, const RealAltVector &mD2) const
     {
         return k(*mX1, mY1, mD1, *mX2, mY2, mD2);
     }
 
 
     //! Inner product \f$X_1^\dagger X_2\f$
-    inline ScalarMatrix k(const FMatrix &mX1, const ScalarAltMatrix &mY1, const FMatrix &mX2, const ScalarAltMatrix &mY2) const
+    inline ScalarMatrix k(const FMatrixCPtr &mX1, const ScalarAltMatrix &mY1, const FMatrixCPtr &mX2, const ScalarAltMatrix &mY2) const
     {
         return k(mX1, mY1,  RealVector::Ones(mY1.cols()), mX2, mY2, RealVector::Ones(mY2.cols()));
     }
 
     //! Inner product \f$X_1^\dagger X_2\f$
-    inline ScalarMatrix k(const FMatrix &mX1, const FMatrix &mX2) const
+    inline ScalarMatrix k(const FMatrixCPtr &mX1, const FMatrixCPtr &mX2) const
     {
         return k(mX1, IdentityScalarMatrix(mX1->size(), mX1->size()), RealVector::Ones(mX1->size()),
                  mX2, IdentityScalarMatrix(mX2->size(), mX2->size()), RealVector::Ones(mX2->size()));
@@ -417,7 +432,7 @@ public:
      *
      * Computes \f$ \alpha XA + \beta Y B  \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
      */
-    inline FMatrix linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha, const FMatrixBase &mY, const ScalarAltMatrix &mB, Scalar beta) const
+    inline FMatrixPtr linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha, const FMatrixBase &mY, const ScalarAltMatrix &mB, Scalar beta) const
     {
         // Check for correctedness
         if (mA.rows() != mX.size())
@@ -428,7 +443,7 @@ public:
             return newMatrix();
 
         // Call the derived
-        return FMatrix(linearCombination(mX, mA, alpha, &mY, &mB, beta));
+        return FMatrixPtr(linearCombination(mX, mA, alpha, &mY, &mB, beta));
     }
 
 
@@ -437,7 +452,7 @@ public:
      *
      * Computes \f$ XA \f$ where \f$X\f$ is the current feature matrix, and \f$A\f$ is the argument
      */
-    inline FMatrix linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha = (Scalar)1) const {
+    inline FMatrixPtr linearCombination(const FMatrixBase &mX, const ScalarAltMatrix &mA, Scalar alpha = (Scalar)1) const {
         // Check for correctedness
         if (mA.rows() != mX.size())
             KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot linearly combine with a matrix with %d rows (we have %d pre-images)", % mA.rows() % mX.size());
@@ -447,12 +462,12 @@ public:
             return newMatrix();
 
         // Call the derived
-        return FMatrix(linearCombination(mX, mA, alpha, NULL, NULL, 0));
+        return FMatrixPtr(linearCombination(mX, mA, alpha, NULL, NULL, 0));
     }
 
 #ifndef SWIG
     //! \deprecated
-    inline FMatrix linearCombination(const FMatrix &mX, const ScalarAltMatrix &mA, Scalar alpha = (Scalar)1) const {
+    inline FMatrixPtr linearCombination(const FMatrixCPtr &mX, const ScalarAltMatrix &mA, Scalar alpha = (Scalar)1) const {
         return linearCombination(*mX, mA, alpha);
     }
 #endif
@@ -490,13 +505,6 @@ private:
     bool m_useLinearCombination;
 };
 
-
-
-
-# ifndef SWIG
-# define KQP_SCALAR_GEN(Scalar) extern template class FeatureMatrixBase<Scalar>; extern template class SpaceBase<Scalar>;
-# include <kqp/for_all_scalar_gen.h.inc>
-# endif
 
 }
 

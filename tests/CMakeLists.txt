@@ -1,55 +1,52 @@
-
-FILE(GLOB kqp.basefiles ../src/kqp.cpp ../src/logging.cpp)
-
 # Orthonormalization
-FILE(GLOB kqp.test.evd-utils test_evd-utils.cpp ../src/subset.cpp ${kqp.basefiles})
+FILE(GLOB kqp.test.evd-utils test_evd-utils.cpp ../src/subset.cpp)
 ADD_EXECUTABLE(test_evd-utils ${kqp.test.evd-utils})
 TARGET_LINK_LIBRARIES(test_evd-utils ${LIBKQP_LIBRARIES})
 
 # Alt matrix
-FILE(GLOB kqp.test.alt-matrix alt_matrix_tests.cpp ${kqp.basefiles})
+FILE(GLOB kqp.test.alt-matrix alt_matrix_tests.cpp)
 ADD_EXECUTABLE(test_alt-matrix ${kqp.test.alt-matrix})
 TARGET_LINK_LIBRARIES(test_alt-matrix ${LIBKQP_LIBRARIES})
 
 # Feature matrix
-FILE(GLOB kqp.test.fmatrix feature_matrix.cpp ../src/subset.cpp ${kqp.basefiles})
+FILE(GLOB kqp.test.fmatrix feature_matrix.cpp ../src/subset.cpp)
 ADD_EXECUTABLE(test_fmatrix ${kqp.test.fmatrix})
 TARGET_LINK_LIBRARIES(test_fmatrix ${LIBKQP_LIBRARIES})
 
 # Rank-1 EVD update
 FILE(GLOB kqp.test.evd-update evd-update.cpp)
 ADD_EXECUTABLE(test_evd-update ${kqp.test.evd-update})
-TARGET_LINK_LIBRARIES(test_evd-update kqp)
+TARGET_LINK_LIBRARIES(test_evd-update ${LIBKQP_LIBRARIES})
 
 # QP solver
 FILE(GLOB kqp.test.qp-solver qp-solver.cpp )
 ADD_EXECUTABLE(test_qp-solver ${kqp.test.qp-solver})
-TARGET_LINK_LIBRARIES(test_qp-solver kqp)
+TARGET_LINK_LIBRARIES(test_qp-solver ${LIBKQP_LIBRARIES})
 
 # Reduced set
 FILE(GLOB kqp.test.reduced-set reduced-set_*.cpp)
 ADD_EXECUTABLE(test_reduced-set ${kqp.test.reduced-set})
-TARGET_LINK_LIBRARIES(test_reduced-set kqp )
+TARGET_LINK_LIBRARIES(test_reduced-set ${LIBKQP_LIBRARIES})
 
 # Kernel EVD
 FILE(GLOB kqp.test.kernel-evd kernel-evd*.[ch]pp)
 ADD_EXECUTABLE(test_kernel-evd ${kqp.test.kernel-evd})
-TARGET_LINK_LIBRARIES(test_kernel-evd kqp)
+TARGET_LINK_LIBRARIES(test_kernel-evd ${LIBKQP_LIBRARIES})
 
 # Divergence
 FILE(GLOB kqp.test.divergence divergence_test.[ch]pp)
 ADD_EXECUTABLE(test_divergence ${kqp.test.divergence})
-TARGET_LINK_LIBRARIES(test_divergence kqp)
+TARGET_LINK_LIBRARIES(test_divergence ${LIBKQP_LIBRARIES})
 
 # Projections
 FILE(GLOB kqp.test.projection projection_test.[ch]pp)
 ADD_EXECUTABLE(test_projection ${kqp.test.projection})
-TARGET_LINK_LIBRARIES(test_projection kqp)
+TARGET_LINK_LIBRARIES(test_projection ${LIBKQP_LIBRARIES})
 
 # Probabilities
  FILE(GLOB kqp.test.probabilities probability_test.[ch]pp)
  ADD_EXECUTABLE(test_probabilities ${kqp.test.probabilities})
- TARGET_LINK_LIBRARIES(test_probabilities kqp)
+ TARGET_LINK_LIBRARIES(test_probabilities ${LIBKQP_LIBRARIES})
  
 
 

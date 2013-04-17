@@ -230,7 +230,7 @@ namespace kqp {
 #ifndef SWIG
         using SpaceBase<Scalar>::k;
 #endif        
-        static FSpace create(Index dimension) { return FSpace(new SparseSpace(dimension)); }
+        static FSpacePtr create(Index dimension) { return FSpacePtr(new SparseSpace(dimension)); }
         
         SparseSpace() {}
         SparseSpace(Index dimension) : m_dimension(dimension) {}
@@ -259,14 +259,14 @@ namespace kqp {
             return mD1.asDiagonal() * mY1.adjoint() * cast(mX1)->adjoint() * *cast(mX2) * mY2 * mD2.asDiagonal();
         };
                 
-        virtual void load(const pugi::xml_node &node) override {
-            m_dimension = boost::lexical_cast<Index>(node.attribute("dimension").value());
+        virtual void load(const picojson::object &json) override {
+            m_dimension = getNumeric<Index>("", json, "dimension");
         }
 
-        virtual pugi::xml_node save(pugi::xml_node &node) const override {
-            pugi::xml_node self = SpaceBase<Scalar>::save(node);
-            self.append_attribute("dimension") = boost::lexical_cast<std::string>(m_dimension).c_str();
-            return self;
+        virtual picojson::object save() const override {
+			picojson::object json = SpaceBase<Scalar>::save();
+			json["dimension"] = picojson::value((double)m_dimension);
+            return json;
         }
 
 
@@ -275,12 +275,6 @@ namespace kqp {
         Index m_dimension;     
     };
     
-
-#ifndef SWIG    
-# // Extern templates
-# define KQP_SCALAR_GEN(scalar) extern template class Sparse<scalar>; extern template class SparseSpace<scalar>;
-# include <kqp/for_all_scalar_gen.h.inc>
-#endif
 
 } // end namespace kqp
 

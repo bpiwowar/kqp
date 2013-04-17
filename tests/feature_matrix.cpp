@@ -54,7 +54,7 @@ namespace kqp {
         int code;
         
         void checkError(const std::string &name, double error) {
-            if (error < EPSILON) {
+            if (error < epsilon()) {
                 KQP_LOG_INFO_F(logger,  "Error for %s (%s) is %g", %name %fmatrixName %error);
             } else {
                 KQP_LOG_ERROR_F(logger, "Error for %s (%s) is %g [!]", %name %fmatrixName %error);
@@ -131,7 +131,7 @@ namespace kqp {
                 
                 error = (sdLC->template as<KQPMatrix>().toDense() - dLC).norm() / dLC.norm();
                 KQP_LOG_INFO_F(logger, "Delta (lc, %s) is %g", %fmatrixName %error);
-                code |= error >= EPSILON;
+                code |= error >= epsilon();
             }
             
             return code;
@@ -171,7 +171,7 @@ namespace kqp {
             
             error = (KQPMatrix(sm).toDense() - m).norm() / m.norm();
             KQP_LOG_INFO_F(logger, "Delta (sparse matrix, %s) is %g", %fmatrixName %error);
-            code |= error >= EPSILON;
+            code |= error >= epsilon();
             
             // --- Test the difference when constructed from a sparse (Col major)
             Eigen::SparseMatrix<Scalar, Eigen::ColMajor> smCol(m.rows(), m.cols());        
@@ -182,7 +182,7 @@ namespace kqp {
             
             error = (KQPMatrix(smCol).toDense() - m).norm() / m.norm();
             KQP_LOG_INFO_F(logger, "Delta (sparse matrix, %s) is %g", %fmatrixName %error);
-            code |= error >= EPSILON;
+            code |= error >= epsilon();
             
             return code;
         }

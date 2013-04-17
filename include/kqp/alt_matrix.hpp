@@ -633,6 +633,7 @@ namespace kqp {
         }
         
         bool isT1() const { return m_isT1; }
+        bool isT2() const { return !m_isT1; }
         
         inline typename storage<T1>::ConstReturnType t1() const { return m_t1.get(); }
         inline typename storage<T2>::ConstReturnType t2() const { return m_t2.get(); }
@@ -1458,14 +1459,5 @@ namespace Eigen {
 
 
 } 
-
-namespace kqp {
-
-# define KQP_SCALAR_GEN(type)  \
-    extern template class AltMatrix<AltDense<type>::DenseType, Eigen::Identity<type>>; \
-    extern template class AltMatrix<AltVector<type>::VectorType, AltVector<type>::ConstantVectorType>;
-# include <kqp/for_all_scalar_gen.h.inc>
-    
-}
 
 #endif

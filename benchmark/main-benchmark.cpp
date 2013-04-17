@@ -53,7 +53,7 @@ DEFINE_LOGGER(logger,  "kqp.benchmark.main");
 using namespace kqp;
 int main(int argc, const char **argv) {  
     
-    LOGGER_CONFIG.setDefaultLevel("INFO");
+    kqp::Logger::setDefaultLevel("INFO");
 
     std::deque<std::string> args;
     for(int i = 1; i < argc; i++) 
@@ -74,7 +74,7 @@ int main(int argc, const char **argv) {
                 args.pop_front();
                 std::string id = args[0];
                 args.pop_front();
-                LOGGER_CONFIG.setLevel(id, "DEBUG");
+                kqp::Logger::setLevel(id, "DEBUG");
             }
             
             else if (args[0] == "--log-level") {
@@ -83,7 +83,7 @@ int main(int argc, const char **argv) {
                 args.pop_front();
                 std::string level = args[0];
                 args.pop_front();
-                LOGGER_CONFIG.setLevel(id, level);
+                kqp::Logger::setLevel(id, level);
             }
             
             else break;

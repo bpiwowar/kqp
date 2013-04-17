@@ -57,7 +57,7 @@ namespace kqp {
     protected:
 
 
-        virtual void _add(Real alpha, const FMatrix &mX, const ScalarAltMatrix &mA) override {
+        virtual void _add(Real alpha, const FMatrixCPtr &mX, const ScalarAltMatrix &mA) override {
             rankUpdate2(matrix.template selfadjointView<Eigen::Lower>(), kqp::our_dynamic_cast<const FDense &>(*mX).getMatrix() * mA, (Scalar)alpha);
         }
         
@@ -68,7 +68,7 @@ namespace kqp {
             ScalarAltMatrix _mX;
             kqp::ThinEVD<ScalarMatrix>::run(evd, _mX, d.mD);              
             
-            d.mX = FMatrix(new Dense<Scalar>(std::move(ScalarMatrix(_mX))));
+            d.mX = FMatrixPtr(new Dense<Scalar>(std::move(ScalarMatrix(_mX))));
             d.mY = Eigen::Identity<Scalar>(d.mX->size(), d.mX->size());
             return d;
         }
@@ -78,12 +78,7 @@ namespace kqp {
         
         ScalarMatrix matrix;
     };
-    
-#ifndef SWIG
-#define KQP_SCALAR_GEN(scalar) extern template class DenseDirectBuilder<scalar>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
-    
+        
 } // end namespace kqp
 
 #endif

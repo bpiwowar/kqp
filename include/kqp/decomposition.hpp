@@ -31,10 +31,10 @@ struct Decomposition
     KQP_SCALAR_TYPEDEFS(Scalar);
 
     //! Feature space
-    FSpace fs;
+    FSpaceCPtr fs;
 
     //! The feature matrix
-    FMatrix  mX;
+    FMatrixPtr  mX;
 
     //! The linear combination matrix
     ScalarAltMatrix mY;
@@ -52,15 +52,15 @@ struct Decomposition
     Decomposition() : orthonormal(true) {}
 
     //! Default constructor with a feature space
-    Decomposition(const FSpace &fs) : fs(fs), mX(fs->newMatrix()), orthonormal(true) {}
+    Decomposition(const FSpaceCPtr &fs) : fs(fs), mX(fs->newMatrix()), orthonormal(true) {}
 
     //! Full constructor
-    Decomposition(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal)
+    Decomposition(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealAltVector &mD, bool orthonormal)
         : fs(fs), mX(mX->copy()), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0) {}
 
 #ifndef SWIG
     //! Move constructor
-    Decomposition(FSpace && fs, FMatrix && mX, const ScalarAltMatrix && mY, const RealAltVector && mD, bool orthonormal)
+    Decomposition(FSpaceCPtr && fs, FMatrixPtr && mX, const ScalarAltMatrix && mY, const RealAltVector && mD, bool orthonormal)
         : fs(fs), mX(mX), mY(mY), mD(mD), orthonormal(orthonormal), updateCount(0)
     {
     }
@@ -126,11 +126,6 @@ struct Decomposition
 
 
 }
-
-#ifndef SWIG
-#define KQP_SCALAR_GEN(type) extern template struct kqp::Decomposition<type>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
 
 #endif
 

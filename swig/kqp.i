@@ -19,8 +19,11 @@
 
 %{
     // Disable those warnings for SWIG
+#ifndef __clang__
     #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
     #pragma GCC diagnostic ignored "-Wunused-parameter"
 %}
 
@@ -38,6 +41,8 @@
     #define IDENTITY_MATRIX IDENTITY
     #endif
 
+    #include <sstream>
+    #include <fstream>
 
     #include <boost/exception/diagnostic_information.hpp> 
     #include <kqp/cleanup.hpp>
@@ -55,9 +60,11 @@
     #include <kqp/kernel_evd/accumulator.hpp>
     #include <kqp/kernel_evd/incremental.hpp>
     #include <kqp/kernel_evd/divide_and_conquer.hpp>
+    #include <kqp/kernel_evd/factory.hpp>
 
     #include <kqp/cleaning/unused.hpp>
     #include <kqp/cleaning/qp_approach.hpp>
+    #include <kqp/cleaning/collapse.hpp>
 
     #include <kqp/probabilities.hpp>
 
@@ -81,6 +88,20 @@
 
 // Preserve the arguments
 #define %kqparg(X...) X
+
+//! Class with a cast
+%define DefineTemplateClass(NAME, TYPE, BASE)
+%shared_ptr(TYPE);
+%template(NAME) TYPE;
+%extend TYPE {
+    static boost::shared_ptr< TYPE > cast(const boost::shared_ptr< BASE > &base) {
+    return kqp::our_dynamic_cast< TYPE >(base);
+	}
+    static bool isInstance(const boost::shared_ptr< BASE > &base) {
+        return kqp::our_dynamic_cast<const TYPE *>(base.get()) != 0;
+    }
+}
+%enddef
 
 // --- Language dependent includes
 
@@ -108,6 +129,9 @@
 
 // --- Shared pointers
 %shared_ptr(kqp::AbstractSpace)
+%shared_ptr(kqp::CleanerBase);
+%shared_ptr(kqp::KernelEVDBase);
+%shared_ptr(kqp::BuilderFactoryBase);
 
 // ---- Command renaming
 
@@ -210,6 +234,7 @@ namespace Eigen {
     }
 }
 
+
 %include <kqp/eigen_identity.hpp>
 %include <kqp/logging.hpp>
 
@@ -220,3 +245,32 @@ namespace Eigen {
 
 
 %include "kqp_all.i"
+
+boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSON(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonString);
+boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSONFile(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonFile);
+
+boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSON(const std::string &jsonString);
+boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSONFile(const std::string &jsonFile);
+
+%{
+    boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSON(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonString) {
+        auto v = kqp::readJsonFromString(jsonString);
+        return kqp::BuilderFactoryBase::getFactory(space, v);
+    }
+
+    boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSONFile(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonFile) {
+        auto v = kqp::readJsonFromFile(jsonFile);
+        return kqp::BuilderFactoryBase::getFactory(space, v);
+    }
+
+    boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSON(const std::string &jsonString) {
+        auto v = kqp::readJsonFromString(jsonString);
+        return kqp::BuilderFactoryBase::getCleaner(v);
+    }
+
+    boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSONFile(const std::string &jsonFile) {
+        auto v = kqp::readJsonFromFile(jsonFile);
+        return kqp::BuilderFactoryBase::getCleaner(v);
+    }
+%}
+

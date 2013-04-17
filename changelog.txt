@@ -1,5 +1,6 @@
 ### HEAD ###
 
+* JSON factories (spaces and cleaners)
 
 ## 1.2.0 ##
 

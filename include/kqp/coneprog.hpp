@@ -470,4 +470,6 @@ namespace kqp {
     
 }
 
+#include <kqp/coneprog.inc.hpp>
+
 #endif

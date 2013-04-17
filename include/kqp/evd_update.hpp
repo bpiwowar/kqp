@@ -97,4 +97,5 @@ namespace kqp {
     };
 };
 
+#include <kqp/evd_update.inc.hpp>
 #endif

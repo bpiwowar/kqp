@@ -18,7 +18,9 @@
 #define __KQP_H__
 
 // Disable warnings for non used typedefs
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif
 
 #ifdef EIGEN_CORE_H
  #error "kqp.hpp should be included before any Eigen source"
@@ -103,7 +105,6 @@ namespace Eigen {
 
 
 #include <kqp/exceptions.hpp>
-#include <pugixml.hpp>
 
 namespace kqp {
 # //! New shared ptr
@@ -158,11 +159,7 @@ namespace kqp {
     
 #else // We do some logging
 
-    // This is implemented in logging.cpp
-    void prepareLogger();
         
-    extern log4cxx::LoggerPtr main_logger;
-    
 #   define KQP_IS_TRACE_ENABLED(name) (name->isTraceEnabled())
 #   define KQP_IS_DEBUG_ENABLED(name) (name->isDebugEnabled())
 #   define KQP_IS_INFO_ENABLED(name) (name->isInfoEnabled())
@@ -178,19 +175,21 @@ namespace kqp {
      // * Note * We fully skip trace messages when NDEBUG is defined
 
 #    ifndef NDEBUG
+
+#include <kqp/logging.hpp>
     
 #     //! Useful to remove unuseful statements when debugging (or not)
 #     define KQP_M_NDEBUG(x)
 #     define KQP_M_DEBUG(x) x
 
 #      /** Debug */
-#      define KQP_LOG_TRACE(name,message) { prepareLogger(); LOG4CXX_DEBUG(name, message); }
+#      define KQP_LOG_TRACE(name,message) { kqp::Logger::prepare(); LOG4CXX_DEBUG(name, message); }
     
 #     /** Assertion with message */
 
 #     //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
 #     define KQP_THROW_EXCEPTION(type, message) { \
-    kqp::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger, "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  \
+    kqp::logger::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger(), "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  \
     abort(); }
 
 #    else // No DEBUG
@@ -207,15 +206,16 @@ namespace kqp {
 #endif // ELSE
     
     
-#define KQP_LOG_DEBUG(name,message) { kqp::prepareLogger(); LOG4CXX_DEBUG(name, message); }
-#define KQP_LOG_INFO(name,message) { kqp::prepareLogger(); LOG4CXX_INFO(name, message); }
-#define KQP_LOG_WARN(name,message) { kqp::prepareLogger(); LOG4CXX_WARN(name, message); }
-#define KQP_LOG_ERROR(name,message) { kqp::prepareLogger(); LOG4CXX_ERROR(name, message); }
+#define KQP_LOG_DEBUG(name,message) { kqp::Logger::prepare(); LOG4CXX_DEBUG(name, message); }
+#define KQP_LOG_INFO(name,message) { kqp::Logger::prepare(); LOG4CXX_INFO(name, message); }
+#define KQP_LOG_WARN(name,message) { kqp::Logger::prepare(); LOG4CXX_WARN(name, message); }
+#define KQP_LOG_ERROR(name,message) { kqp::Logger::prepare(); LOG4CXX_ERROR(name, message); }
 
 #define KQP_LOG_ASSERT(name,condition,message) \
     { if (!(condition)) { \
         KQP_THROW_EXCEPTION(kqp::assertion_exception, (boost::format("Assert failed [%s]: %s")  %KQP_STRING_IT(condition) %message).str()); \
     }}
+
 
 #endif // ndef(NOLOGGING)
     
@@ -254,9 +254,7 @@ namespace kqp {
     
     
     /** Anything below is considered zero in approximations */
-    extern double EPSILON;
-
-    
+    inline double epsilon() { return 1e-15; }
 
     inline std::string demangle(const std::type_info &x) {
         //     __cxa_demangle(const char* __mangled_name, char* __output_buffer, size_t* __length, int* __status);
@@ -317,33 +315,6 @@ namespace kqp {
             KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting [%s] to type %s", 
                                    %u %KQP_DEMANGLE(T));
         }
-    }
-
-    //! Gets the attribute value and casts it
-    template<typename T> inline T attribute(const pugi::xml_node &node, const std::string &name) {
-        try {
-            return boost::lexical_cast<T>(node.attribute(name.c_str()).value());
-        }
-        catch(boost::bad_lexical_cast &e) {
-            KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting attribute %s of node %s to type %s",
-                                    %name %node.name() %KQP_DEMANGLE(T));
-        }
-
-    }
-
-    template<typename T> inline T attribute(const pugi::xml_node &node, const std::string &name, const T &defaultValue = "") {
-        try {
-            auto n = node.attribute(name.c_str());
-            if (n.empty()) 
-                return defaultValue;
-            
-            return boost::lexical_cast<T>(n.value());
-        }
-        catch(boost::bad_lexical_cast &e) {
-            KQP_THROW_EXCEPTION_F(boost::bad_lexical_cast, "Converting attribute %s of node %s to type %s",
-                                    %name %node.name() %KQP_DEMANGLE(T));
-        }
-
     }
 
 

@@ -1,26 +1,3 @@
-
-#include <kqp/kqp.hpp>
-
-
-namespace kqp {
-    
-    // Machine zero
-    double EPSILON = 1e-15;
-        
-#ifndef NOLOGGING
-    // Main KQP logger
-    log4cxx::LoggerPtr main_logger(log4cxx::Logger::getLogger("kqp"));
-
-#endif
-    
-}
-
-// Explicit instanciation of print
-#define KQP_SCALAR_GEN(type) \
-    template void Eigen::Matrix<type, Eigen::Dynamic, 1>::print() const; \
-    template void Eigen::Matrix<type, Eigen::Dynamic, Eigen::Dynamic>::print() const; 
-#include <kqp/for_all_scalar_gen.h.inc>
-
 /** 
  
  @mainpage Kernel Quantum Probability project 

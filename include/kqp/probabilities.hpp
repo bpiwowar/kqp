@@ -82,7 +82,7 @@ namespace kqp {
         /**
          * \brief Creates a new kernel operator
          */
-        KernelOperator(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : m_operator(fs, mX,mY,mS,orthonormal) {
+        KernelOperator(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : m_operator(fs, mX,mY,mS,orthonormal) {
         }
         
         
@@ -179,7 +179,7 @@ namespace kqp {
          * @brief Get the matrix corresponding to the decomposition.
          * @throws An exception if the feature matrix cannot be linearly combined
          */
-        FMatrix matrix() const {
+        FMatrixPtr matrix() const {
             return m_operator.fs->linearCombination(X(), ScalarMatrix(Y() * S().asDiagonal()));
         }
         
@@ -243,16 +243,20 @@ namespace kqp {
         }
         
         /** Construct an event from a basis */
-        Event(const FSpace &fs, const FMatrix &mX, bool orthonormal)
+        Event(const FSpaceCPtr &fs, const FMatrixCPtr &mX, bool orthonormal)
         : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
         
         /** Construct an event from a basis */
-        Event(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, bool orthonormal) 
+        Event(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, bool orthonormal) 
         : KernelOperator<Scalar>(fs, mX, mY, RealVector::Ones(mX->size()), orthonormal) {
         }
         
-        Event(const Decomposition<Scalar> & d, bool takeSqrt) : KernelOperator<Scalar>(d, takeSqrt) {
+        Event(const Decomposition<Scalar> & d, bool takeSqrt, bool fuzzy) : KernelOperator<Scalar>(d, takeSqrt) {
+            if (!fuzzy) {
+                this->orthonormalize();
+                this->m_operator.mD = RealVector::Ones(this->Y().cols());
+            }            
         }
         
         //! (debug) Manually sets the linear combination
@@ -269,7 +273,7 @@ namespace kqp {
             ScalarMatrix lc;
             noalias(lc) = event.Y() * event.m_operator.k(density.m_operator);
             
-            FMatrix mX = event.m_operator.fs->linearCombination(event.X(), lc);
+            FMatrixPtr mX = event.m_operator.fs->linearCombination(event.X(), lc);
             ScalarAltMatrix mY = Eigen::Identity<Scalar>(mX->size(),mX->size());
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<Scalar>(event.m_operator.fs, mX, mY, mS, false);
@@ -286,7 +290,7 @@ namespace kqp {
             ScalarAltMatrix e_mY(event.Y() * (RealVector::Ones(n) - (RealVector::Ones(n) - s.cwiseAbs2()).cwiseSqrt()).asDiagonal() 
                                  * event.m_operator.fs->k(event.X(), event.Y(), density.X(), density.Y()));
             
-            FMatrix mX = density.m_operator.fs->linearCombination(density.X(), density.Y(), 1., event.X(), e_mY, -1.);
+            FMatrixPtr mX = density.m_operator.fs->linearCombination(density.X(), density.Y(), 1., event.X(), e_mY, -1.);
             
             return Density<Scalar>(event.m_operator.fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), density.S(), false);
         }
@@ -294,7 +298,7 @@ namespace kqp {
         
         static Density<Scalar> project(const Density<Scalar>& density, const Event<Scalar> &event) {        
             event.orthonormalize();
-            FMatrix mX = event.X().copy(); //event.m_operator.fs->newMatrix(event.X());
+            FMatrixPtr mX = event.X().copy(); //event.m_operator.fs->newMatrix(event.X());
             ScalarAltMatrix mY(event.Y() * event.m_operator.k(density.m_operator));
             RealVector mS = RealVector::Ones(mY.cols());
             return Density<Scalar>(event.m_operator.fs, mX, mY, mS, false);
@@ -304,7 +308,7 @@ namespace kqp {
             event.orthonormalize();
             
             // Concatenates the vectors
-            FMatrix mX = density.X().copy(); //event.m_operator.fs->newMatrix(density.X());
+            FMatrixPtr mX = density.X().copy(); //event.m_operator.fs->newMatrix(density.X());
             mX->add(event.X());
             
             // Computes the new linear combination matrix
@@ -363,10 +367,10 @@ namespace kqp {
         Density(const KernelEVD<Scalar> & evd) : KernelOperator<Scalar>(evd) {
         }
         
-        Density(const FSpace &fs, const FMatrix &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, mD, orthonormal) {
+        Density(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealVector &mD, bool orthonormal) : KernelOperator<Scalar>(fs, mX, mY, mD, orthonormal) {
         }
         
-        Density(const FSpace &fs, const FMatrix &mX, bool orthonormal) 
+        Density(const FSpaceCPtr &fs, const FMatrixCPtr &mX, bool orthonormal) 
             : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
         
@@ -416,6 +420,10 @@ namespace kqp {
             RealVector s = this->S();
             return - (2 * s.array().log() * s.array().abs2()).sum();
         }
+
+        Real computeDivergence(const Density<Scalar> &tau) const {
+            return computeDivergence(tau, epsilon());
+        }
         
         /**
          * @brief Computes the divergence with another density
@@ -425,7 +433,7 @@ namespace kqp {
          * at page 69. The formula is:
          * \f[ J(\rho || \tau) = tr(\rho \log (\rho) - \rho \log(\tau))) \f]
          */
-        Real computeDivergence(const Density<Scalar> &tau, Real epsilon = EPSILON) const {
+        Real computeDivergence(const Density<Scalar> &tau, Real epsilon) const {
             const Density<Scalar> &rho = *this;
             
             // --- Requires orthonormal decompositions
@@ -450,7 +458,7 @@ namespace kqp {
 			Real alpha_noise = epsilon * alpha;
             
 			// Includes the smoothing probability if not too small
-            if (epsilon >= EPSILON) 
+            if (epsilon >= kqp::epsilon()) 
                 plogq = log(alpha_noise) * (1. - inners.squaredNorm());
             
 			
@@ -474,14 +482,4 @@ namespace kqp {
     
 }
 
-
-#define KQP_PROBABILITIES_FMATRIX_GEN(prefix, type) \
-prefix template class kqp::KernelOperator<type>; \
-prefix template class kqp::Density<type>; \
-prefix template class kqp::Event<type>; 
-
-#ifndef SWIG
-#define KQP_SCALAR_GEN(type) KQP_PROBABILITIES_FMATRIX_GEN(extern,type)
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
 #endif

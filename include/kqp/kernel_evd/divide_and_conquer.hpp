@@ -35,7 +35,7 @@ namespace kqp {
     public:
         KQP_SCALAR_TYPEDEFS(Scalar);        
         
-        DivideAndConquerBuilder(const FSpace &fs) : KernelEVD<Scalar>(fs), batchSize(100) {}
+        DivideAndConquerBuilder(const FSpaceCPtr &fs) : KernelEVD<Scalar>(fs), batchSize(100) {}
         
         virtual ~DivideAndConquerBuilder() {}
         
@@ -87,7 +87,7 @@ namespace kqp {
         }
         
         // Rank update
-        virtual void _add(Real alpha, const FMatrix &mU, const ScalarAltMatrix &mA) override {
+        virtual void _add(Real alpha, const FMatrixCPtr &mU, const ScalarAltMatrix &mA) override {
             // Prepare
             if (builder->getUpdateCount() > batchSize)  {
                 flushBuilder();
@@ -210,11 +210,6 @@ namespace kqp {
         boost::shared_ptr<Cleaner<Scalar> > mergerCleaner;
     };
 }
-
-#ifndef SWIG
-#define KQP_SCALAR_GEN(type) extern template class kqp::DivideAndConquerBuilder<type>;
-#include <kqp/for_all_scalar_gen.h.inc>
-#endif
 
 #endif
 

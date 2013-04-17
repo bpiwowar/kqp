@@ -20,7 +20,8 @@
 
 #include "Eigen/Core"
 
-DEFINE_LOGGER(logger, "kqp.coneqp")
+#include <kqp/define_header_logger.hpp>
+DEFINE_KQP_HLOGGER("kqp.coneqp")
 
 #define KQP_NOT_IMPLEMENTED BOOST_THROW_EXCEPTION(kqp::not_implemented_exception())
 
@@ -1084,7 +1085,7 @@ namespace kqp { namespace cvxopt {
                 KKTPreSolver<Scalar>* kktpresolver, 
                 ConeQPOptions<Scalar> options) {
         
-        KQP_LOG_DEBUG(logger, "Starting QP optimization");
+        KQP_HLOG_DEBUG( "Starting QP optimization");
         
         typedef KQP_VECTOR(Scalar) Vector;
         typedef KQP_MATRIX(Scalar) Matrix;
@@ -1222,7 +1223,7 @@ namespace kqp { namespace cvxopt {
             boost::shared_ptr<KKTSolver<Scalar> > f3;
             try {
                 ScalingMatrix<Scalar> w;
-                KQP_LOG_DEBUG(logger, "Constructing a KKT solver");
+                KQP_HLOG_DEBUG( "Constructing a KKT solver");
                 f3 = boost::shared_ptr<KKTSolver<Scalar> >(kktpresolver->get(w));
             } catch(exception &e) {
                 e << qp_error_info("Rank(A) < p or Rank([P; A; G]) < n");
@@ -1312,12 +1313,12 @@ namespace kqp { namespace cvxopt {
             z = h;
             
             try {
-                KQP_LOG_DEBUG(logger, "x=" << x.adjoint());
-                KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
+                KQP_HLOG_DEBUG( "x=" << x.adjoint());
+                KQP_HLOG_DEBUG( "z=" << z.adjoint());
                 
                 f->solve(x, y, z);
-                KQP_LOG_DEBUG(logger, "x=" << x.adjoint());
-                KQP_LOG_DEBUG(logger, "z=" << z.adjoint());
+                KQP_HLOG_DEBUG( "x=" << x.adjoint());
+                KQP_HLOG_DEBUG( "z=" << z.adjoint());
             } catch(arithmetic_exception &e) {
                 // Add some context information
                 e << qp_error_info("Rank(A) < p or Rank([P; A; G]) < n");
@@ -1436,18 +1437,18 @@ namespace kqp { namespace cvxopt {
         Scalar &gap = r.gap, &relgap = r.relative_gap;
         
         
-        KQP_LOG_DEBUG(logger, boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres);
+        KQP_HLOG_DEBUG( boost::format("% 10s% 12s% 10s% 8s% 7s") % pcost % dcost % gap % pres % dres);
         
         gap = sdot(s, z, dims);
         
         int &iters = r.iterations;
         ScalingMatrix<Scalar> W;
         for(iters = 0; iters <= options.maxiters; iters++) {
-            KQP_LOG_DEBUG(logger, "========= ITERATION " << convert(iters));
-            KQP_LOG_DEBUG(logger, "x=" << convert(x.adjoint()));
-            KQP_LOG_DEBUG(logger, "z=" << convert(z.adjoint()));
-            KQP_LOG_DEBUG(logger, "s=" << convert(s.adjoint()));
-            KQP_LOG_DEBUG(logger, "h=" << convert(h.adjoint()));
+            KQP_HLOG_DEBUG( "========= ITERATION " << convert(iters));
+            KQP_HLOG_DEBUG( "x=" << convert(x.adjoint()));
+            KQP_HLOG_DEBUG( "z=" << convert(z.adjoint()));
+            KQP_HLOG_DEBUG( "s=" << convert(s.adjoint()));
+            KQP_HLOG_DEBUG( "h=" << convert(h.adjoint()));
             
             // f0 = (1/2)*x'*P*x + q'*x + r and  rx = P*x + q + A'*y + G'*z.
             KQP_VECTOR(Scalar) rx;
@@ -1491,7 +1492,7 @@ namespace kqp { namespace cvxopt {
             dres = resx/resx0;
             
             
-            KQP_LOG_DEBUG(logger, boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres);
+            KQP_HLOG_DEBUG( boost::format("%2d: % 8.4e % 8.4e % 4.0e% 7.0e% 7.0e") % iters % pcost % dcost % gap % pres % dres);
             
             if (( pres <= options.feastol && dres <= options.feastol && ( gap <= options.abstol || (!std::isnan(relgap) && relgap <= options.reltol) )) || iters == options.maxiters) {
                 int ind = dims.l  + dimsq;
@@ -1504,11 +1505,11 @@ namespace kqp { namespace cvxopt {
                 Scalar ts = max_step(s, dims);
                 Scalar tz = max_step(z, dims);
                 if (iters == options.maxiters) {
-                    KQP_LOG_DEBUG(logger, "Terminated (maximum number of iterations reached).");
+                    KQP_HLOG_DEBUG( "Terminated (maximum number of iterations reached).");
                     status = NOT_CONVERGED;
                 }
                 else {
-                    KQP_LOG_DEBUG(logger, "Optimal solution found.");
+                    KQP_HLOG_DEBUG( "Optimal solution found.");
                     status = OPTIMAL;
                 }
                 r.dual_slack = -tz;
@@ -1524,13 +1525,13 @@ namespace kqp { namespace cvxopt {
             
             if (iters == 0) {
                 compute_scaling(W, s, z, lmbda, dims);
-                KQP_LOG_DEBUG(logger, "lmbda=" << convert(lmbda.adjoint()));
+                KQP_HLOG_DEBUG( "lmbda=" << convert(lmbda.adjoint()));
             }
             
-            KQP_LOG_DEBUG(logger, "scaling(d)=" << convert(W.d));
+            KQP_HLOG_DEBUG( "scaling(d)=" << convert(W.d));
             
             ssqr(lmbdasq, lmbda, dims);
-            KQP_LOG_DEBUG(logger, "lmbdasq=" << convert(lmbdasq.adjoint()));
+            KQP_HLOG_DEBUG( "lmbdasq=" << convert(lmbdasq.adjoint()));
             
             
             // f3(x, y, z) solves
@@ -1641,9 +1642,9 @@ namespace kqp { namespace cvxopt {
                 dz = -(1-eta) * rz;
                 
                 try {
-                    KQP_LOG_DEBUG(logger, "[dx]=" << convert(dx.adjoint()));
-                    KQP_LOG_DEBUG(logger, "[dz]=" << convert(dz.adjoint()));
-                    KQP_LOG_DEBUG(logger, "[ds]=" << convert(ds.adjoint()));
+                    KQP_HLOG_DEBUG( "[dx]=" << convert(dx.adjoint()));
+                    KQP_HLOG_DEBUG( "[dz]=" << convert(dz.adjoint()));
+                    KQP_HLOG_DEBUG( "[ds]=" << convert(ds.adjoint()));
                     f4(dx, dy, dz, ds); 
                 }
                 catch(arithmetic_exception &e) {
@@ -1708,9 +1709,9 @@ namespace kqp { namespace cvxopt {
             }
             
             
-            KQP_LOG_DEBUG(logger, " STEP " << convert(step));
-            KQP_LOG_DEBUG(logger, "   dx=" << convert(dx.adjoint()));
-            KQP_LOG_DEBUG(logger, "   dy=" << convert(dx.adjoint()));
+            KQP_HLOG_DEBUG( " STEP " << convert(step));
+            KQP_HLOG_DEBUG( "   dx=" << convert(dx.adjoint()));
+            KQP_HLOG_DEBUG( "   dy=" << convert(dx.adjoint()));
             
             x += step * dx;
             y += step * dy;
