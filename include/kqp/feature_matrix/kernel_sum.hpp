@@ -279,7 +279,7 @@ namespace kqp {
         }
 
         virtual picojson::object save() const override {
-            picojson::object json;
+            picojson::object json = SpaceBase<Scalar>::save();
             picojson::array array;
             for(size_t i = 0; i < m_spaces.size(); i++) {
                 picojson::object listSpace;
