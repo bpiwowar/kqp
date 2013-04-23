@@ -89,10 +89,27 @@
 // Preserve the arguments
 #define %kqparg(X...) X
 
-//! Class with a cast
-%define DefineTemplateClass(NAME, TYPE, BASE)
+
+%define shared_template(NAME, TYPE)
+
+// Add closeable interface in java
+#if SWIGJAVA == 1
+%typemap(javainterfaces) TYPE "java.lang.AutoCloseable";
+%typemap(javacode) TYPE %{
+    /** Calls the delete operator */
+    public void close() {
+        this.delete();
+    }
+%}
+#endif
+
 %shared_ptr(TYPE);
 %template(NAME) TYPE;
+%enddef
+
+//! Class with a cast
+%define DefineTemplateClass(NAME, TYPE, BASE)
+shared_template(NAME, %kqparg(TYPE))
 %extend TYPE {
     static boost::shared_ptr< TYPE > cast(const boost::shared_ptr< BASE > &base) {
     return kqp::our_dynamic_cast< TYPE >(base);
@@ -238,10 +255,6 @@ namespace Eigen {
 %include <kqp/eigen_identity.hpp>
 %include <kqp/logging.hpp>
 
-%define shared_template(NAME, TYPE)
-%shared_ptr(TYPE)
-%template(NAME) TYPE;
-%enddef
 
 
 %include "kqp_all.i"
