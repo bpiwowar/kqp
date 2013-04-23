@@ -876,20 +876,20 @@ namespace kqp {
 	
 	template<typename type>
 	type getNumeric(const std::string &context, picojson::value &d, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
+		return boost::numeric_cast<type>(get<double>(context, d, key, (double)_default));
 	}
 	template<typename type>
-	int getNumeric(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
+	type getNumeric(const std::string &context, picojson::object &o, const std::string &key, const type & _default) {
+		return boost::numeric_cast<type>(get<double>(context, o, key, (double)_default));
 	}
 	
 	template<typename type>
-	int getNumeric(const std::string &context, picojson::value &d, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, d, key));
+	type getNumeric(const std::string &context, picojson::value &d, const std::string &key) {
+		return boost::numeric_cast<type>(get<double>(context, d, key));
 	}
 	template<typename type>
-	int getNumeric(const std::string &context, picojson::object &o, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, o, key));
+	type getNumeric(const std::string &context, picojson::object &o, const std::string &key) {
+		return boost::numeric_cast<type>(get<double>(context, o, key));
 	}
 	
 	
@@ -938,20 +938,24 @@ namespace kqp {
 	
 	template<typename type>
 	type getNumeric(const std::string &context, const picojson::value &d, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, d, key, (double)_default));
+        double v = get<double>(context, d, key, (double)_default);
+		return boost::numeric_cast<type>(v);
 	}
 	template<typename type>
-	int getNumeric(const std::string &context, const picojson::object &o, const std::string &key, const type & _default) {
-		return boost::lexical_cast<type>(get<double>(context, o, key, (double)_default));
+	type getNumeric(const std::string &context, const picojson::object &o, const std::string &key, const type & _default) {
+        double v = get<double>(context, o, key, (double)_default);
+		return boost::numeric_cast<type>(v);
 	}
 	
 	template<typename type>
-	int getNumeric(const std::string &context, const picojson::value &d, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, d, key));
+	type getNumeric(const std::string &context, const picojson::value &d, const std::string &key) {
+        double v = get<double>(context, d, key);
+		return boost::numeric_cast<type>(v);
 	}
 	template<typename type>
-	int getNumeric(const std::string &context, const picojson::object &o, const std::string &key) {
-		return boost::lexical_cast<type>(get<double>(context, o, key));
+	type getNumeric(const std::string &context, const picojson::object &o, const std::string &key) {
+        double v = get<double>(context, o, key);
+		return boost::numeric_cast<type>(v);
 	}
 }
 
