@@ -226,15 +226,26 @@ namespace kqp {
         	return n;
         }
 
-        virtual void getParameters(std::vector<Real> & parameters, int offset) const {
+        virtual void getParameters(std::vector<Real> & parameters, int offset) const override {
         	for(size_t i = 0; i < m_spaces.size(); i++) {
 				parameters[offset] = m_weights[i];
                 m_spaces[i]->getParameters(parameters, offset+1);
                 offset += m_spaces[i]->numberOfParameters() + 1;
 			}
         }
+        
+        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const override
+        {
+        	for(size_t i = 0; i < m_spaces.size(); i++) {
+				lower[offset] = 0;
+                upper[offset] = 1;
+                m_spaces[i]->getBounds(lower, upper, offset + 1);
+                offset += m_spaces[i]->numberOfParameters() + 1;
+			}            
+        }
+        
 
-        virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+        virtual void setParameters(const std::vector<Real> & parameters, int offset) override {
             m_sum = 0;
         	for(size_t i = 0; i < m_spaces.size(); i++) {
 				m_weights[i] = parameters[offset];

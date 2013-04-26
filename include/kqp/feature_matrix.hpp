@@ -331,14 +331,6 @@ public:
         return 1;
     }
 
-    virtual void getParameters(std::vector<Real> &, int) const
-    {
-    }
-
-    virtual void setParameters(const std::vector<Real> &, int)
-    {
-    }
-
     virtual picojson::object save() const override {
 		picojson::object json;
         json["name"] = picojson::value(name());
@@ -478,14 +470,16 @@ public:
         m_useLinearCombination = flag;
     }
 
-    void getParameters(std::vector<Real> &parameters, size_t offset) const
+    virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const
     {
-        getParameters(parameters, offset);
     }
 
-    void setParameters(const std::vector<Real> &parameters, size_t offset)
+    virtual void getParameters(std::vector<Real> &parameters, int offset) const
     {
-        setParameters(parameters, offset);
+    }
+
+    virtual void setParameters(const std::vector<Real> &parameters, int offset)
+    {
     }
 
     std::string demangle() const {
