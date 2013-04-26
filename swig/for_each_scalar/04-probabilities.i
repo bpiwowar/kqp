@@ -2,7 +2,6 @@
 
 %include "kqp/probabilities.hpp"
 
-%template(KernelOperator@SNAME@) kqp::KernelOperator< @STYPE@ >;
-%template(Event@SNAME@) kqp::Event< @STYPE@ >;
-
-%template(Density@SNAME@) kqp::Density< @STYPE@ >;
+shared_template(KernelOperator@SNAME@, kqp::KernelOperator< @STYPE@ >);
+shared_template(Event@SNAME@, kqp::Event< @STYPE@ >);
+shared_template(Density@SNAME@, kqp::Density< @STYPE@ >);

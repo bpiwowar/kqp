@@ -32,8 +32,7 @@ shared_template(ChainSelector@SNAME@, kqp::ChainSelector< @STYPE@ >);
 // --- Decomposition
 
 %include "kqp/decomposition.hpp"
-%template(Decomposition@SNAME@) kqp::Decomposition< @STYPE@ >;
-
+shared_template(Decomposition@SNAME@, kqp::Decomposition< @STYPE@ >)
 
 // --- Decomposition cleaner
 
