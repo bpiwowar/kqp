@@ -23,6 +23,49 @@
 #include <kqp/space_factory.hpp>
 
 namespace kqp {
+    
+    template<typename Scalar> 
+    class BoundedParameter {
+        Scalar m_value;
+        Scalar m_lower;
+        Scalar m_upper;
+        
+    public:
+        BoundedParameter(Scalar value, Scalar lower = -std::numeric_limits<Scalar>::infinity(), Scalar upper = std::numeric_limits<Scalar>::infinity()) 
+            : m_value(value), m_lower(lower), m_upper(upper) {
+                
+        }
+        
+        BoundedParameter(const picojson::object &o, const std::string &name, Scalar defaultValue, Scalar defaultLower, Scalar defaultUpper) {
+            auto p = o.find(name);
+            if (p != o.end() && p->second.is<picojson::object>()) {
+                m_value = getNumeric<Scalar>(name, p->second, "value", defaultValue);
+                m_lower = getNumeric<Scalar>(name, p->second, "lower", defaultLower);
+                m_upper = getNumeric<Scalar>(name, p->second, "upper", defaultUpper);
+            } else {
+                m_value = getNumeric<Scalar>("", o, "name", defaultValue);
+            }
+        }
+        
+        inline Scalar upper() const { return m_upper; }
+        inline Scalar lower() const { return m_lower; }
+        inline operator Scalar() const { return m_value; }
+        
+        inline BoundedParameter &operator=(Scalar value) { 
+            m_value = value; 
+            return *this; 
+        }
+        
+        picojson::value json() const {
+            picojson::value::object object;
+            object["value"] = picojson::value(m_value);
+            object["lower"] = picojson::value(m_lower);
+            object["upper"] = picojson::value(m_upper);
+            return picojson::value(object);
+        }
+        
+    };
+    
     template<typename Scalar> 
     class UnaryKernelSpace : public SpaceBase< Scalar > {
     public:
@@ -105,6 +148,7 @@ namespace kqp {
     };
 
 
+
     //! Gaussian Kernel \f$k'(x,y) = \exp(\frac{2 Re(k(x,y)) -  k(x) - k(y) \vert}{\sigma^2})\f$
     template<typename Scalar> class GaussianSpace : public UnaryKernelSpace<Scalar> {
     public:
@@ -168,6 +212,13 @@ namespace kqp {
             parameters[offset] = m_sigma;
             m_base->getParameters(parameters, offset + 1);
         }
+        
+        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const
+        {
+            lower[offset] = m_sigma.lower();
+            upper[offset] = m_sigma.upper();
+            m_base->getBounds(lower, upper, offset + 1);
+        }
 
         virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
             m_sigma = parameters[offset];
@@ -178,12 +229,12 @@ namespace kqp {
 
         virtual void load(const picojson::object &json) override {
             UnaryKernelSpace<Scalar>::load(json);
-            m_sigma = getNumeric<Real>("", json, "sigma", 1.);
+            m_sigma = BoundedParameter<Real>(json, "sigma", 1., 0., std::numeric_limits<Real>::infinity());
         }
 
         virtual picojson::object save() const override {
             picojson::object json = UnaryKernelSpace<Scalar>::save();
-			json["sigma"] = picojson::value(m_sigma);
+			json["sigma"] = m_sigma.json();
             return json;
         }
     protected:
@@ -204,7 +255,7 @@ namespace kqp {
             return (-(rowNorms.derived().rowwise().replicate(k.cols()) + colNorms.derived().adjoint().colwise().replicate(k.rows()) - 2 * k.derived().real()) / (m_sigma*m_sigma)).array().exp();
         }
       
-        Real m_sigma;
+        BoundedParameter<Real> m_sigma;
     };
     
     //! Polynomial Kernel \f$k'(x,y) = (k(x,y) + D)^p\f$
@@ -218,7 +269,7 @@ namespace kqp {
 #endif
         virtual FSpacePtr copy() const override { return FSpacePtr(new PolynomialSpace<Scalar>(m_bias, m_degree, m_base)); }        
 
-        PolynomialSpace(Real bias, int degree, const FSpacePtr &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias), m_degree(degree) {}
+        PolynomialSpace(Real bias, int degree, const FSpacePtr &base) : UnaryKernelSpace<Scalar>(base), m_bias(bias, 0), m_degree(degree) {}
         PolynomialSpace() : UnaryKernelSpace<Scalar>(FSpacePtr()), m_bias(0), m_degree(1) {}
 
         virtual Index dimension() const override { return -1; }
@@ -250,12 +301,19 @@ namespace kqp {
             return 1 + m_base->numberOfParameters();
         }
 
-        virtual void getParameters(std::vector<Real> & parameters, int offset) const {
+        virtual void getParameters(std::vector<Real> & parameters, int offset) const override {
             parameters[offset] = m_bias;
             m_base->getParameters(parameters, offset + 1);
         }
 
-        virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const override
+        {
+            lower[offset] = m_bias.lower();
+            upper[offset] = m_bias.upper();
+            m_base->getBounds(lower, upper, offset + 1);
+        }
+
+        virtual void setParameters(const std::vector<Real> & parameters, int offset) override {
             m_bias = parameters[offset];
             m_base->setParameters(parameters, offset + 1);
         }
@@ -263,14 +321,14 @@ namespace kqp {
         
         virtual void load(const picojson::object &json) {
             UnaryKernelSpace<Scalar>::load(json);
-            m_bias = getNumeric<Real>("", json, "bias", 1.);
+            m_bias = BoundedParameter<Real>(json, "bias", 1., 0., std::numeric_limits<Real>::infinity());
             m_degree = getNumeric<int>("", json, "degree", 2);
         }
 
         virtual picojson::object save() const override {
             picojson::object json = UnaryKernelSpace<Scalar>::save();
 			json["degree"] = picojson::value((double)m_degree);
-			json["bias"] = picojson::value(m_bias);
+			json["bias"] = m_bias.json();
             return json;
         }
 
@@ -286,7 +344,7 @@ namespace kqp {
             return (k.derived() + ScalarMatrix::Constant(k.rows(), k.cols(), m_bias)).array().pow(m_degree);
         }
       
-        Real m_bias;
+        BoundedParameter<Real> m_bias;
         int m_degree;
     };
     
