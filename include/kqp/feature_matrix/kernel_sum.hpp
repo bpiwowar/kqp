@@ -203,10 +203,10 @@ namespace kqp {
             kOffset += 1;
 
             for(size_t i = 0; i < m_spaces.size(); i++) {
-                partials[offset] += alpha * 2. * (m_weights[i]*m_weights[i]) * (values[kOffset].inner(mode) - k) / m_sum;
+                partials[offset] += alpha * 2. * m_weights[i] * (values[kOffset].inner(mode) - k) / m_sum;
                 m_spaces[i]->updatePartials(alpha * getNormalizedWeight(i), partials, offset + 1, values, kOffset, mode);
 
-                offset += m_spaces[i]->numberOfParameters() + 1;
+                offset += m_spaces[i]->numberOfParameters(false) + 1;
                 kOffset +=  m_spaces[i]->numberOfKernelValues();
             }
 
@@ -219,41 +219,86 @@ namespace kqp {
             return n;
         }
 
-        virtual int numberOfParameters() const {
+        virtual int numberOfParameters(bool onlyFreeParameters) const {
             int n = m_spaces.size();
         	for(size_t i = 0; i < m_spaces.size(); i++)
-        		n += m_spaces[i]->numberOfParameters();
-        	return n;
+        		n += m_spaces[i]->numberOfParameters(onlyFreeParameters);
+        	return onlyFreeParameters ? n - 1 : n;
         }
 
-        virtual void getParameters(std::vector<Real> & parameters, int offset) const override {
+        virtual void getParameters(bool onlyFreeParameters, std::vector<Real> & parameters, int offset = 0) const override {
         	for(size_t i = 0; i < m_spaces.size(); i++) {
-				parameters[offset] = m_weights[i];
-                m_spaces[i]->getParameters(parameters, offset+1);
-                offset += m_spaces[i]->numberOfParameters() + 1;
+				if (!onlyFreeParameters || i < m_spaces.size() - 1) {
+                    parameters[offset] = m_weights[i];
+                    offset += 1;
+                }
+                m_spaces[i]->getParameters(onlyFreeParameters, parameters, offset);
+                offset += m_spaces[i]->numberOfParameters(onlyFreeParameters);
 			}
         }
+
+        virtual void setParameters(bool onlyFreeParameters, const std::vector<Real> & parameters, int offset = 0) override {
+            m_sum = 0;
+        	for(size_t i = 0; i < m_spaces.size(); i++) {
+				if (!onlyFreeParameters || i < m_spaces.size() - 1) {
+                    m_weights[i] = parameters[offset];
+                    offset += 1;
+                }
+                m_sum += m_weights[i] * m_weights[i];
+                m_spaces[i]->setParameters(onlyFreeParameters, parameters, offset);
+                offset += m_spaces[i]->numberOfParameters(onlyFreeParameters);
+			}
+            
+            // If in only-free parameter mode, set the last parameter to be 1 - m_sum
+            if (onlyFreeParameters) {
+                if (m_sum > 1) {
+                    m_weights[m_spaces.size()-1] = 0;
+                } else {
+                    m_weights[m_spaces.size()-1] = std::sqrt(1 - m_sum);                    
+                    m_sum = 1;
+                }
+            }
+		}
         
-        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const override
+        virtual void getBounds(bool onlyFreeParameters, std::vector<Real> &lower, std::vector<Real> &upper, int offset = 0) const override
         {
         	for(size_t i = 0; i < m_spaces.size(); i++) {
-				lower[offset] = 0;
-                upper[offset] = 1;
-                m_spaces[i]->getBounds(lower, upper, offset + 1);
-                offset += m_spaces[i]->numberOfParameters() + 1;
+				if (!onlyFreeParameters || i < m_spaces.size() - 1) {
+                    lower[offset] = 0;
+                    upper[offset] = 1;
+                    offset += 1;
+                }
+                m_spaces[i]->getBounds(onlyFreeParameters, lower, upper, offset);
+                offset += m_spaces[i]->numberOfParameters(onlyFreeParameters);
 			}            
         }
         
 
-        virtual void setParameters(const std::vector<Real> & parameters, int offset) override {
-            m_sum = 0;
+        virtual int getNumberOfConstraints(bool onlyFreeParameters) const
+        {
+            int n = onlyFreeParameters ? 1 : 0;
         	for(size_t i = 0; i < m_spaces.size(); i++) {
-				m_weights[i] = parameters[offset];
-                m_sum += m_weights[i];
-                m_spaces[i]->setParameters(parameters, offset + 1);
-                offset += m_spaces[i]->numberOfParameters() + 1;
-			}
-		}
+                n += m_spaces[i]->getNumberOfConstraints(onlyFreeParameters);
+            }
+            return n;
+        }
+    
+        virtual void getConstraints(bool onlyFreeParameters, std::vector<Real> &constraintValues, int offset = 0) const
+        {
+			if (onlyFreeParameters) {
+                // Computes sum(free weights) - 1: (greater than 0 == constraint not respected)
+                Real c = -1.;
+            	for(size_t i = 0; i < m_spaces.size() - 1; i++) {
+                    c += m_weights[i] * m_weights[i];
+                }
+                constraintValues[offset] = c;
+                offset += 1;
+            }
+        	for(size_t i = 0; i < m_spaces.size(); i++) {
+                m_spaces[i]->getConstraints(onlyFreeParameters, constraintValues, offset);
+                offset += m_spaces[i]->getNumberOfConstraints(onlyFreeParameters);
+			}            
+        }
 
         FSpacePtr space(size_t i) { return m_spaces[i]; }
         FSpaceCPtr space(size_t i) const { return m_spaces[i]; }

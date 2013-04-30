@@ -204,32 +204,32 @@ namespace kqp {
             m_base->updatePartials(- beta, partials, offset+1, values, kOffset + 1, 1);
         }
 
-        virtual int numberOfParameters() const {
-            return 1 + m_base->numberOfParameters();
+        virtual int numberOfParameters(bool onlyFreeParameters) const {
+            return 1 + m_base->numberOfParameters(onlyFreeParameters);
         }
 
-        virtual void getParameters(std::vector<Real> & parameters, int offset) const {
+        virtual void getParameters(bool onlyFreeParameters, std::vector<Real> & parameters, int offset = 0) const {
             parameters[offset] = m_sigma;
-            m_base->getParameters(parameters, offset + 1);
+            m_base->getParameters(onlyFreeParameters, parameters, offset + 1);
         }
         
-        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const
+        virtual void getBounds(bool onlyFreeParameters, std::vector<Real> &lower, std::vector<Real> &upper, int offset = 0) const
         {
             lower[offset] = m_sigma.lower();
             upper[offset] = m_sigma.upper();
-            m_base->getBounds(lower, upper, offset + 1);
+            m_base->getBounds(onlyFreeParameters, lower, upper, offset + 1);
         }
 
-        virtual void setParameters(const std::vector<Real> & parameters, int offset)  {
+        virtual void setParameters(bool onlyFreeParameters, const std::vector<Real> & parameters, int offset = 0)  {
             m_sigma = parameters[offset];
             if (m_sigma < 0) m_sigma = -m_sigma;
             if (m_sigma < epsilon()) m_sigma = kqp::epsilon();
-            m_base->setParameters(parameters, offset + 1);
+            m_base->setParameters(onlyFreeParameters, parameters, offset + 1);
         }
 
         virtual void load(const picojson::object &json) override {
             UnaryKernelSpace<Scalar>::load(json);
-            m_sigma = BoundedParameter<Real>(json, "sigma", 1., 0., std::numeric_limits<Real>::infinity());
+            m_sigma = BoundedParameter<Real>(json, "sigma", 1., epsilon(), std::numeric_limits<Real>::infinity());
         }
 
         virtual picojson::object save() const override {
@@ -297,25 +297,25 @@ namespace kqp {
             self._innerY = Eigen::internal::pow(child._innerY + m_bias, (Scalar)m_degree);
         }
 
-        virtual int numberOfParameters() const {
-            return 1 + m_base->numberOfParameters();
+        virtual int numberOfParameters(bool onlyFreeParameters) const {
+            return 1 + m_base->numberOfParameters(onlyFreeParameters);
         }
 
-        virtual void getParameters(std::vector<Real> & parameters, int offset) const override {
+        virtual void getParameters(bool onlyFreeParameters, std::vector<Real> & parameters, int offset = 0) const override {
             parameters[offset] = m_bias;
-            m_base->getParameters(parameters, offset + 1);
+            m_base->getParameters(onlyFreeParameters, parameters, offset + 1);
         }
 
-        virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const override
+        virtual void getBounds(bool onlyFreeParameters, std::vector<Real> &lower, std::vector<Real> &upper, int offset = 0) const override
         {
             lower[offset] = m_bias.lower();
             upper[offset] = m_bias.upper();
-            m_base->getBounds(lower, upper, offset + 1);
+            m_base->getBounds(onlyFreeParameters, lower, upper, offset + 1);
         }
 
-        virtual void setParameters(const std::vector<Real> & parameters, int offset) override {
+        virtual void setParameters(bool onlyFreeParameters, const std::vector<Real> & parameters, int offset = 0) override {
             m_bias = parameters[offset];
-            m_base->setParameters(parameters, offset + 1);
+            m_base->setParameters(onlyFreeParameters, parameters, offset + 1);
         }
 
         

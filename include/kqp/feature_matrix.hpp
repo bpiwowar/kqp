@@ -318,10 +318,36 @@ public:
     /**
      * Returns the number of parameters for this feature space
     */
-    virtual int numberOfParameters() const
+    virtual int numberOfParameters(bool freeParameters) const
     {
         return 0;
     }
+
+    virtual void getBounds(bool onlyFreeParameters, std::vector<Real> &lower, std::vector<Real> &upper, int offset = 0) const
+    {
+    }
+
+    virtual void getParameters(bool onlyFreeParameters, std::vector<Real> &parameters, int offset = 0) const
+    {
+    }
+
+    virtual void setParameters(bool onlyFreeParameters, const std::vector<Real> &parameters, int offset = 0)
+    {
+    }
+    
+    virtual int getNumberOfConstraints(bool onlyFreeParameters) const
+    {
+        return 0;
+    }
+    
+    /**
+     * Computes the <= 0 constraints values
+    */
+    virtual void getConstraints(bool onlyFreeParameters, std::vector<Real> &constraintValues, int offset = 0) const
+    {
+    }
+
+    
 
     /**
      * Returns the number of stored kernel values for this kernel
@@ -470,17 +496,7 @@ public:
         m_useLinearCombination = flag;
     }
 
-    virtual void getBounds(std::vector<Real> &lower, std::vector<Real> &upper, int offset) const
-    {
-    }
 
-    virtual void getParameters(std::vector<Real> &parameters, int offset) const
-    {
-    }
-
-    virtual void setParameters(const std::vector<Real> &parameters, int offset)
-    {
-    }
 
     std::string demangle() const {
         return KQP_DEMANGLE(*this);
