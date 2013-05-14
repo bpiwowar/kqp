@@ -336,7 +336,16 @@ namespace kqp {
            auto result = m_cleaner.run(d.fs, d.mX, d.mY); 
            d.mX = std::move(result.mX);
            d.mY = std::move(result.mY);
-        }        
+        }   
+        
+        virtual picojson::value save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("null-space");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+    		json["epsilon"] = picojson::value(m_epsilon);
+    		return picojson::value(json);
+        }
+             
     private:
         Real m_epsilon;
     };

@@ -149,6 +149,10 @@ shared_template(NAME, %kqparg(TYPE))
 %shared_ptr(kqp::CleanerBase);
 %shared_ptr(kqp::KernelEVDBase);
 %shared_ptr(kqp::BuilderFactoryBase);
+namespace kqp {
+    class CleanerBase;
+    class AbstractSpace;
+}
 
 // ---- Command renaming
 
@@ -264,12 +268,21 @@ boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSONFile(const boost::s
 
 boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSON(const std::string &jsonString);
 boost::shared_ptr<kqp::CleanerBase> getCleanerFromJSONFile(const std::string &jsonFile);
+std::string toJSONString(const kqp::CleanerBase &cleaner);
 
 %{
     boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSON(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonString) {
         auto v = kqp::readJsonFromString(jsonString);
         return kqp::BuilderFactoryBase::getFactory(space, v);
     }
+    
+    std::string toJSONString(const kqp::CleanerBase &cleaner) {
+		picojson::value json = cleaner.save();
+		std::ostringstream out;
+        json.serialize(std::ostream_iterator<char>(out));
+		return out.str();
+    }
+    
 
     boost::shared_ptr<kqp::BuilderFactoryBase> getFactoryFromJSONFile(const boost::shared_ptr<kqp::AbstractSpace> &space, const std::string &jsonFile) {
         auto v = kqp::readJsonFromFile(jsonFile);

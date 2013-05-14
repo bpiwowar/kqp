@@ -431,6 +431,25 @@ namespace kqp {
             }
         }
         
+        virtual picojson::value save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("selector");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+            
+            picojson::object ratio;
+            ratio["reset"] = picojson::value(m_preImageRatios.first);
+            ratio["max"] = picojson::value(m_preImageRatios.second);
+    		json["ratio"] = picojson::value(ratio);
+            
+            picojson::object range;
+            range["reset"] = picojson::value(m_preImageRatios.first);
+            range["max"] = picojson::value(m_preImageRatios.second);
+    		json["range"] = picojson::value(range);
+            
+    		return picojson::value(json);
+        }
+        
+        
     private:
         /**
          * Minimum/Maximum number of pre-images per rank (ratios and absolute)

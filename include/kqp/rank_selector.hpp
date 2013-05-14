@@ -145,6 +145,8 @@ namespace kqp {
          */
         virtual void selection(EigenList<Scalar>& eigenvalues) const = 0;
         
+        /** Saves the selector to JSON */
+        virtual picojson::object save() const = 0;
     };
     
     /**
@@ -166,6 +168,18 @@ namespace kqp {
                 (*i)->selection(eigenvalues);
         }
         
+        virtual picojson::object save() const {
+            picojson::object json;
+            json["name"] = picojson::value("chain");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+            picojson::array array;
+            for(auto selector: this->selectors) {
+                array.push_back(picojson::value(selector->save()));
+            }
+            json["list"] = picojson::value(array);
+    		return json;            
+        }
+        
     };
 
 
@@ -178,6 +192,7 @@ namespace kqp {
         virtual void reset() = 0;
         virtual void add(Scalar value) = 0;
         virtual Scalar get() const = 0;
+        virtual picojson::value save() const = 0;
     };
 
     template<typename Scalar> 
@@ -192,6 +207,10 @@ namespace kqp {
 
         Scalar get() const {
             return max;
+        }
+        
+        virtual picojson::value save() const {
+            return picojson::value("max");
         }
     private:
         Scalar max;
@@ -211,6 +230,10 @@ namespace kqp {
 
         Scalar get() const {
             return sum / (Scalar)count;
+        }
+
+        virtual picojson::value save() const {
+            return picojson::value("mean");
         }
     private:
         Scalar sum;
@@ -245,7 +268,16 @@ namespace kqp {
                         eigenvalues.remove(i);
    
         }
-
+        
+        virtual picojson::object save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("ratio");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+            json["minRatio"] = picojson::value(minRatio);
+            json["aggregator"] = picojson::value(m_aggregator->save());
+            return json;
+        }
+    
     private:
         Scalar minRatio;
         AggregatorPtr m_aggregator;
@@ -297,6 +329,15 @@ namespace kqp {
             // Select the rank highest eigenvalues
             for(Index i = 0; i < eigenvalues.size() - resetRank; i++) 
                 eigenvalues.remove(values[i]);
+        }
+
+        virtual picojson::object save() const {
+            picojson::object json;
+            json["name"] = picojson::value("rank");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+            json["max"] = picojson::value(maxRank);
+            json["reset"] = picojson::value(resetRank);
+            return json;
         }
     
     };

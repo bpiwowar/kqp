@@ -68,6 +68,13 @@ namespace kqp {
         static void run(const FMatrixPtr &mF, ScalarAltMatrix &mY) {
             CleanerUnused<Scalar>::_run(mF, mY);
         }
+        
+        virtual picojson::value save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("unused");
+    		return picojson::value(json);
+        }
+        
     };
     
 }

@@ -32,6 +32,7 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
     public:
         CleanerBase() {}
         virtual ~CleanerBase() {}
+        virtual picojson::value save() const = 0;
     };
 
     template<typename Scalar> class Cleaner : public CleanerBase {
@@ -40,6 +41,7 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
         
         //! Cleanup
         virtual void cleanup(Decomposition<Scalar> &) const {}        
+        
     };
     
     
@@ -71,6 +73,17 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
             list.push_back(item);
         } 
         
+        virtual picojson::value save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("list");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+            picojson::array array;
+            for(auto cleaner: this->list) {
+                array.push_back(picojson::value(cleaner->save()));
+            }
+            json["list"] = picojson::value(array);
+    		return picojson::value(json);
+        }
     private:
         std::vector< Ptr > list;
     };
@@ -104,6 +117,15 @@ DEFINE_KQP_HLOGGER("kqp.cleaner");
             }
             
         }
+        
+        virtual picojson::value save() const override {
+            picojson::object json;
+            json["name"] = picojson::value("selector");
+    		json["scalar"] = picojson::value(ScalarInfo<Scalar>::name());
+    		json["selector"] = picojson::value(selector->save());
+    		return picojson::value(json);
+        }
+        
     private:
         //! Eigen value selector
         boost::shared_ptr< const Selector<Real> > selector;

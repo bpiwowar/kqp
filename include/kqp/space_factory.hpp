@@ -24,6 +24,7 @@
 
 #include <kqp/picojson.hpp>
 #include <kqp/feature_matrix.hpp>
+#include <kqp/cleanup.hpp>
 
 namespace kqp {
     template<typename Scalar, typename SpaceInstance> static AbstractSpace* CONSTRUCTOR() {
@@ -73,13 +74,12 @@ namespace kqp {
         }
 		
         //! Save to a string
-        static inline std::string getJSONString(AbstractSpace &space) {
+        static inline std::string getJSONString(const AbstractSpace &space) {
 			picojson::object json = space.save();
 			std::ostringstream out;
 			picojson::value(json).serialize(std::ostream_iterator<char>(out));
 			return out.str();
-        }
-		
+        }		
 		
 #ifndef SWIG
         //! Registration class

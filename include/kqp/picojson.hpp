@@ -84,6 +84,8 @@ namespace picojson {
     value();
     value(int type, bool);
     explicit value(bool b);
+    explicit value(long n);
+    explicit value(int n);
     explicit value(double n);
 	explicit value(float n);
     explicit value(const std::string& s);
@@ -138,6 +140,14 @@ namespace picojson {
 	
   inline value::value(float n) : type_(number_type) {
 	u_.number_ = n;
+  }
+
+  inline value::value(long n) : type_(number_type) {
+    u_.number_ = n;
+  }
+
+  inline value::value(int n) : type_(number_type) {
+    u_.number_ = n;
   }
 	
   inline value::value(const std::string& s) : type_(string_type) {
