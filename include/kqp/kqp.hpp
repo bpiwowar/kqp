@@ -106,7 +106,6 @@ namespace Eigen {
 
 #include <kqp/exceptions.hpp>
 
-namespace kqp {
 # //! New shared ptr
 # define NEW_SHARED(T,...) boost::shared_ptr<T>(T(__VA_ARGS__))
 
@@ -176,7 +175,6 @@ namespace kqp {
 
 #    ifndef NDEBUG
 
-#include <kqp/logging.hpp>
     
 #     //! Useful to remove unuseful statements when debugging (or not)
 #     define KQP_M_NDEBUG(x)
@@ -189,7 +187,7 @@ namespace kqp {
 
 #     //! Throw an exception with a message (when NDEBUG is not defined, log a message and abort for backtrace access)
 #     define KQP_THROW_EXCEPTION(type, message) { \
-    kqp::logger::prepareLogger(); KQP_LOG_ERROR(kqp::main_logger(), "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  \
+     KQP_LOG_ERROR(kqp::main_logger(), "[Exception " << KQP_DEMANGLE(type()) << "] " << message);  \
     abort(); }
 
 #    else // No DEBUG
@@ -216,6 +214,7 @@ namespace kqp {
         KQP_THROW_EXCEPTION(kqp::assertion_exception, (boost::format("Assert failed [%s]: %s")  %KQP_STRING_IT(condition) %message).str()); \
     }}
 
+#include <kqp/logging.hpp>
 
 #endif // ndef(NOLOGGING)
     
@@ -231,6 +230,8 @@ namespace kqp {
 #define KQP_LOG_ASSERT_F(name,condition,message,args) KQP_LOG_ASSERT(name,condition,(boost::format(message) args).str())
 #define KQP_LOG_DEBUG_S(name,message) LOG4CXX_DEBUG(name, "[" << KQP_DEMANGLE(*this) << "/" << this << "] " << message)
 
+
+namespace kqp {
 
     // Using declarations
     using Eigen::Dynamic;

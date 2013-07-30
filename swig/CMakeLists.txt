@@ -91,7 +91,7 @@ if (JAVA_KQP OR PYTHON_KQP)
 
       
       message(STATUS "Generated files ${SWIG_MODULE_kqp_jni_EXTRA_DEPS}")
-      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${SWIG_SCALAR_GENERATED_FILES})
+      SET(SWIG_MODULE_kqp_jni_EXTRA_DEPS ${SWIG_SCALAR_GENERATED_FILES} ${kqp_SRC})
       SWIG_ADD_MODULE(kqp_jni java kqp.i)
       ADD_DEPENDENCIES(kqp_jni DEPENDS pre_swig)
       SWIG_LINK_LIBRARIES(kqp_jni ${LIBKQP_LIBRARIES})
@@ -132,8 +132,8 @@ if (JAVA_KQP OR PYTHON_KQP)
   # --- Python support
   
   if (PYTHON_KQP)
-      FIND_PACKAGE(PythonLibs REQUIRED)
-      FIND_PACKAGE(PythonInterp)
+      FIND_PACKAGE(PythonLibs)
+      FIND_PACKAGE(PythonInterp REQUIRED)
       INCLUDE_DIRECTORIES()
 
   

@@ -26,6 +26,9 @@
 
 namespace kqp{
     
+#   include <kqp/define_header_logger.hpp>
+    DEFINE_KQP_HLOGGER("kqp.kevd.accumulator");
+    
     /**
      * @brief Accumulation based computation of the density.
      *
@@ -55,8 +58,13 @@ namespace kqp{
         
         virtual void _add(Real alpha, const FMatrixCPtr &mX, const ScalarAltMatrix &mA) override {           
             // Just add the vectors using linear combination
-            if(alpha < 0)
-                KQP_THROW_EXCEPTION(not_implemented_exception, "Downdating with accumulator");
+            if(alpha < 0) {
+                KQP_HLOG_WARN_F("Downdating with accumulator (alpha=%g) [threshold=%g]", % -kqp::epsilon())
+                // Just ignore if small enough
+                if (-alpha < kqp::epsilon())
+                    return;
+                KQP_THROW_EXCEPTION_F(not_implemented_exception, "Downdating with accumulator (alpha=%g)", % alpha);
+            }
             
             FMatrixPtr fm = this->getFSpace()->linearCombination(mX, mA, Eigen::internal::sqrt(alpha));
             fMatrix->add(*fm);

@@ -33,6 +33,20 @@ shared_template(ChainSelector@SNAME@, kqp::ChainSelector< @STYPE@ >);
 
 %include "kqp/decomposition.hpp"
 shared_template(Decomposition@SNAME@, kqp::Decomposition< @STYPE@ >)
+%extend kqp::Decomposition< @STYPE@ > {
+    std::string save() {
+        std::ostringstream oss;
+        boost::archive::binary_oarchive ar(oss);
+        ar & *self;
+        return oss.str();
+    }
+    
+    void load(const std::string &data) {
+        std::istringstream iss(data);
+        boost::archive::binary_iarchive ar(iss);
+        ar & *self;        
+    }
+}
 
 // --- Decomposition cleaner
 
@@ -88,3 +102,7 @@ DefineKernelEVD(KEVDIncremental@SNAME@, kqp::IncrementalKernelEVD< @STYPE@ >);
 
 %include "kqp/kernel_evd/divide_and_conquer.hpp"
 DefineKernelEVD(KEVDDivideAndConquer@SNAME@, kqp::DivideAndConquerBuilder< @STYPE@ >);
+
+
+// Save & Load decompositions
+

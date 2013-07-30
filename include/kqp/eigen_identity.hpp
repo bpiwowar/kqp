@@ -110,6 +110,14 @@ namespace Eigen {
         }
 #endif
         
+
+        template<class Archive>
+        inline void serialize(Archive & ar, const unsigned int /*file_version*/) {
+            ar & m_rows;
+            ar & m_cols;
+        }
+        
+        
     private:
         Index m_rows;
         Index m_cols;

@@ -192,7 +192,6 @@ public:
     virtual FMatrixBasePtr copy() const = 0;
 
 
-
 #ifndef SWIG
     /** Dynamic cast */
     template<typename T> inline const T &as() const
@@ -318,24 +317,24 @@ public:
     /**
      * Returns the number of parameters for this feature space
     */
-    virtual int numberOfParameters(bool freeParameters) const
+    virtual int numberOfParameters(bool /*freeParameters*/) const
     {
         return 0;
     }
 
-    virtual void getBounds(bool onlyFreeParameters, std::vector<Real> &lower, std::vector<Real> &upper, int offset = 0) const
+    virtual void getBounds(bool /*onlyFreeParameters*/, std::vector<Real> &/*lower*/, std::vector<Real> &/*upper*/, int /*offset*/ = 0) const
     {
     }
 
-    virtual void getParameters(bool onlyFreeParameters, std::vector<Real> &parameters, int offset = 0) const
+    virtual void getParameters(bool /*onlyFreeParameters*/, std::vector<Real> &/*parameters*/, int /*offset*/ = 0) const
     {
     }
 
-    virtual void setParameters(bool onlyFreeParameters, const std::vector<Real> &parameters, int offset = 0)
+    virtual void setParameters(bool /*onlyFreeParameters*/, const std::vector<Real> &/*parameters*/, int /*offset*/ = 0)
     {
     }
     
-    virtual int getNumberOfConstraints(bool onlyFreeParameters) const
+    virtual int getNumberOfConstraints(bool /*onlyFreeParameters*/) const
     {
         return 0;
     }
@@ -343,7 +342,7 @@ public:
     /**
      * Computes the <= 0 constraints values
     */
-    virtual void getConstraints(bool onlyFreeParameters, std::vector<Real> &constraintValues, int offset = 0) const
+    virtual void getConstraints(bool /*onlyFreeParameters*/, std::vector<Real> &/*constraintValues*/, int /*offset*/ = 0) const
     {
     }
 

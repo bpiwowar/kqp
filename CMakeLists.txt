@@ -86,7 +86,7 @@ INCLUDE_DIRECTORIES(${LIBLOG4CXX_INCLUDE_DIRS})
 
 # --- Find Boost
 
-FIND_PACKAGE(Boost)
+FIND_PACKAGE(Boost COMPONENTS serialization)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
 # -- Find log4cxx
@@ -125,13 +125,15 @@ ENDIF()
 # --- Build kqp library
 
 
-file(GLOB kqp_kqp_H  "include/kqp/*.hpp" "include/kqp/for_all*")
-file(GLOB kqp_fmatrix_H "ADD_CUSTOM_COMMAND/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
+file(GLOB kqp_kqp_H  "include/kqp/*.hpp")
+file(GLOB kqp_fmatrix_H "include/kqp/feature_matrix/*.hpp"  "include/kqp/feature_matrix.hpp")
 file(GLOB kqp_kernel_evd_H "include/kqp/kernel_evd/*.hpp" "include/kqp/kernel_evd.hpp")
 file(GLOB kqp_cleaning_H "include/kqp/cleaning/*.hpp" "include/kqp/cleaning.hpp")
 
+SET(kqp_H "")
+ 
 FOREACH(name kqp fmatrix cleaning kernel_evd)
-	SET(kqp_${name}_SRC ${kqp_${name}_H})
+	LIST(APPEND kqp_SRC "${kqp_${name}_H}")
 ENDFOREACH(name)
 
 SOURCE_GROUP("Spaces" FILES ${kqp_fmatrix_H})
@@ -140,7 +142,7 @@ SOURCE_GROUP("Cleaning" FILES ${kqp_cleaning_H})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
 
-SET(LIBKQP_LIBRARIES ${LIBLOG4CXX_LIBRARY})
+SET(LIBKQP_LIBRARIES ${LIBLOG4CXX_LIBRARY} ${Boost_LIBRARIES})
 
 # --- Doxygen
 

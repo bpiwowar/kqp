@@ -44,15 +44,20 @@ ADD_EXECUTABLE(test_projection ${kqp.test.projection})
 TARGET_LINK_LIBRARIES(test_projection ${LIBKQP_LIBRARIES})
 
 # Probabilities
- FILE(GLOB kqp.test.probabilities probability_test.[ch]pp)
- ADD_EXECUTABLE(test_probabilities ${kqp.test.probabilities})
- TARGET_LINK_LIBRARIES(test_probabilities ${LIBKQP_LIBRARIES})
+FILE(GLOB kqp.test.probabilities probability_test.[ch]pp)
+ADD_EXECUTABLE(test_probabilities ${kqp.test.probabilities})
+TARGET_LINK_LIBRARIES(test_probabilities ${LIBKQP_LIBRARIES})
+
+# Probabilities
+FILE(GLOB kqp.test.serialization test_serialization.[ch]pp)
+ADD_EXECUTABLE(test_serialization "${kqp.test.serialization}")
+TARGET_LINK_LIBRARIES(test_serialization ${LIBKQP_LIBRARIES})
  
 
 
 # All tests
 
-ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_evd-utils test_fmatrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence)
+ADD_DEPENDENCIES(run-tests DEPENDS test_alt-matrix test_evd-utils test_fmatrix test_evd-update test_projection test_probabilities test_qp-solver test_reduced-set test_kernel-evd test_divergence test_serialization)
 
 # --- Useful functions
 
@@ -134,4 +139,8 @@ do_test(divergence_simpleTest divergence simple)
 do_test(divergence_fullTest divergence full)
 do_test(divergence_simpleEpsilonTest divergence simpleEpsilon)
 do_test(divergence_zeroTest divergence zero)
+
+# --- Serialization
+do_test(serialization serialization)
+
 

@@ -21,6 +21,8 @@
 #include <utility>
 #include <kqp/feature_matrix.hpp>
 
+
+
 namespace kqp
 {
 
@@ -121,7 +123,24 @@ struct Decomposition
         return mX->size() == mY.rows() && mY.cols() == mD.rows();
     }
 
+    Index rank() const {
+        return mD.size();
+    }
 
+    Index preimagesCount() const {
+        return mX->size();
+    }
+    
+    /** Serialize the matrices */
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int /*version*/) {
+        ar & mX;
+        ar & mY;
+        ar & mD;
+        ar & orthonormal;
+        ar & updateCount;
+    }
+    
 };
 
 

@@ -17,6 +17,8 @@
 #ifndef __KQP_SPARSE_DENSE_FEATURE_MATRIX_H__
 #define __KQP_SPARSE_DENSE_FEATURE_MATRIX_H__
 
+#include <boost/serialization/map.hpp>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/function_output_iterator.hpp>
 
@@ -421,6 +423,12 @@ namespace kqp {
             return m_matrix;
         }
 
+        template<typename Archive>
+        inline void serialize(Archive & ar, const unsigned int /*file_version*/) {
+            ar & m_dimension;
+            ar & m_map;
+            ar & m_matrix;
+        }
     private:
         //! Dimension of the space
         Index m_dimension;
