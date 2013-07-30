@@ -267,7 +267,7 @@ namespace kqp {
 
         
         friend class Density<Scalar>;
-        
+#ifndef SWIG        
         static Density<Scalar> projectWithLC(const Density<Scalar>& density, const Event<Scalar> &event) {        
             event.orthonormalize();
             ScalarMatrix lc;
@@ -327,7 +327,8 @@ namespace kqp {
             // Return
             return Density<Scalar>(event.m_operator.fs, mX, mY, density.S(), false);
         }
-        
+#endif
+                
         /**
          * @brief Project onto a subspace.
          */
