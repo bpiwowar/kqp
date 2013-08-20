@@ -88,7 +88,7 @@ namespace kqp{
             ScalarMatrix __mY;
             __mY.noalias() = _mY * _mD.cwiseAbs().cwiseSqrt().cwiseInverse().asDiagonal();
             
-            return Decomposition<Scalar>(this->getFSpace(), fMatrix, __mY, _mD, true);
+            return Decomposition<Scalar>(this->getFSpace(), fMatrix, __mY, _mD, true, false);
         }
         
     private:

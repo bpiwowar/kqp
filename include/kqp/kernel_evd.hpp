@@ -25,10 +25,10 @@
 #include <kqp/feature_matrix.hpp>
 #include <kqp/rank_selector.hpp>
 
-
-
 namespace kqp {
 
+    template<typename Scalar> class Decomposition;
+    
 	/** Base class for all kernel EVD */
 	class KernelEVDBase {
 	public:

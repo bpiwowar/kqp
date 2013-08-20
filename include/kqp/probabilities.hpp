@@ -62,7 +62,7 @@ namespace kqp {
          * @param evd The kernel EVD 
          */
         KernelOperator(const KernelEVD<Scalar> & evd) : m_operator(evd.getDecomposition()) {
-            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
+            m_operator.squareRoot(true);
         }
         
         /**
@@ -71,18 +71,17 @@ namespace kqp {
          * @param evd The decomposition (in orthonomormal form)
          * @param takeSqrt Takes the square root of the eigen values
         */
-        KernelOperator(const Decomposition<Scalar> & d, bool takeSqrt) : m_operator(d) {
-            if (takeSqrt) { 
-                this->orthonormalize();
-                m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
-            }
+        KernelOperator(const Decomposition<Scalar> & d) : m_operator(d) {
+            m_operator.squareRoot(true);
         }
         
         
         /**
          * \brief Creates a new kernel operator
          */
-        KernelOperator(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) : m_operator(fs, mX,mY,mS,orthonormal) {
+        KernelOperator(const FSpaceCPtr &fs, const FMatrixCPtr &mX, const ScalarAltMatrix &mY, const RealVector &mS, bool orthonormal) 
+            : m_operator(fs, mX,mY,mS,orthonormal,false) {
+                m_operator.squareRoot(true);
         }
         
         
@@ -148,22 +147,6 @@ namespace kqp {
             return m_operator.fs->k(X(), Y(), S()).squaredNorm();
         }
         
-        //! Computes the trace of the operator
-        Real trace() const {
-            if (isOrthonormal()) 
-                return m_operator.mD.cwiseAbs2().sum();
-            return m_operator.fs->k(X(), Y(), S()).trace();
-        }
-        
-        //! Multiply the operator by a positive real
-        void multiplyBy(Real alpha) {
-            if (alpha < 0) 
-                KQP_THROW_EXCEPTION_F(out_of_bound_exception, "Cannot multiply a kernel operator by a negative value (%g)", %alpha);
-            
-            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_multiple_op<Real>(std::sqrt(alpha)));
-        }
-        
-        
         /**
          * @brief Compute the inner products of the scaled basis of the operators 
          * @param that The other operator
@@ -188,22 +171,7 @@ namespace kqp {
         
         //! Orthonormalize the decomposition (non const version)
         void _orthonormalize() {
-            // Check if we have something to do
-            if (isOrthonormal()) return;
-
-            // Orthonornalize (keeping in mind that our diagonal is the square root)
-            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_sqrt_op<Real>());
-            Orthonormalize<Scalar>::run(m_operator.fs, m_operator.mX, m_operator.mY, m_operator.mD);
-            m_operator.mD.unaryExprInPlace(Eigen::internal::scalar_abs2_op<Real>());
-
-            // If we can linearly combine, use it to reduce the future amount of computation
-            if (m_operator.fs->canLinearlyCombine()) {
-                m_operator.mX = m_operator.fs->linearCombination(m_operator.mX, m_operator.mY, 1);
-                m_operator.mY = Eigen::Identity<Scalar>(X().size(),X().size());
-            } 
-            
-            m_operator.orthonormal = true;
-            
+            m_operator.orthonormalize();    
         }
         
         //! The current decomposition
@@ -252,7 +220,7 @@ namespace kqp {
         : KernelOperator<Scalar>(fs, mX, mY, RealVector::Ones(mX->size()), orthonormal) {
         }
         
-        Event(const Decomposition<Scalar> & d, bool takeSqrt, bool fuzzy) : KernelOperator<Scalar>(d, takeSqrt) {
+        Event(const Decomposition<Scalar> & d, bool fuzzy) : KernelOperator<Scalar>(d) {
             if (!fuzzy) {
                 this->orthonormalize();
                 this->m_operator.mD = RealVector::Ones(this->Y().cols());
@@ -375,13 +343,13 @@ namespace kqp {
             : KernelOperator<Scalar>(fs, mX, Eigen::Identity<Scalar>(mX->size(),mX->size()), RealVector::Ones(mX->size()), orthonormal) {
         }
         
-        Density(const Decomposition<Scalar> & d, bool takeSqrt) : KernelOperator<Scalar>(d, takeSqrt) {
+        Density(const Decomposition<Scalar> & d) : KernelOperator<Scalar>(d) {
         }
         
         
         //! Normalise the density
         void normalize() {
-            this->multiplyBy((Scalar)1 / this->trace());
+            this->m_operator.traceNormalize();
         }
         
         /**
