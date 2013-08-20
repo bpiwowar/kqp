@@ -49,8 +49,14 @@ MESSAGE(STATUS "Creating project KQP ${libkqp_VERSION} with build type ${CMAKE_B
 
 # --- Compilation flags
 
+MESSAGE(STATUS "Compiler ID is [${CMAKE_CXX_COMPILER_ID}]")
 
-# - Gnu CC
+# - Clang
+IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    ADD_DEFINITIONS("--std=c++11")
+ENDIF()
+
+# - Gnu CC  
 IF(CMAKE_COMPILER_IS_GNUCXX)
   MESSAGE(STATUS "GCC version ${CMAKE_C_COMPILER_VERSION}")
     
