@@ -1,8 +1,0 @@
----
-layout: default
-title: Release 1.1.0
----
-
-Release 1.1.0 fixes many bugs from 1.0.0 and the API changed (reducing the rank and number of pre-images in decompositions). The API can be considered to be much more stable than version 1.0 - bugfixes and new functionalities will be introduced in next releases.
-
-Find the 1.1.0 version at "kqp@github":https://github.com/bpiwowar/kqp/tags

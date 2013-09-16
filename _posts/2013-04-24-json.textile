@@ -1,0 +1,6 @@
+---
+layout: default
+title: JSON data
+---
+
+Json is now used to serialize the different models 

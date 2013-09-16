@@ -1,0 +1,6 @@
+---
+layout: default
+title: JSON data
+---
+
+Json is now used to serialize the different models (cleaners and builders), and can be taken in input.
