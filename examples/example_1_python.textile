@@ -1,0 +1,7 @@
+---
+layout: default
+title: Example of python code
+---
+{% highlight python %}
+{% include example_1.py %}
+{% endhighlight %}

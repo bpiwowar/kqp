@@ -11,16 +11,17 @@ If you use KQP, please cite the *"associated technical report":http://arxiv.org/
 
 Features
 * L-GPL license
-* Wrappers in Java and Python (planned)
+* Wrappers in Java and Python
 * Various methods to compute a symmetric kernel EVD, i.e. $$\sum_i \alpha_i \varphi_i \varphi_i^\dagger $$ where \(\varphi_i\) lies in an (implicit) feature space 
 * Various feature spaces:
 ** Finite Hilbert space: Dense, Sparse, Sparse with dense subspace
-** Kernels: Gaussian, polynomial
+** Kernels: Gaussian, polynomial, linear combination
 * Quantum probabilities: 
 ** computation,
 ** conditionalisation,
 ** "entropy":http://en.wikipedia.org/wiki/Joint_quantum_entropy,
 ** and "divergence":http://en.wikipedia.org/wiki/Quantum_relative_entropy.
+** partials with respect to kernel parameters
 * Other modules:
 ** Cone Quadratic Optimization (translated from python from "cvxopt":http://abel.ee.ucla.edu/cvxopt/),
 ** Pre-image removal, 
@@ -33,18 +34,24 @@ To install KQP, please refer to this "page":install.html
 
 h3. C++
 
-"C++ API documentation":cpp/index.html
+"C++ API documentation":api/cpp/index.html
 
 "Example":examples/example_1_cpp.html
 
 h3. Java
 
-"Java API documentation":javadoc/index.html
+"Java API documentation":api/java/index.html
 
 "Example":examples/example_1_java.html
+
+h3. Python
+
+"Python API documentation":api/python/kqp.html
+
+"Example":examples/example_1_python.html
 
 h2. News
 
 {% for post in site.posts %}
-  {{ post.date | date_to_string }} - "{{post.title}}":{{ post.url }}
+  <div>{{ post.date | date_to_string }} - "{{post.title}}":{{ post.url }}</div>
 {% endfor %}

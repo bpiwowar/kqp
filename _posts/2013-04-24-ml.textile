@@ -1,6 +1,6 @@
 ---
 layout: default
-title: JSON data
+title: Learning kernel parameters
 ---
 
-Json is now used to serialize the different models (cleaners and builders), and can be taken in input.
+Kernel parameters (gaussian, linear combination, polynomial) can be learnt through the use of the partial function.
