@@ -164,11 +164,11 @@ namespace kqp {
 
 // ---- Command renaming
 
-%rename operator++ next;
-%rename operator!= notEqual;
-%rename operator()(Index) get;
-%rename operator()(Index, Index) get;
-%rename operator[] at;
+%rename(next) ::operator++;
+%rename(notEqual) ::operator!=;
+%rename ::operator()(Index) get;
+%rename ::operator()(Index, Index) get;
+%rename ::operator[] at;
 
 %ignore kqp::Intervals;
 %ignore kqp::IntervalsIterator;
